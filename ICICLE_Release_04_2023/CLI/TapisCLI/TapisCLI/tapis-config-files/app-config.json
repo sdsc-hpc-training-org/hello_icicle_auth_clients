@@ -1,0 +1,23 @@
+{
+    "id": "img-classify.mkyzubr",
+    "version": "0.1.0",
+    "description": "Simple image classifier demo application",
+    "runtime": "SINGULARITY",
+    "runtimeOptions": ["SINGULARITY_RUN"],
+    "containerImage": "docker://tapis/img-classify:0.1",
+    "jobType": "BATCH",
+    "jobAttributes": {
+      "parameterSet": {
+        "appArgs": [
+         {"name": "arg1", "arg": "--image_file", "inputMode": "FIXED"},
+         {"name": "input_file", "inputMode": "REQUIRED"}
+        ],
+        "archiveFilter": { "includeLaunchFiles": false }
+      },
+      "execSystemId": "stampede2.mkyzubr",
+      "nodeCount": 1,
+      "coresPerNode": 1,
+      "memoryMB": 1,
+      "maxMinutes": 10
+    }
+  }

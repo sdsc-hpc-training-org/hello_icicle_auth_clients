@@ -1,0 +1,39 @@
+{
+    "whoami":"get user information: whoami",
+    "apps":
+    {
+    "create_app": "create an app to run via tapis\nFormat: jobs -c create_app -F <path to app json config file>",
+    "get_apps": "get a list of apps related to an account\nFormat: jobs -c get_apps",
+    "delete_app": "delete selected app\nFormat: jobs -c delete_app -i <app_id> -v <app_version>",
+    "get_app_info": "get a job's information\nFormat: jobs -c get_app_info -i <app_id> -v <app_version>",
+    "run_app": "Runs an app\nFormat: jobs -c run_app -i <app_id> -F <path to json job config file> -n <name to assign job> -v <app_version>",
+    "get_app_status": "Gets the status of the app\nFormat:jobs -c get_app_status --uuid <job_uuid> ",
+    "download_app_results": "Downloads the app execution results to a local file\nFormat:jobs -c download_app_results -F <path to local output file>"
+    },
+    "pods":
+    {
+    "get_pods":"get list of pods available to selected account\nFormat: pods -c get_pods",
+    "create_pod":"create a pod\nFormat: pods -c create_pod -i <pod-id> -t <template> -d <short description of pod>",
+    "restart_pod":"restart the pod\nFormat: pods -c restart_pod -i <pod_id>",
+    "delete_pod":"delete the pod. Requires user confirmation\nFormat: pods -c delete_pod -i <pod_id>",
+    "set_pod_perms":"sets the permissions on a pod\nFormat: pods -c set_pod_perms -i <pod_id> -u <username to give perms> -L <permission level>",
+    "delete_pod_perms":"deletes the permissions for the selected user\nFormat: pods -c delete_pod_perms -i <pod_id> -u <user to take perms from>",
+    "get_perms":"gets a list of permissions for a pod\nFormat: pods -c get_perms -i <pod_id>"
+    },
+    "systems":
+    {
+    "get_systems": "gets a list of systems\nFormat: systems -c get_systems",
+    "get_system_info": "get information of a select system\nFormat: systems -c get_system_info -i <system_id>",
+    "create_system": "create a new system from a local descriptor file\nFormat: systems -c create_system -F <path to system json config file>",
+    "set_credentials": "Set the system credentials. Must generate keys first using 'ssh-keygen -m PEM -f id_rsa', and format with, 'awk -v ORS='\\n' '1' <private_key_name>'\nFormat: systems -c set_credentials -i <system_id> -F <path to private key>,<path to public key>",
+    "set_password": "Sets the system password\nFormat: systems -c set_password -i <system_id>",
+    "delete_system": "deletes the selected system\nFormat: systems -c delete_system -i <system_id>"
+    },
+    "files":
+    {
+    "list_files": "lists files on the system\nFormat: files -c list_files -i <system_id> -F <folder path in remote tapis system>",
+    "download": "downloads a remote file to local machine\nFormat: files -c download -i <system_id> -F <path to remote file on tapis system to download from>,<path to local file to download into>",
+    "upload": "uploads a local file to remote system\nFormat: files -c upload -i <system_id> -F <path of local file to upload>,<remote destination filename on tapis system>"
+    },
+    "neo4j":"Enter the interface for a neo4j kg pod.\nFormat: neo4j -i <pod_id>"
+}
