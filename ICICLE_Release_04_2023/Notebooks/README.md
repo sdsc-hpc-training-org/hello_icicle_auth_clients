@@ -1,5 +1,11 @@
 ## tapis_pods_auth
 
+### MPT Notes:
+* where they run from
+* module dependencies
+
+
+
 * Authenticates a user to Tacc
 * Creates a Tapis pod with a Neo4j template
 * Sets permissions for a Tapis pod
