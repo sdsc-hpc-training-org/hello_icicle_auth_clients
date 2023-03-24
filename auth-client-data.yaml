@@ -1,0 +1,10 @@
+  # - id: hello_icicle_auth_clients
+  #   owner: Mary Thomas
+  #   name: Hello ICICLE Auth Clients
+  #   primaryThrust: core/Software
+  #   description: Repo for Authenticated Clients and Applications for ICICLE CI Services
+  #   status: PrototypeRelease
+  #   targetIcicleRelease: VC3
+  #   publicAccess: true
+  #   componentVersion: Unknown
+  #   licenseUrl: Unknown
