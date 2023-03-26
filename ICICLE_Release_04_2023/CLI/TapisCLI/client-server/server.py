@@ -5,33 +5,47 @@ from getpass import getpass
 import time
 import re
 from tapipy.tapis import Tapis
+import tapipy.tapis
 import socket
 import json
 import threading
 import multiprocessing
 import os
 import logging
+from tapisObjectWrappers import Files, Apps, Pods, Systems, Neo4jCLI
+from TypeEnforcement.type_enforcer import TypeEnforcer
+import typing
 
-sys.path.insert(1, r'C:\Users\ahuma\Desktop\Programming\python_programs\REHS2022\Final-Project\Final-project-notebooks\TapisCLI\subsystems')
-from pods import Pods, Neo4jCLI
-from systems import Systems
-from files import Files
-from apps import Apps
+try:
+    from . import exceptions
+    from . import SocketOpts as SO
+    from . import helpers
+    from . import schemas
+except:
+    import exceptions
+    import SocketOpts as SO
+    import helpers
+    import schemas
 
-
-class Server:
-    def __init__(self, IP, PORT):
+class Server(SO.SocketOpts, helpers.OperationsHelper):
+    @TypeEnforcer.enforcer(recursive=True)
+    def __init__(self, IP: str, PORT: int):
         # logger setup
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.INFO)
         stream_handler = logging.StreamHandler(stream=sys.stdout)
-        file_handler = logging.FileHandler(r'C:\Users\ahuma\Desktop\Programming\python_programs\REHS2022\Final-Project\Final-project-notebooks\TapisCLI\logs\logs.log', mode='w')
+
+        log_path = r"\logs"
+        file_handler = logging.FileHandler(
+            r'logs.log', mode='w')
         stream_handler.setLevel(logging.INFO)
         file_handler.setLevel(logging.INFO)
 
         # set formats
-        stream_format = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
-        file_format = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        stream_format = logging.Formatter(
+            '%(name)s - %(levelname)s - %(message)s')
+        file_format = logging.Formatter(
+            '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
         stream_handler.setFormatter(stream_format)
         file_handler.setFormatter(file_format)
@@ -48,11 +62,12 @@ class Server:
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.bind((self.ip, self.port))
         self.sock.listen(1)
-        self.connection = None # initialize the connection variable
-        self.end_time = time.time() + 300 # start the countdown on the timeout
-        
+        self.connection = None  # initialize the connection variable
+        self.end_time = time.time() + 300  # start the countdown on the timeout
+
         self.logger.info("Awaiting connection")
-        self.username, self.password, self.t, self.url, self.access_token = self.accept(initial=True) # connection returns the tapis object and user info
+        self.username, self.password, self.t, self.url, self.access_token = self.accept(
+            initial=True)  # connection returns the tapis object and user info
 
         # instantiate the subsystems
         self.pods = Pods(self.t, self.username, self.password)
@@ -62,129 +77,138 @@ class Server:
         self.neo4j = Neo4jCLI(self.t, self.username, self.password)
         self.logger.info('initialization complee')
 
-    def tapis_init(self, username, password): # initialize the tapis opject
+        self.command_group_map = {
+            'pods':self.pods.cli,
+            'systems':self.systems.cli,
+            'files':self.files.cli,
+            'apps':self.apps.cli
+        }
+        self.command_map = {
+            'help':self.help,
+            'whoami':self.pods.whoami,
+            'exit':self.__exit,
+            'shutdown':self.__shutdown
+        }
+
+    @TypeEnforcer.enforcer(recursive=True)
+    def tapis_init(self, username: str, password: str) -> tuple[typing.Any, str, str] | None:  # initialize the tapis opject
         start = time.time()
         base_url = "https://icicle.tapis.io"
-        t = Tapis(base_url = base_url,
-                username = username,
-                password = password)
+        t = Tapis(base_url=base_url,
+                  username=username,
+                  password=password)
         t.get_tokens()
 
         # V3 Headers
         header_dat = {"X-Tapis-token": t.access_token.access_token,
-                    "Content-Type": "application/json"}
+                      "Content-Type": "application/json"}
 
         # Service URL
         url = f"{base_url}/v3"
 
         # create authenticator for tapis systems
         authenticator = t.access_token
-        access_token = re.findall(r'(?<=access_token: )(.*)', str(authenticator))[0] # extract the access token from the authenticator
+        # extract the access token from the authenticator
+        access_token = re.findall(
+            r'(?<=access_token: )(.*)', str(authenticator))[0]
 
+        print(type(t))
         return t, url, access_token
 
-    def json_send(self, data): # package data in json and send
-        json_data = json.dumps(data)
-        self.connection.send(bytes((json_data), ('utf-8')))
-
-    def json_receive(self): # Receive and unpack json 
-        json_data = ""
-        while True:
-            try: #to handle long files, so that it continues to receive data and create a complete file
-                json_data = json_data + self.connection.recv(1024).decode('utf-8') #formulate a full file. Combine sequential data streams to unpack
-                return json.loads(json_data) #this is necessary whenever transporting any large amount of data over TCP streams
-            except ValueError:
-                continue
-    
-    def accept(self, initial=False): # function to accept CLI connection to the server
-        self.connection, ip_port = self.sock.accept() # connection request is accepted
+    @TypeEnforcer.enforcer(recursive=True)
+    def accept(self, initial: bool=False):  # function to accept CLI connection to the server
+        self.connection, ip_port = self.sock.accept()  # connection request is accepted
         self.logger.info("Received connection request")
-        if initial: # if this is the first time in the session that the cli is connecting
-            self.json_send({'connection_type':"initial"}) # tell the client that it is the first connection
-            for attempt in range(1,4): # give the cli 3 attempts to provide authentication
-                credentials = self.json_receive() # receive the username and password
-                self.logger.info("Received credentials") 
-                username, password = credentials['username'], credentials['password'] 
+        startup_data = schemas.StartupData(initial = initial)
+        self.json_send(startup_data.dict())
+        if initial:  # if this is the first time in the session that the cli is connecting
+            # tell the client that it is the first connection
+            self.logger.info("Sent initial status update")
+            # give the cli 3 attempts to provide authentication
+            for attempt in range(1, 4):
+                credentials = self.schema_unpack()  # receive the username and password
+                self.logger.info("Received credentials")
+                username, password = credentials.username, credentials.password
                 try:
-                    t, url, access_token = self.tapis_init(username, password) # try intializing tapis with the supplied credentials
-                    self.json_send([True, attempt]) # send to confirm to the CLI that authentication succeeded
+                    # try intializing tapis with the supplied credentials
+                    t, url, access_token = self.tapis_init(username, password)
+                    # send to confirm to the CLI that authentication succeeded
                     self.logger.info("Verification success")
+                    startup_result = schemas.StartupData(initial = initial, username = username, url = url)
                     break
-                except:
-                    self.json_send([False, attempt]) # send failure message to CLI
+                except Exception as e:
+                    # send failure message to CLI
+                    login_failure_data = schemas.ResponseData(response_message = (str(e), attempt))
+                    self.json_send(login_failure_data.dict())
                     self.logger.warning("Verification failure")
-                    if attempt == 3: # If there have been 3 login attempts
-                        self.logger.error("Attempted verification too many times. Exiting")
-                        os._exit(0) # shutdown the server
+                    if attempt == 3:  # If there have been 3 login attempts
+                        self.logger.error(
+                            "Attempted verification too many times. Exiting")
+                        os._exit(0)  # shutdown the server
                     continue
-            self.json_send(url) # send the tapis URL to the CLI
-            self.logger.info("Connection success")
-            return username, password, t, url, access_token # return the tapis object and credentials
-        else: # if this is not the first connection
-            self.json_send({'connection_type':'continuing', "username":self.username, "url":self.url}) # send username, url and connection type
-            self.logger.info("Connection success")
+        else:
+            startup_result = schemas.StartupData(initial = initial, username = self.username, url = self.url)
+        self.logger.info("Connection success")
+        self.json_send(startup_result.dict())
+        self.logger.info("Final connection data sent")
+        if initial:
+            return username, password, t, url, access_token
 
-    def shutdown_handler(self, result, exit_status): # handle shutdown scenarios for the server
-        if result == '[+] Shutting down': # if the server receives a request to shut down
-            self.logger.info("Shutdown initiated") # 
-            sys.exit(0) # shut down the server
-        elif result == '[+] Exiting' or exit_status: # if the server receives an exit request
-            self.logger.info("user exit initiated")
-            self.connection.close() # close the connection
-            self.accept() # wait for CLI to reconnect
+    def __exit(self):
+        raise exceptions.Exit
     
-    def timeout_handler(self): # handle timeouts 
-        if time.time() > self.end_time: # if the time exceeds the timeout time
-            self.logger.error("timeout. Shutting down")
-            self.json_send("shutting down")
-            self.connection.close() # close connection and shutdown server
-            os._exit(0)
+    def __shutdown(self):
+        self.logger.info("Shutdown initiated")
+        raise exceptions.Shutdown
 
-    def run_command(self, **kwargs): # process and run commands
-        command_group = kwargs['command_group']
-        try:
-            if command_group == 'pods':
-                return self.pods.pods_cli(**kwargs)
-            elif command_group == 'systems':
-                return self.systems.systems_cli(**kwargs)
-            elif command_group == 'files':
-                return self.files.files_cli(**kwargs)
-            elif command_group == 'apps':
-                return self.apps.apps_cli(**kwargs)
-            elif command_group == 'help':
-                with open(r'C:\Users\ahuma\Desktop\Programming\python_programs\REHS2022\Final-Project\Final-project-notebooks\TapisCLI\subsystems\help.json', 'r') as f:
-                    return json.load(f)
-            elif command_group == 'whoami':
-                return self.pods.whoami()
-            elif command_group == 'exit':
-                return "[+] Exiting"
-            elif command_group == 'shutdown':
-                return "[+] Shutting down"
-            elif command_group == 'neo4j':
-                result = self.neo4j.submit_query(**kwargs)
-                return result
-            else:
-                raise Exception(f"Command {command_group} not found. See help")
-        except Exception as e:
-            self.logger.error(str(e))
-            return str(e)
+    def timeout_handler(self):  # handle timeouts
+        if time.time() > self.end_time:  # if the time exceeds the timeout time
+            raise exceptions.TimeoutError
+    
+    def help(self):
+        with open(r'help.json', 'r') as f:
+            return json.load(f)
+
+    def run_command(self, command_data: dict):  # process and run commands
+        command_group = command_data['command_group']
+        if command_group in self.command_group_map:
+            command_group = self.command_group_map[command_group]
+            return command_group(**command_data)
+        elif command_group in self.command_map:
+            command = self.command_map[command_group]
+            command_data = self.filter_kwargs(command, command_data)
+            if command_data:
+                return command(**command_data)
+            return command()
+        else:
+            raise exceptions.CommandNotFoundError(command_group)
 
     def main(self):
-        while True: # checks if any command line arguments were provided
+        while True: 
             try:
-                message = self.json_receive() # receive command request
-                self.timeout_handler() # check if the server has timed out
-                kwargs, exit_status = message['kwargs'], message['exit'] # extract info from command
-                result = self.run_command(**kwargs) # run the command
-                self.end_time = time.time() + 300 # reset the timeout
-                self.json_send(result) # send the result to the CLI
-                self.shutdown_handler(result, exit_status) # Handle any shutdown requests
-            except (ConnectionResetError, ConnectionAbortedError, ConnectionError, OSError, WindowsError, socket.error) as e:
-                self.logger.error(str(e))
-                os._exit(0)
-            except Exception as e:
-                self.logger.error(str(e))
-                os._exit(0)
+                message = self.schema_unpack()  
+                self.timeout_handler()  
+                kwargs, exit_status = message.kwargs, message.exit_status
+                result = self.run_command(kwargs)
+                response = schemas.ResponseData(response_message = result)
+                self.end_time = time.time() + 300 
+                self.json_send(response.dict()) 
+                if exit_status == 1:
+                    self.__exit()
+            except exceptions.CommandNotFoundError as e:
+                error_response = schemas.ResponseData(response_message = str(e))
+                self.json_send(error_response.dict())
+            except (exceptions.TimeoutError, exceptions.Shutdown) as e:
+                error_response = schemas.ResponseData(response_message = str(e), exit_status=1)
+                self.json_send(error_response.dict())
+                sys.exit(0)
+            except exceptions.Exit as e:
+                self.logger.info("user exit initiated")
+                error_response = schemas.ResponseData(response_message = str(e), exit_status=1)
+                self.json_send(error_response.dict())
+                self.connection.close()  # close the connection
+                self.accept()  # wait for CLI to reconnect
+
 
 
 if __name__ == '__main__':
