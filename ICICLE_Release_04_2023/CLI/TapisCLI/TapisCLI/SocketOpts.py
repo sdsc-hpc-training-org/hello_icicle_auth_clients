@@ -16,6 +16,8 @@ schema_types: dict = {
         'ResponseData':schemas.ResponseData,
         'FormRequest':schemas.FormRequest,
         'FormResponse':schemas.FormResponse,
+        'AuthRequest':schemas.AuthRequest,
+        'ConfirmationRequest':schemas.ConfirmationRequest
     }
 
 
@@ -33,7 +35,7 @@ class SocketOpts:
     @TypeEnforcer.enforcer(recursive=True)
     def json_send(self, data: dict | list | str): # package data in json and send
         json_data = json.dumps(data)
-        self.connection.send(bytes((json_data), ('utf-8')))
+        self.connection.send(json_data.encode())
 
     @TypeEnforcer.enforcer(recursive=True)
     def schema_unpack(self):

@@ -40,3 +40,8 @@ class FormResponse(BaseModel):
 
 class AuthRequest(BaseModel):
     schema_type: str = 'AuthRequest'
+
+
+class ConfirmationRequest(BaseModel):
+    schema_type: str = 'ConfirmationRequest'
+    message: str

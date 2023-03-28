@@ -1,3 +1,6 @@
+import typing
+
+
 class TimeoutError(Exception):
     """
     Raise exception when timeout time has been exceeded
@@ -5,20 +8,15 @@ class TimeoutError(Exception):
     def __init__(self):
         super().__init__("Disconnected due to inactivity. Please login again")
 
-    def __str__(self):
-        return "Disconnected due to inactivity. Please login again"
-
 
 class CommandNotFoundError(Exception):
     """
     Raise exception when a command isnt found
     """
-    def __init__(self, command):
+    def __init__(self, command: str):
         self.command = command
         super().__init__(f"Command {command} was not found in the command list. See help")
     
-    def __str__(self):
-        return f"Command {self.command} was not found in the command list. See help"
 
 class Shutdown(Exception):
     """
@@ -27,9 +25,6 @@ class Shutdown(Exception):
     def __init__(self):
         super().__init__(f"shutdown initiated")
 
-    def __str__(self):
-        return "shutdown initiated"
-
 
 class Exit(Exception):
     """
@@ -37,6 +32,19 @@ class Exit(Exception):
     """
     def __init__(self):
         super().__init__(f"exit initiated")
+    
 
-    def __str__(self):
-        return "exit initiated"
+class NoConfirmationError(Exception):
+    """
+    raise error when no confirmation is given for a function that needs confirmation to continue
+    """
+    def __init__(self, function: typing.Callable):
+        super().__init__(f"Confirmation was not given to the function {function.__name__}")
+
+
+class InvalidCredentialsReceived(Exception):
+    """
+    raise error when the provided credentials fail
+    """
+    def __init__(self, function: typing.Callable, cred_type: str):
+        super().__init__(f"The {cred_type} provided for the command {function.__name__} was invalid")

@@ -17,11 +17,16 @@ import typing
 try:
     from . import schemas
     from . import SocketOpts as SO
+    from . import helpers
+    from . import decorators
 except:
     import schemas
     import SocketOpts as SO
+    import helpers
+    import decorators
 
-class CLI(SO.SocketOpts):
+
+class CLI(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup):
     @TypeEnforcer.enforcer(recursive=True)
     def __init__(self, IP: str, PORT: int):
         self.ip, self.port = IP, PORT
@@ -51,20 +56,22 @@ class CLI(SO.SocketOpts):
         """
         detect client operating system. The local server intitialization is different between unix and windows based systems
         """
+        print("SERVER STARTUP INITIATED")
         if 'win' in sys.platform: # windows
+            print("starting for windows")
             os.system(r"pythonw .\server.py")
         else: # unix based
+            print("starting for linux")
             os.system(r"python .\server.py &")
 
+    #@decorators.AnimatedLoading
     def connection_initialization(self): # patience. This sometimes takes a while
         """
         start the local server through the client
         """
         startup_flag = False # flag to tell code not to run multiple server setup threads at once
-        dot_count = 1 # for pretty initialization visual
         timeout_time = time.time() + 30 # server setup timeout. If expires, there is a problem!
-        print("[+] Now connecting. This might take a while...\n")
-        animation = ['.  ','.. ', '...']
+        print("starting server")
         while True:
             if time.time() > timeout_time: # connection timeout condition
                 sys.stdout.write("\r[-] Connection timeout")
@@ -73,18 +80,11 @@ class CLI(SO.SocketOpts):
                 self.connection.connect((self.ip, self.port)) # try to establish a connection
                 break
             except Exception as e:
+                print(e)
                 if not startup_flag:
                     startup = threading.Thread(target=self.initialize_server) # run the server setup on a separate thread
                     startup.start() 
                     startup_flag = True # set the flag to true so the thread runs only once
-                    continue
-                else: # prints out dots, purely visual
-                    sys.stdout.write(f'\r[+] Starting Server{animation[dot_count]}')
-                    sys.stdout.flush()
-                    if dot_count == 2:
-                        dot_count = 0
-                    else:
-                        dot_count += 1
                     continue
 
     def connect(self):
@@ -94,26 +94,30 @@ class CLI(SO.SocketOpts):
         #self.connection_initialization() # connect to the server
         self.connection.connect((self.ip, self.port)) # enable me for debugging. Requires manual server start
         print('waiting for initial')
-        connection_info = self.schema_unpack() # receive info from the server whether it is a first time connection
+        connection_info: schemas.StartupData = self.schema_unpack() # receive info from the server whether it is a first time connection
         print('received initial')
         if connection_info.initial: # if the server is receiving its first connection for the session\
             while True:
+                url = str(input("\nEnter the link for the tapis service you are connecting to: "))
+                url_data = schemas.StartupData(url=url)
+                self.json_send(url_data.dict())
+                auth_request: schemas.AuthRequest = self.schema_unpack()
                 username = str(input("\nUsername: ")) # take the username
                 password = getpass("Password: ") # take the password
                 auth_data = schemas.AuthData(username = username, password = password)
                 self.json_send(auth_data.dict()) # send the username and password to the server to be used
-                verification = self.schema_unpack() # server responds saying if the verification succeeded or not
+
+                verification: schemas.ResponseData | schemas.StartupData = self.schema_unpack() # server responds saying if the verification succeeded or not
                 if verification.schema_type == 'StartupData': # verification success, program moves forward
                     print("[+] verification success")
                     return verification.username, verification.url
                 else: # verification failed. User has 3 tries, afterwards the program will shut down
-                    print("[-] verification failure")
-                    if verification[1] == 3:
+                    print(f"[-] verification failure, attempt # {verification.response_message[1]}")
+                    if verification.response_message[1] == 3:
                         sys.exit(0)
                     continue
 
-        start_data = self.schema_unpack()
-        return start_data.username, start_data.url # return the username and url
+        return connection_info.username, connection_info.url # return the username and url
 
     @TypeEnforcer.enforcer(recursive=True)
     def process_command(self, command: str) -> list[str]: 
@@ -142,7 +146,7 @@ class CLI(SO.SocketOpts):
         return filled_form
 
     @TypeEnforcer.enforcer(recursive=True)
-    def command_operator(self, kwargs, exit_: int=0): # parses command input
+    def command_operator(self, kwargs: dict | list, exit_: int=0): # parses command input
         if isinstance(kwargs, list): # check if the command input is from the CLI, or direct input
             kwargs = vars(self.parser.parse_args(kwargs)) # parse the arguments
         if not kwargs['command_group']:
@@ -163,6 +167,20 @@ class CLI(SO.SocketOpts):
                 username = input("Username: ")
                 password = getpass("Password: ")
                 filled_form = schemas.AuthData(username=username, password=password)
+            elif response.schema_type == "ConfirmationRequest":
+                print(response.message)
+                while True:
+                    decision = str(input("(y/n)"))
+                    if decision == 'y':
+                        decision = True
+                        break
+                    elif decision == 'n':
+                        decision = False
+                        break
+                    else:
+                        print("Enter valid response")
+                confirmation = schemas.ResponseData(response_message=decision)
+                self.json_send(confirmation.dict())
             else:
                 return response
             self.json_send(filled_form.dict())
