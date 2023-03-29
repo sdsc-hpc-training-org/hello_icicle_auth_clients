@@ -100,8 +100,6 @@ class DecoratorSetup:
             decorator.connection = self.connection
             decorator.username = self.username
             decorator.password = self.password
-            print(decorator)
-            print(decorator.__dict__)
     
 
 class AnimatedLoading:

@@ -78,11 +78,13 @@ class CLI(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup):
                 os._exit(0)
             try:
                 self.connection.connect((self.ip, self.port)) # try to establish a connection
+                if startup_flag:
+                    startup.kill()
                 break
             except Exception as e:
                 print(e)
                 if not startup_flag:
-                    startup = threading.Thread(target=self.initialize_server) # run the server setup on a separate thread
+                    startup = helpers.KillableThread(target=self.initialize_server) # run the server setup on a separate thread
                     startup.start() 
                     startup_flag = True # set the flag to true so the thread runs only once
                     continue
@@ -91,8 +93,8 @@ class CLI(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup):
         """
         connect to the local server
         """
-        #self.connection_initialization() # connect to the server
-        self.connection.connect((self.ip, self.port)) # enable me for debugging. Requires manual server start
+        self.connection_initialization() # connect to the server
+        #self.connection.connect((self.ip, self.port)) # enable me for debugging. Requires manual server start
         print('waiting for initial')
         connection_info: schemas.StartupData = self.schema_unpack() # receive info from the server whether it is a first time connection
         print('received initial')
@@ -151,7 +153,7 @@ class CLI(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup):
             kwargs = vars(self.parser.parse_args(kwargs)) # parse the arguments
         if not kwargs['command_group']:
             return False
-        command = schemas.CommandData(kwargs = kwargs, exit_datus = exit_)
+        command = schemas.CommandData(kwargs = kwargs, exit_status = exit_)
         return command
     
     def special_forms_ops(self):
@@ -193,7 +195,7 @@ class CLI(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup):
             command = self.command_operator(kwargs, exit_=1) # operate with args, send them over
             self.json_send(command.dict())
             print(self.special_forms_ops())
-            sys.exit(0)
+            os._exit(0)
 
         title = pyfiglet.figlet_format("---------\nTapiconsole\n---------", font="slant") # print the title when CLI is accessed
         print(title)
@@ -208,7 +210,8 @@ class CLI(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup):
                 response = self.special_forms_ops()
                 pprint(response.dict())
                 if response.schema_type == 'ResponseData' and response.exit_status: # if the command was a shutdown or exit, close the program
-                    sys.exit(0)
+                    print("exiting the cli")
+                    os._exit(0)
             except KeyboardInterrupt:
                 pass # keyboard interrupts mess with the server, dont do it! it wont work anyway, hahahaha
             except WindowsError: # if connection error with the server (there wont be any connection errors)

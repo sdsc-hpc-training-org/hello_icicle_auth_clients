@@ -217,6 +217,7 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup)
                 response = schemas.ResponseData(response_message = result)
                 self.end_time = time.time() + 300 
                 self.json_send(response.dict()) 
+                print(message)
                 if exit_status == 1:
                     self.__exit()
             except (exceptions.CommandNotFoundError, exceptions.NoConfirmationError, exceptions.InvalidCredentialsReceived) as e:
