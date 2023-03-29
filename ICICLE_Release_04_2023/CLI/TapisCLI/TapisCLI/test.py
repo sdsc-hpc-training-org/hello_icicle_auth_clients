@@ -52,18 +52,31 @@ import time
 import sys
 
 
-class Silly:
-    def hellothree(self):
-        while True:
-            print("hello")
-            time.sleep(0.5)
+# class Silly:
+#     def hellothree(self):
+#         while True:
+#             print("hello")
+#             time.sleep(0.5)
 
 
-silly = Silly()
-hellothread = KillableThread(target=silly.hellothree)
-hellothread.start()
-time.sleep(3)
-print("shutting down")
-#sys.exit()
-hellothread.kill()
+# silly = Silly()
+# hellothread = KillableThread(target=silly.hellothree)
+# hellothread.start()
+# time.sleep(3)
+# print("shutting down")
+# #sys.exit()
+# hellothread.kill()
+import os
+def initialize_server(): 
+        """
+        detect client operating system. The local server intitialization is different between unix and windows based systems
+        """
+        print("SERVER STARTUP INITIATED")
+        if 'win' in sys.platform:
+            os.system(r"pythonw .\server.py")
+            print("DONE")
+        else: # unix based
+            os.system(r"python .\server.py &")
+            print("DONE")
 
+initialize_server()

@@ -237,5 +237,5 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup)
 
 
 if __name__ == '__main__':
-    server = Server('127.0.0.1', 3000)
+    server = Server('127.0.0.1', 30000)
     server.main()

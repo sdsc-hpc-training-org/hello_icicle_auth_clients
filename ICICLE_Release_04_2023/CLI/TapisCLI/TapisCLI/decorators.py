@@ -1,6 +1,7 @@
 import typing
 import socket
 import sys
+import time
 from functools import update_wrapper, partial
 try:
     from . import helpers
@@ -124,6 +125,7 @@ class AnimatedLoading:
             for frame in self.animation_frames:
                 sys.stdout.write(f'\rloading ' + frame)
                 sys.stdout.flush()
+                time.sleep(0.5)
     
     def __call__(self, obj, *args, **kwargs):
         animation_thread = helpers.KillableThread(target=self.animation)

@@ -13,6 +13,7 @@ import time
 from pprint import pprint
 from TypeEnforcement.type_enforcer import TypeEnforcer
 import typing
+import subprocess
 
 try:
     from . import schemas
@@ -52,26 +53,22 @@ class CLI(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup):
         self.parser.add_argument('-e', '--expression')
         self.parser.add_argument('-V', '--verbose', action='store_true')
 
-    def initialize_server(self): # function detects operating system. Runs OS command to start the server
+    def initialize_server(self): 
         """
         detect client operating system. The local server intitialization is different between unix and windows based systems
         """
-        print("SERVER STARTUP INITIATED")
-        if 'win' in sys.platform: # windows
-            print("starting for windows")
+        if 'win' in sys.platform:
             os.system(r"pythonw .\server.py")
         else: # unix based
-            print("starting for linux")
             os.system(r"python .\server.py &")
 
-    #@decorators.AnimatedLoading
+    @decorators.AnimatedLoading
     def connection_initialization(self): # patience. This sometimes takes a while
         """
         start the local server through the client
         """
         startup_flag = False # flag to tell code not to run multiple server setup threads at once
         timeout_time = time.time() + 30 # server setup timeout. If expires, there is a problem!
-        print("starting server")
         while True:
             if time.time() > timeout_time: # connection timeout condition
                 sys.stdout.write("\r[-] Connection timeout")
@@ -82,7 +79,6 @@ class CLI(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup):
                     startup.kill()
                 break
             except Exception as e:
-                print(e)
                 if not startup_flag:
                     startup = helpers.KillableThread(target=self.initialize_server) # run the server setup on a separate thread
                     startup.start() 
@@ -95,23 +91,28 @@ class CLI(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup):
         """
         self.connection_initialization() # connect to the server
         #self.connection.connect((self.ip, self.port)) # enable me for debugging. Requires manual server start
-        print('waiting for initial')
         connection_info: schemas.StartupData = self.schema_unpack() # receive info from the server whether it is a first time connection
-        print('received initial')
         if connection_info.initial: # if the server is receiving its first connection for the session\
             while True:
-                url = str(input("\nEnter the link for the tapis service you are connecting to: "))
+                try:
+                    url = str(input("\nEnter the link for the tapis service you are connecting to: "))
+                except KeyboardInterrupt:
+                    url = " "
+                    pass
                 url_data = schemas.StartupData(url=url)
                 self.json_send(url_data.dict())
                 auth_request: schemas.AuthRequest = self.schema_unpack()
-                username = str(input("\nUsername: ")) # take the username
-                password = getpass("Password: ") # take the password
+                try:
+                    username = str(input("\nUsername: ")) # take the username
+                    password = getpass("Password: ") # take the password
+                except KeyboardInterrupt:
+                    username, password = " ", " "
+                    pass
                 auth_data = schemas.AuthData(username = username, password = password)
                 self.json_send(auth_data.dict()) # send the username and password to the server to be used
 
                 verification: schemas.ResponseData | schemas.StartupData = self.schema_unpack() # server responds saying if the verification succeeded or not
                 if verification.schema_type == 'StartupData': # verification success, program moves forward
-                    print("[+] verification success")
                     return verification.username, verification.url
                 else: # verification failed. User has 3 tries, afterwards the program will shut down
                     print(f"[-] verification failure, attempt # {verification.response_message[1]}")
@@ -221,5 +222,5 @@ class CLI(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup):
 
 
 if __name__ == "__main__":
-    client = CLI('127.0.0.1', 3000)
+    client = CLI('127.0.0.1', 30000)
     client.main()
