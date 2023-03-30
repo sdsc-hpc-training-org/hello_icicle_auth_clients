@@ -18,6 +18,7 @@ import os
 import signal
 import BasicCypherCommands as bcc
 import json
+import sys, getopt
 
 # Recording login time
 start = time.time()
@@ -65,6 +66,7 @@ heavyFormat("Welcome to ICICONSOLE. Login to get started. ")
 
 # Loads help for cypher commands
 def helpCypher():
+    print("\n")
     with open('helpCypher.json') as f:
         help_data = json.load(f)
     for key, value in help_data.items():
@@ -98,14 +100,23 @@ def console(graph, pod_id):
 
         if(query == "help"):
             helpCypher()
+            continue
 
 
         # Cypher Shortcuts
         match query:
             case "all":
                 query = bcc.getAll()
-            case "allnames":
+            case "allNames":
                 query = bcc.getAllNames()
+            case "oneByName":
+                query = bcc.getOneByName()
+            case "allProperty":
+                query = bcc.allProperty()
+            case "allProperties":
+                query = bcc.allProperties()
+            case "allPropertiesForNode":
+                query = bcc.allPropertiesForNode()
             case _:
                 pass
             
