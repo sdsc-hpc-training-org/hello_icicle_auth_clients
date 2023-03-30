@@ -15,9 +15,25 @@ from tapipy.tapis import Tapis
 # These are to clear the screen
 import io
 import os
+import signal
+
 
 # Recording login time
 start = time.time()
+
+# This class handles exiting the console application at any time.
+class GracefulExiter():
+    def __init__(self):
+        self.state = False
+        signal.signal(signal.SIGINT, self.change_state)
+
+    def change_state(self, signum, frame):
+        print("\nPress Ctrl+C again to exit.")
+        signal.signal(signal.SIGINT, signal.SIG_DFL)
+        self.state = True
+
+    def exit(self):
+        return self.state
 
  
 # Base URL for Tapis
@@ -26,6 +42,8 @@ base_url = "https://icicle.tapis.io"
 pod_id = ""
 # Global variable to store username, set upon initial input from login to TAPIS
 user = ""
+
+flag = GracefulExiter()
 
 # This function formats a message to be like a title
 def heavyFormat(message):
@@ -76,8 +94,12 @@ def console(graph, pod_id):
             # Displaying the result
             with pd.option_context('expand_frame_repr', False, 'display.max_rows', None): 
                 print(df)
+
+
         # Error catching, if the Cypher was not executed properly
         except:
+            if flag.exit():
+                break
             print("Something went wrong")
 
 
@@ -111,6 +133,8 @@ def choosePod():
             break
         # This is if there is trouble getting the username and password
         except:
+            if flag.exit():
+                break
             print("Invalid Pod ID. Make sure you have access to this Pod.")
 
     # This is the standard format for the link that connects to the Neo4j Pod
@@ -128,6 +152,8 @@ def choosePod():
             console(graph, pod_id)
         # This catches the error where there is an issue connecting or authenticating to the Pod.
         except:
+            if flag.exit():
+                break
             print("There was a connection error.")
             
 # The below loop handles initial login.
@@ -153,6 +179,8 @@ while(True):
             except Exception as e:
                 raise
     except:
+        if flag.exit():
+            break
         print("An error occurred, likely due to mistyped login. Try again. ")
 
 
