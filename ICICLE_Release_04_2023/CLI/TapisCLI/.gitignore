@@ -1,2 +1,4 @@
 *.log
 *.pyc
+__pycache__
+test

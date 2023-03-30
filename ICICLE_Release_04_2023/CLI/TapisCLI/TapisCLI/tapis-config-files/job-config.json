@@ -1,8 +1,0 @@
-{
-  "name": "test_job",
-  "appId": "img-classify.mkyzubr", 
-  "appVersion": "0.1.0",
-  "parameterSet": {"appArgs": [{"name": "input_file", 
-                                "arg": "insert argument strings here"}]        
-                  }
-}

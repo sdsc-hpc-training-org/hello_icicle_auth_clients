@@ -1,11 +1,6 @@
 # TapisCLI
-The tapis CLI is designed to provide a streamlined, accessible interface for Stampede at TACC through Tapis. The client focuses on putting pods, systems, file management, and apps all in the same place to make managing resources easier for the user. 
+Tapis CLI is designed to provide a simple to use, versatile way to interface with Tapis services hosted on HPC resources. User can either start the app and use it as a traditional command line applications, or pass commands directly from bash.
+Allows you to work with all major Tapis services: Pods, Systems, Files, and Apps in one place. It can also interface directly with services being hosted on Tapis pods, like Neo4j. Although currently Neo4j is the only 3rd party application it can work with, adding support for Postgres and the like will not be difficult.
 
-In order to cut down on operational delays, the program will be organized as a localhost server and client, so that imports only have to happen once every so often.
-
-## THE LOCALHOST SERVER NOW WORKS.
-running the client should automatically start the server regardless of OS. STill have not tested this functionality with unix operating systemns. Only confirmed to work on windows. 
-
-will test actual command function later
-
-the help menu needs a major update, after integration of argparse commands.
+## Operations
+1. to see a list of all commands and their parameters, just enter help
