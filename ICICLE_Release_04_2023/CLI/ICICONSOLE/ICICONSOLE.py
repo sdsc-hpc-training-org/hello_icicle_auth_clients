@@ -16,7 +16,8 @@ from tapipy.tapis import Tapis
 import io
 import os
 import signal
-
+import BasicCypherCommands as bcc
+import json
 
 # Recording login time
 start = time.time()
@@ -62,15 +63,22 @@ def lightFormat(message):
 # Welcome message, formatted with the heavyFormat function
 heavyFormat("Welcome to ICICONSOLE. Login to get started. ")
 
+# Loads help for cypher commands
+def helpCypher():
+    with open('helpCypher.json') as f:
+        help_data = json.load(f)
+    for key, value in help_data.items():
+        print(key + ' : ' + value + '\n')
 
 # The console function is the actual cypher console that you see after logging in and choosing a pod.
 # The console allows you to type in cypher, and run it on the Neo4j pod you are connected to.
 # The console function needs to parameters: a Neo4j graph object, and a pod id. 
 # The graph object allows for queries to be interpreted as Cypher and passed into the Neo4j pod.
 # The pod id is only needed here so that the user can see what pod they are connected to.
+        
 def console(graph, pod_id):
     # Instructions message, formatted with the lightFormat function
-    lightFormat("Type \"new\" to access a different pod, or type \"exit\" to leave ICICONSOLE. Type \"clear\" to clear the screen. ")
+    lightFormat("Type \"new\" to access a different pod, or type \"exit\" to leave ICICONSOLE. Type \"clear\" to clear the screen. Type \"help\" for help!")
 
     # Loop so that the console keeps prompting the user for commands, until the user exits
     while(True):
@@ -87,6 +95,22 @@ def console(graph, pod_id):
         if(query == "clear"):
             os.system('cls' if os.name == 'nt' else 'clear')
             console(graph, pod_id)
+
+        if(query == "help"):
+            helpCypher()
+            console(graph, pod_id)
+
+        # Cypher Shortcuts
+        match query:
+            case "all":
+                query = bcc.getAll()
+                break
+            case "allNames":
+                query = bcc.getAllNames()
+            case _:
+                pass
+            
+
         # This tries to read the input as Cypher and apply the command to the Neo4j graph object.
         try: 
             # Storing the results of the query as a pandas dataframe
