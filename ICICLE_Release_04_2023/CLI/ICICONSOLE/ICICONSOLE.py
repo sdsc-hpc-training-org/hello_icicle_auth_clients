@@ -98,19 +98,20 @@ def console(graph, pod_id):
 
         if(query == "help"):
             helpCypher()
-            console(graph, pod_id)
+
 
         # Cypher Shortcuts
         match query:
             case "all":
                 query = bcc.getAll()
-                break
-            case "allNames":
+            case "allnames":
                 query = bcc.getAllNames()
             case _:
                 pass
             
-
+        
+        print(query)
+        
         # This tries to read the input as Cypher and apply the command to the Neo4j graph object.
         try: 
             # Storing the results of the query as a pandas dataframe
