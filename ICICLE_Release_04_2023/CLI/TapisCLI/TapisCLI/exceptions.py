@@ -48,3 +48,11 @@ class InvalidCredentialsReceived(Exception):
     """
     def __init__(self, function: typing.Callable, cred_type: str):
         super().__init__(f"The {cred_type} provided for the command {function.__name__} was invalid")
+
+
+class HelpDoesNotExist(AttributeError):
+    """
+    raise error when the program tries to extract help information from a method, but help is not found
+    """
+    def __init__(self, command_name):
+        super().__init__(f"The command {command_name} has no help menu.\nMust include a docstring with @help: <help information>")

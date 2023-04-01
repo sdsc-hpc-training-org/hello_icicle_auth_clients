@@ -20,11 +20,13 @@ try:
     from . import SocketOpts as SO
     from . import helpers
     from . import decorators
+    from . import args
 except:
     import schemas
     import SocketOpts as SO
     import helpers
     import decorators
+    import args
 
 
 class CLI(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup):
@@ -39,19 +41,9 @@ class CLI(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup):
         # set up argparse
         self.parser = argparse.ArgumentParser(description="Command Line Argument Parser", exit_on_error=False, usage=SUPPRESS)
         self.parser.add_argument('command_group')
-        self.parser.add_argument('-c', '--command')
-        self.parser.add_argument('-i', '--id')
-        self.parser.add_argument('-t', '--template')
-        self.parser.add_argument('-u', '--username')
-        self.parser.add_argument('-L', '--level')
-        self.parser.add_argument('-v', '--version')
-        self.parser.add_argument('-F', '--file')
-        self.parser.add_argument('-n', '--name')
-        self.parser.add_argument('--uuid')
-        self.parser.add_argument('-d', '--description')
-        self.parser.add_argument('-p', '--password')
-        self.parser.add_argument('-e', '--expression')
-        self.parser.add_argument('-V', '--verbose', action='store_true')
+
+        for parameters in args.Args.argparser_args.values():
+            self.parser.add_argument(*parameters["args"], **parameters["kwargs"])
 
     def initialize_server(self): 
         """
@@ -120,6 +112,7 @@ class CLI(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup):
                         sys.exit(0)
                     continue
 
+        print(f"[+] Connected to the Tapis service at {connection_info.url}")
         return connection_info.username, connection_info.url # return the username and url
 
     @TypeEnforcer.enforcer(recursive=True)
@@ -167,8 +160,12 @@ class CLI(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup):
                 form = self.fillout_form(response.arguments_list)
                 filled_form = schemas.FormResponse(arguments_list=form)
             elif response.schema_type == 'AuthRequest':
-                username = input("Username: ")
-                password = getpass("Password: ")
+                if not response.secure_input:
+                    username = input("Username: ")
+                    password = getpass("Password: ")
+                else:
+                    username = None
+                    password = getpass("Password: ")
                 filled_form = schemas.AuthData(username=username, password=password)
             elif response.schema_type == "ConfirmationRequest":
                 print(response.message)

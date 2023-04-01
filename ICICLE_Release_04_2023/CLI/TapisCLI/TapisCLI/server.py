@@ -29,7 +29,7 @@ except:
     import schemas
     import decorators
 
-class Server(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup):
+class Server(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup, helpers.DynamicHelpUtility):
     @TypeEnforcer.enforcer(recursive=True)
     def __init__(self, IP: str, PORT: int):
         # logger setup
@@ -96,9 +96,13 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup)
             'shutdown':self.__shutdown,
             'switch_service':self.tapis_init
         }
+        self.help = self.help_generation()
 
     @decorators.Auth
     def tapis_init(self, username: str, password: str, name: str) -> tuple[typing.Any, str, str] | None:  # name is the baseURL
+        """
+        @help: switch the connected tapis service
+        """
         start = time.time()
         self.username = username
         self.password = password
@@ -120,8 +124,6 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup)
         access_token = re.findall(
             r'(?<=access_token: )(.*)', str(authenticator))[0]
 
-        print(type(t))
-
         self.pods = Pods(t, username, password, self.connection)
         self.systems = Systems(t, username, password, self.connection)
         self.files = Files(t, username, password, self.connection)
@@ -132,7 +134,7 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup)
         self.url = url
         self.access_token = access_token
 
-        self.logger.info(f"initiated in {start-time.time()}")
+        self.logger.info(f"initiated in {time.time()-start}")
 
         return f"Successfully initialized tapis service on {self.url}"
 
@@ -151,7 +153,7 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup)
                   # receive the username and password
                 url: schemas.StartupData = self.schema_unpack().url
                 try:
-                    # try intializing tapis with the supplied credentials
+                # try intializing tapis with the supplied credentials
                     auth_request = schemas.AuthRequest()
                     self.json_send(auth_request.dict())
                     auth_data: schemas.AuthData = self.schema_unpack()
@@ -179,9 +181,15 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup)
         self.logger.info("Final connection data sent")
 
     def __exit(self):
+        """
+        @help: exit the CLI without shutting down the service
+        """
         raise exceptions.Exit
     
     def __shutdown(self):
+        """
+        @help: exit the CLI and shutdown the service
+        """
         self.logger.info("Shutdown initiated")
         raise exceptions.Shutdown
 
@@ -190,8 +198,10 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup)
             raise exceptions.TimeoutError
     
     def help(self):
-        with open(r'help.json', 'r') as f:
-            return json.load(f)
+        """
+        @help: returns help information. To get specific help information for tapis services, you can run <service> -c help
+        """
+        return self.help
 
     def run_command(self, command_data: dict):  # process and run commands
         command_group = command_data['command_group']

@@ -40,6 +40,7 @@ class FormResponse(BaseModel):
 
 class AuthRequest(BaseModel):
     schema_type: str = 'AuthRequest'
+    secure_input: bool = False
 
 
 class ConfirmationRequest(BaseModel):
