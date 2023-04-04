@@ -26,21 +26,24 @@ class tapisObject(helpers.OperationsHelper, decorators.DecoratorSetup, helpers.D
         self.connection = connection
 
         self.command_map = command_map
-
-        self.configure_decorators()
         
         if self.command_map:
             self.help = self.help_generation()
 
-    def cli(self, **kwargs):
-        command = self.command_map[kwargs['command']]
-        kwargs = self.filter_kwargs(command, kwargs)
-        return command(**kwargs)
+    def __call__(self, **kwargs):
+        try:
+            command = self.command_map[kwargs['command']]
+            kwargs = self.filter_kwargs(command, kwargs)
+            return command(**kwargs)
+        except (tapipy.errors.NotFoundError, tapipy.errors.BadRequestError, tapipy.errors.BaseTapyException) as e:
+            return str(e)
     
-    def help(self):
+    def help(self, name: typing.Optional[str]):
         """
         @help: get help information for the command group
         """
+        if name:
+            return self.help[name]
         return self.help
 
 
@@ -209,7 +212,7 @@ class Pods(tapisObject):
         pod_information = self.t.pods.create_pod(pod_id=id, pod_template=template, description=description)
         if verbose:
             return str(pod_information)
-        return self.return_formatter(pod_information)
+        return pod_information
 
     @decorators.NeedsConfirmation
     def restart_pod(self, id: str, verbose: bool) -> str:
@@ -219,7 +222,7 @@ class Pods(tapisObject):
         return_information = self.t.pods.restart_pod(pod_id=id)
         if verbose:
             return str(return_information)
-        return self.return_formatter(return_information)
+        return return_information
 
     @decorators.NeedsConfirmation
     def delete_pod(self, id: str, verbose: bool) -> str: 
@@ -229,7 +232,7 @@ class Pods(tapisObject):
         return_information = self.t.pods.delete_pod(pod_id=id)
         if verbose:
             return str(return_information)
-        return self.return_formatter(return_information)
+        return return_information
 
     def set_pod_perms(self, id: str, username: str, level: str) -> str: # set pod permissions, given a pod id, user, and permission level
         """

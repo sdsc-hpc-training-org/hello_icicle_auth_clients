@@ -84,10 +84,10 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup,
         # instantiate the subsystems
         self.logger.info('initialization complete')
         self.command_group_map = {
-            'pods':self.pods.cli,
-            'systems':self.systems.cli,
-            'files':self.files.cli,
-            'apps':self.apps.cli
+            'pods':self.pods,
+            'systems':self.systems,
+            'files':self.files,
+            'apps':self.apps
         }
         self.command_map = {
             'help':self.help,
@@ -96,7 +96,8 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup,
             'shutdown':self.__shutdown,
             'switch_service':self.tapis_init
         }
-        self.help = self.help_generation()
+        help0, help1 = self.help_generation()
+        self.help = dict(help0, **help1)
 
     @decorators.Auth
     def tapis_init(self, username: str, password: str, name: str) -> tuple[typing.Any, str, str] | None:  # name is the baseURL
@@ -111,6 +112,7 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup,
                   password=password)
         t.get_tokens()
 
+        self.configure_decorators()
         # V3 Headers
         header_dat = {"X-Tapis-token": t.access_token.access_token,
                       "Content-Type": "application/json"}
@@ -159,7 +161,6 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup,
                     auth_data: schemas.AuthData = self.schema_unpack()
                     username, password = auth_data.username, auth_data.password
 
-                    self.configure_decorators()
                     self.tapis_init(name=url, username=username, password=password)
                     # send to confirm to the CLI that authentication succeeded
                     self.logger.info("Verification success")
@@ -175,6 +176,8 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup,
                             "Attempted verification too many times. Exiting")
                         os._exit(0)  # shutdown the server
                     continue
+        else:
+            self.configure_decorators()
         startup_result = schemas.StartupData(initial = initial, username = self.username, url = self.url)
         self.logger.info("Connection success")
         self.json_send(startup_result.dict())
@@ -197,10 +200,18 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup,
         if time.time() > self.end_time:  # if the time exceeds the timeout time
             raise exceptions.TimeoutError
     
-    def help(self):
+    def format_help(self, command: dict):
+        return f"Command: {command['command_name']}\nDescription:{command['description']}\n{command['syntax']}\n"
+
+
+    def help(self, command: str):
         """
         @help: returns help information. To get specific help information for tapis services, you can run <service> -c help
         """
+        if command in self.help:
+            return self.help[command]
+        # for command in self.help.values():
+        #     help_str += self.format_help(command)
         return self.help
 
     def run_command(self, command_data: dict):  # process and run commands

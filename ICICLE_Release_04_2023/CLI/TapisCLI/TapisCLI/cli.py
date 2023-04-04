@@ -179,20 +179,34 @@ class CLI(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup):
                         break
                     else:
                         print("Enter valid response")
-                confirmation = schemas.ResponseData(response_message=decision)
-                self.json_send(confirmation.dict())
+                filled_form = schemas.ResponseData(response_message=decision)
             else:
                 return response
             self.json_send(filled_form.dict())
-            print(response)
 
+    def print_response(self, response_message):
+        if type(response_message) == dict:
+            for value in response_message.values():
+                if type(value) == dict:
+                    self.print_dict(value)
+                pprint(value)
+        elif (type(response_message) == list or 
+             type(response_message) == tuple or 
+             type(response_message) == set):
+            for value in response_message:
+                print(value)
+        else:
+            print(response_message)
     def main(self):
         if len(sys.argv) > 1: # checks if any command line arguments were provided. Does not open CLI
             kwargs = self.parser.parse_args()
             kwargs = vars(kwargs)
             command = self.command_operator(kwargs, exit_=1) # operate with args, send them over
             self.json_send(command.dict())
-            print(self.special_forms_ops())
+            response = self.special_forms_ops()
+            if response.schema_type == 'ResponseData':
+                pprint(response.response_message)
+            pprint(response)
             os._exit(0)
 
         title = pyfiglet.figlet_format("---------\nTapiconsole\n---------", font="slant") # print the title when CLI is accessed
@@ -206,10 +220,11 @@ class CLI(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup):
                     continue
                 self.json_send(command.dict())
                 response = self.special_forms_ops()
-                pprint(response.dict())
                 if response.schema_type == 'ResponseData' and response.exit_status: # if the command was a shutdown or exit, close the program
-                    print("exiting the cli")
+                    print("[+] Exiting the cli")
                     os._exit(0)
+                elif response.schema_type == 'ResponseData':
+                    self.print_response(response.response_message)
             except KeyboardInterrupt:
                 pass # keyboard interrupts mess with the server, dont do it! it wont work anyway, hahahaha
             except WindowsError: # if connection error with the server (there wont be any connection errors)
