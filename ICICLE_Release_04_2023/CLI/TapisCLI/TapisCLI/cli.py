@@ -199,7 +199,11 @@ class CLI(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup):
             print(response_message)
     def main(self):
         if len(sys.argv) > 1: # checks if any command line arguments were provided. Does not open CLI
-            kwargs = self.parser.parse_args()
+            try:
+                kwargs = self.parser.parse_args()
+            except:
+                print("Invalid Arguments")
+                os._exit(0)
             kwargs = vars(kwargs)
             command = self.command_operator(kwargs, exit_=1) # operate with args, send them over
             self.json_send(command.dict())
@@ -215,7 +219,10 @@ class CLI(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup):
         while True: # open the CLI if no arguments provided on startup
             try:
                 kwargs = self.process_command(str(input(f"[{self.username}@{self.url}] "))) # ask for and process user input
-                command = self.command_operator(kwargs) # run operations
+                try:
+                    command = self.command_operator(kwargs) # run operations
+                except:
+                    continue
                 if not command:
                     continue
                 self.json_send(command.dict())

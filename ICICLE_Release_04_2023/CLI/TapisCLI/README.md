@@ -4,3 +4,6 @@ Allows you to work with all major Tapis services: Pods, Systems, Files, and Apps
 
 ## Operations
 1. to see a list of all commands and their parameters, just enter help
+
+## Current bugs
+1. help menu does not list the arguments for server commands, most notably, switch_service. To run this, you must specify switch_service -n (service link)
