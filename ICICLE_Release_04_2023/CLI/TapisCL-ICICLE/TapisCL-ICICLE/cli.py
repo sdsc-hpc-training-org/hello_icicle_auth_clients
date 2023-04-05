@@ -4,16 +4,12 @@ import socket
 import argparse
 from argparse import SUPPRESS
 import sys
-import json
 import pyfiglet
 from getpass import getpass
-import threading
 import os
 import time
 from pprint import pprint
 from TypeEnforcement.type_enforcer import TypeEnforcer
-import typing
-import subprocess
 
 try:
     from . import schemas
