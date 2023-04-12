@@ -1,4 +1,4 @@
-# Hello Icicle Authentication Clients Software Release Notes:
+# Hello ICICLE Authentication Clients Software Release Notes:
 
 **Software release:**  icicle_rel_04_2023
 
