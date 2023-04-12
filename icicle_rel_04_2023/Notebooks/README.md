@@ -1,7 +1,15 @@
-## Secure Notebooks for Accessing Tapis PODs
+# Hello Icicle Authentication Clients Software Release Notes:
+
+**Secure Notebooks for Accessing Tapis PODs**
+
+**Software release:** icicle_rel_04_2023
+
+**Date:** 04/14/2023
+<hr>
 
 
-## Description/Oveverview
+
+## Description/Overview
 
 ## Installation/Software Reqquirements
 
