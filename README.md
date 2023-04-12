@@ -14,7 +14,7 @@ Finding a way to make KGs easily accessible and functional on high performance c
 
 In this project, we develop Jupyter Notebooks and Python command line clients that will access ICICLE resources and services using ICICLE authentication
 mechanisms. To connect our clients, we used Tapis, which is a framework that supports computational research to enable scientists to access and utilize and manage multi-institution resources and services. We used Neo4j to organize data into a knowledge graph (KG). We then hosted the KG on a Tapis Pod, which offers persistent data storage with a template made specifically for Neo4j KGs. 
-
+  
 ## Software Releases
 
 ### ICICLE_Release_04_2023
