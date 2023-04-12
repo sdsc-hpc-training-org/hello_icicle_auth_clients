@@ -94,7 +94,7 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup,
         self.help = dict(help0, **help1)
 
     @decorators.Auth
-    def tapis_init(self, username: str, password: str, name: str) -> tuple[typing.Any, str, str] | None:  # name is the baseURL
+    def tapis_init(self, username: str, password: str, link: str) -> tuple[typing.Any, str, str] | None:  # link is the baseURL
         """
         @help: switch the connected tapis service
         """
@@ -102,7 +102,7 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup,
         self.username = username
         self.password = password
         try:
-            t = Tapis(base_url=name,
+            t = Tapis(base_url=link,
                     username=username,
                     password=password)
             t.get_tokens()
@@ -115,13 +115,18 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup,
                       "Content-Type": "application/json"}
 
         # Service URL
-        url = f"{name}/v3"
+        url = f"{link}/v3"
 
         # create authenticator for tapis systems
         authenticator = t.access_token
         # extract the access token from the authenticator
         access_token = re.findall(
             r'(?<=access_token: )(.*)', str(authenticator))[0]
+        
+        if 'win' in sys.platform:
+            os.system(f"set JWT={access_token}")
+        else: # unix based
+            os.system(f"export JWT={access_token}")
 
         self.pods = Pods(t, username, password, self.connection)
         self.systems = Systems(t, username, password, self.connection)
@@ -158,16 +163,15 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup,
                     auth_data: schemas.AuthData = self.schema_unpack()
                     username, password = auth_data.username, auth_data.password
 
-                    self.tapis_init(name=url, username=username, password=password)
+                    self.tapis_init(link=url, username=username, password=password)
                     # send to confirm to the CLI that authentication succeeded
                     self.logger.info("Verification success")
                     break
                 except Exception as e:
-                    print(e)
                     # send failure message to CLI
                     login_failure_data = schemas.ResponseData(response_message = (str(e), attempt))
                     self.json_send(login_failure_data.dict())
-                    self.logger.warning("Verification failure")
+                    self.logger.warning(f"Verification failure, {e}")
                     if attempt == 3:  # If there have been 3 login attempts
                         self.logger.error(
                             "Attempted verification too many times. Exiting")
@@ -207,8 +211,6 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup,
         """
         if command in self.help:
             return self.help[command]
-        # for command in self.help.values():
-        #     help_str += self.format_help(command)
         return self.help
 
     def run_command(self, command_data: dict):  # process and run commands
@@ -235,7 +237,7 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup,
                 response = schemas.ResponseData(response_message = result)
                 self.end_time = time.time() + 300 
                 self.json_send(response.dict()) 
-                print(message)
+                self.logger.info(message)
                 if exit_status == 1:
                     self.__exit()
             except (exceptions.CommandNotFoundError, exceptions.NoConfirmationError, exceptions.InvalidCredentialsReceived) as e:
@@ -255,5 +257,5 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup,
 
 
 if __name__ == '__main__':
-    server = Server('127.0.0.1', 30000)
+    server = Server(socket.gethostbyname(socket.gethostname()), 30000)
     server.main()

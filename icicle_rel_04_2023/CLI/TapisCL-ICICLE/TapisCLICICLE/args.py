@@ -41,6 +41,10 @@ class Args:
             "args":["-d", "--description"],
             "kwargs":{"action":"store"}
         },
+        "link":{
+            "args":["-l", "--link"],
+            "kwargs":{"action":"store"}
+        },
         "verbose":{
             "args":["-v", "--verbose"],
             "kwargs":{"action":"store_true"}

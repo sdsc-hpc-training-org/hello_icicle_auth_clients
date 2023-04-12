@@ -49,20 +49,6 @@ class DynamicHelpUtility:
                 return docstring_component.split("help: ")[1]
         else:
             raise exceptions.HelpDoesNotExist(command_name)
-        
-    def __server_commands_help_gen(self, map: dict) -> dict:
-        help = dict()
-        for command_name, command in map.items():
-            command_help = dict()
-            command_help['command_name'] = command_name
-            command_help['description'] = self.__locate_docstring_help(command, command_name)
-            if map == self.command_map:
-                help_str = f"{command_name}"
-            else:
-                help_str = f"{command_name} -c help"
-            command_help['syntax'] = help_str
-            help[command_name] = command_help
-        return help
 
     def __tapis_service_commands_help_gen(self, map) -> dict:
         help_menu = dict()
@@ -70,17 +56,21 @@ class DynamicHelpUtility:
             command_help = dict()
             command_help['command_name'] = command_name
             command_help['description'] = self.__locate_docstring_help(command, command_name)
-            arguments = get_parameters(command)
+            arguments = None
             if self.__class__.__name__ != 'Server': 
                 argument_help = f"{self.__class__.__name__.lower()} -c {command_name}"
+                arguments = get_parameters(command)
             else:
                 if map == self.command_map:
                     argument_help = f"{command_name}"
+                    arguments = get_parameters(command)
                 else:
                     argument_help = f"{command_name} -c help"
-            for argument in arguments:
-                if argument != "password":
-                    argument_help += f" {command_parameters[argument]['args'][1]} <{argument}>"
+            if arguments:
+                for argument in arguments:
+                    if argument != "password" and argument != "description":
+                        argument_help += f" {command_parameters[argument]['args'][1]} <{argument}>"
+
             command_help['syntax'] = argument_help
             help_menu[command_name] = command_help
         return help_menu
@@ -89,7 +79,7 @@ class DynamicHelpUtility:
         if self.__class__.__name__ != 'Server': 
             return self.__tapis_service_commands_help_gen(map=self.command_map)
         else:
-            return self.__server_commands_help_gen(map=self.command_group_map), self.__server_commands_help_gen(map=self.command_map)
+            return self.__tapis_service_commands_help_gen(map=self.command_group_map), self.__tapis_service_commands_help_gen(map=self.command_map)
     
 
 class KillableThread(threading.Thread):
@@ -121,6 +111,21 @@ class KillableThread(threading.Thread):
 
     def kill(self):
         self.killed = True
+
+
+class Formatters:
+    def recursive_dict_print(self, input_data: dict, depth: int=0):
+        for key, value in input_data.items():
+            if isinstance(value, dict):
+                print(("  " * depth) + f"{key}:")
+                self.recursive_dict_print(value, depth=depth + 1)
+            elif isinstance(value, (list, tuple, set)):
+                print(("  " * depth) + f"{key}:")
+                for data in value:
+                    print(("  " * (depth + 1)) + data)
+            else: 
+                print(("  " * depth) + f"{key}: {str(value).strip()}")
+        print("\n")
 
 
 if __name__ == "__main__":

@@ -9,6 +9,7 @@ from getpass import getpass
 import os
 import time
 from pprint import pprint
+import json
 from TypeEnforcement.type_enforcer import TypeEnforcer
 
 try:
@@ -25,7 +26,12 @@ except:
     import args
 
 
-class CLI(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup):
+__location__ = os.path.realpath(
+    os.path.join(os.getcwd(), os.path.dirname(__file__)))
+server_path = os.path.join(__location__, 'server.py')
+
+
+class CLI(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup, helpers.Formatters):
     @TypeEnforcer.enforcer(recursive=True)
     def __init__(self, IP: str, PORT: int):
         self.ip, self.port = IP, PORT
@@ -46,9 +52,9 @@ class CLI(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup):
         detect client operating system. The local server intitialization is different between unix and windows based systems
         """
         if 'win' in sys.platform:
-            os.system(r"pythonw .\server.py")
+            os.system(f"pythonw {server_path}")
         else: # unix based
-            os.system(r"python .\server.py &")
+            os.system(f"python {server_path} &")
 
     @decorators.AnimatedLoading
     def connection_initialization(self): # patience. This sometimes takes a while
@@ -83,7 +89,7 @@ class CLI(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup):
         if connection_info.initial: # if the server is receiving its first connection for the session\
             while True:
                 try:
-                    url = str(input("\nEnter the link for the tapis service you are connecting to: "))
+                    url = str(input("\nEnter the link for the tapis service you are connecting to: ")).strip()
                 except KeyboardInterrupt:
                     url = " "
                     pass
@@ -91,8 +97,8 @@ class CLI(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup):
                 self.json_send(url_data.dict())
                 auth_request: schemas.AuthRequest = self.schema_unpack()
                 try:
-                    username = str(input("\nUsername: ")) # take the username
-                    password = getpass("Password: ") # take the password
+                    username = str(input("\nUsername: ")).strip() # take the username
+                    password = getpass("Password: ").strip() # take the password
                 except KeyboardInterrupt:
                     username, password = " ", " "
                     pass
@@ -116,7 +122,7 @@ class CLI(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup):
         """
         split the command string into a list. Not sure why this was even made
         """
-        command = command.split(' ') 
+        command = command.strip().split(' ') 
         return command
 
     @TypeEnforcer.enforcer(recursive=True)
@@ -182,10 +188,7 @@ class CLI(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup):
 
     def print_response(self, response_message):
         if type(response_message) == dict:
-            for value in response_message.values():
-                if type(value) == dict:
-                    self.print_dict(value)
-                pprint(value)
+            self.recursive_dict_print(response_message)
         elif (type(response_message) == list or 
              type(response_message) == tuple or 
              type(response_message) == set):
@@ -193,6 +196,7 @@ class CLI(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup):
                 print(value)
         else:
             print(response_message)
+
     def main(self):
         if len(sys.argv) > 1: # checks if any command line arguments were provided. Does not open CLI
             try:
@@ -205,8 +209,7 @@ class CLI(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup):
             self.json_send(command.dict())
             response = self.special_forms_ops()
             if response.schema_type == 'ResponseData':
-                pprint(response.response_message)
-            pprint(response)
+                self.print_response(response.response_message)
             os._exit(0)
 
         title = pyfiglet.figlet_format("---------\nTapiconsole\n---------", font="slant") # print the title when CLI is accessed
@@ -214,6 +217,7 @@ class CLI(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup):
         
         while True: # open the CLI if no arguments provided on startup
             try:
+                time.sleep(0.01)
                 kwargs = self.process_command(str(input(f"[{self.username}@{self.url}] "))) # ask for and process user input
                 try:
                     command = self.command_operator(kwargs) # run operations
@@ -224,18 +228,19 @@ class CLI(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup):
                 self.json_send(command.dict())
                 response = self.special_forms_ops()
                 if response.schema_type == 'ResponseData' and response.exit_status: # if the command was a shutdown or exit, close the program
-                    print("[+] Exiting the cli")
+                    self.print_response(response.response_message)
                     os._exit(0)
                 elif response.schema_type == 'ResponseData':
                     self.print_response(response.response_message)
             except KeyboardInterrupt:
                 pass # keyboard interrupts mess with the server, dont do it! it wont work anyway, hahahaha
             except WindowsError: # if connection error with the server (there wont be any connection errors)
-                raise ConnectionError("[-] Connection was dropped. Exiting")
+                print("[-] Connection was dropped. Exiting")
+                os._exit(0)
             except Exception as e: # if something else happens
-                 print(e)
+                print(e)
 
 
 if __name__ == "__main__":
-    client = CLI('127.0.0.1', 30000)
+    client = CLI(socket.gethostbyname(socket.gethostname()), 30000)
     client.main()

@@ -1,6 +1,7 @@
 import json
 import pyperclip
 import tapipy
+from tapipy.tapis import TapisResult
 from py2neo import Graph
 import typing
 try:
@@ -27,9 +28,14 @@ class tapisObject(helpers.OperationsHelper, decorators.DecoratorSetup, helpers.D
         try:
             command = self.command_map[kwargs['command']]
             kwargs = self.filter_kwargs(command, kwargs)
-            return command(**kwargs)
+            result = command(**kwargs)
+            if type(result) == TapisResult:
+                return str(result)
+            return result
         except (tapipy.errors.NotFoundError, tapipy.errors.BadRequestError, tapipy.errors.BaseTapyException) as e:
             return str(e)
+        except KeyError:
+            return self.help
     
     def help(self, name: typing.Optional[str]):
         """
@@ -114,10 +120,13 @@ class Systems(tapisObject):
         """
         @help: set a system password
         """
-        password_return_value = self.t.systems.createUserCredential(systemId=id, # will put this in a getpass later
-                            userName=self.username,
-                            password=password)
-        return str(password_return_value)
+        try:
+            password_return_value = self.t.systems.createUserCredential(systemId=id, # will put this in a getpass later
+                                userName=self.username,
+                                password=password)
+            return str(password_return_value)
+        except Exception as e:
+            raise Exception(f"{e}\nTry running set_credentials if the problem persists")
 
     @decorators.NeedsConfirmation
     def delete_system(self, id: str) -> str:
@@ -198,6 +207,7 @@ class Pods(tapisObject):
             return str(user_info)
         return user_info.username
 
+    @decorators.RequiresForm
     def create_pod(self, description: str, id: str, template: str, verbose: bool) -> str:
         """
         @help: create a new pod on the selected Tapis service

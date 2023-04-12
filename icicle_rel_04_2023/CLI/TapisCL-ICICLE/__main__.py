@@ -1,5 +1,6 @@
 from TapisCLICICLE.cli import CLI
+import socket
 
 
-client = CLI('127.0.0.1', 3000)
+client = CLI(socket.gethostbyname(socket.gethostname()), 30000)
 client.main()
