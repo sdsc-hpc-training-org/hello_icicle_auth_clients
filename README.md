@@ -1,9 +1,10 @@
-# HELLO ICICLE AUTHENTICATION CLIENTS
+# Hello Icicle Authentication Clients
 Repo for Authenticated Clients and Applications for ICICLE CI Services
 
-NOTES:
-* YAML file: See
-** Component Data Yaml file:  https://github.com/ICICLE-ai/CI-Components-Catalog/blob/master/components-data.yaml
+<a name="top">Contents:
+* [Project Overview](#overview)
+
+<img src="images/expanse_overview.png" alt="Expanse Overview" width="500px">
 
 
 ## Overview
@@ -18,7 +19,7 @@ mechanisms. To connect our clients, we used Tapis, which is a framework that sup
 
 ### ICICLE_Release_04_2023
 
-For this software release, we focussed on developing authenticated connections to kubernetes pods hosted on a TapisTACC server (URL???). 
+For this software release, we focussed on developing authenticated connections to kubernetes pods hosted on any Tapis service. 
 
 * [Jupyter Notebooks](https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients/tree/main/ICICLE_Release_04_2023/CLI)
 * [Command Line Interfaces](https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients/tree/main/ICICLE_Release_04_2023/Notebooks)
@@ -26,7 +27,11 @@ For this software release, we focussed on developing authenticated connections t
 The Notebooks and the CLIs each have their own directory and software requirements which are described here: 
 
 ## REHS Program
-We 
+This software was developed as part of the [San Diego Supercomputer Center](https://education.sdsc.edu/studenttech/rehs/) 
 
 
+<hr>
+NOTES:
+* YAML file: See
+** Component Data Yaml file:  https://github.com/ICICLE-ai/CI-Components-Catalog/blob/master/components-data.yaml
 
