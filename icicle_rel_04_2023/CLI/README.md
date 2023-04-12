@@ -24,6 +24,7 @@ These two command line applications provide a user friendly way to access and ma
 **Installation Options:** 
 1. As PyPi package
 2. Directly from github
+
 [see here for installation instructions](https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients/blob/main/icicle_rel_04_2023/CLI/TapisCL-ICICLE/README.md)
 
 ### ICICONSOLE
@@ -37,4 +38,5 @@ These two command line applications provide a user friendly way to access and ma
 **Installation Options:** 
 1. As PyPi package
 2. Directly from github
+
 [see here for installation instructions](https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients/blob/main/icicle_rel_04_2023/CLI/ICICONSOLE/README.md)
