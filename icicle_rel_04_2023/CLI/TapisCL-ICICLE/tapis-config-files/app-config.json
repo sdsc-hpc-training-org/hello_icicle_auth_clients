@@ -1,0 +1,21 @@
+{
+    "id": "<app_name>.<userid>",
+    "version": "<version number>",
+    "description": "<description>",
+    "runtime": "<runtime, like SINGULARITY>",
+    "runtimeOptions": ["<runtime options like SINGULARITY_RUN>"],
+    "containerImage": "<container image URL>",
+    "jobType": "<job type like BATCH>",
+    "jobAttributes": {
+      "parameterSet": {
+        "appArgs": [
+        ],
+        "archiveFilter": { "includeLaunchFiles": false }
+      },
+      "execSystemId": "<systemid>.<userid>",
+      "nodeCount": 1,
+      "coresPerNode": 1,
+      "memoryMB": 1,
+      "maxMinutes": 10
+    }
+  }

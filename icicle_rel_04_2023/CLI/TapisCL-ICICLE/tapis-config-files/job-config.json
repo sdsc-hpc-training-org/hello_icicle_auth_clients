@@ -1,0 +1,7 @@
+{
+    "name": "<job_name>",
+    "appId": "<app_id>.<userid>", 
+    "appVersion": "<app version number>",
+    "schedulerOptions": {"arg": "--account <project_name>"} ,
+    "parameterSet": {"appArgs": []}
+}

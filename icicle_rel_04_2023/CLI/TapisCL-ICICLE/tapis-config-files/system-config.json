@@ -1,0 +1,33 @@
+{
+    "id": "<username, like stampede2.<username>>",
+    "description": "<description>",
+    "systemType": "<linux, for instance>",
+    "host": "<host URL, like stampede2.tacc.utexas.edu>",
+    "defaultAuthnMethod": "PKI_KEYS",
+    "effectiveUserId": "${apiUserId}",
+    "port": 22,
+    "rootDir": "/",
+    "canExec": true,
+    "jobRuntimes": [ { "runtimeType": "SINGULARITY" } ],
+    "jobWorkingDir": "HOST_EVAL($WORK2)",
+    "canRunBatch": true,
+    "batchScheduler": "<scheduler, like SLURM>",
+    "batchSchedulerProfile": "<profile, like tacc>",
+    "batchDefaultLogicalQueue": "tapisNormal",
+    "batchLogicalQueues": [
+        {
+        "name": "tapisNormal",
+        "hpcQueueName": "normal",
+        "maxJobs": 50,
+        "maxJobsPerUser": 10,
+        "minNodeCount": 1,
+        "maxNodeCount": 16,
+        "minCoresPerNode": 1,
+        "maxCoresPerNode": 68,
+        "minMemoryMB": 1,
+        "maxMemoryMB": 16384,
+        "minMinutes": 1,
+        "maxMinutes": 60
+        }
+    ]
+}
