@@ -6,10 +6,6 @@
 
 **Date:** 04/14/2023
 
-## Description/Overview
-
-## Installation/Software Reqquirements
-
 ## Notebook Overview
 These notebooks are used as [templates](https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients/tree/main/icicle_rel_04_2023/Notebooks/TapisAuthTemplate) for developing Tapis authenticated applications, or as [demonstrators/examples](https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients/tree/main/icicle_rel_04_2023/Notebooks/ExampleApplications) of what you can do with Tapis in your applications.
 
