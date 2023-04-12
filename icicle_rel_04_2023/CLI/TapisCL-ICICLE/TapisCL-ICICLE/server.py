@@ -18,13 +18,13 @@ import typing
 
 try:
     from . import exceptions
-    from . import SocketOpts as SO
+    from . import socketOpts as SO
     from . import helpers
     from . import schemas
     from . import decorators
 except:
     import exceptions
-    import SocketOpts as SO
+    import socketOpts as SO
     import helpers
     import schemas
     import decorators

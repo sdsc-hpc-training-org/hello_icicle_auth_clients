@@ -13,13 +13,13 @@ from TypeEnforcement.type_enforcer import TypeEnforcer
 
 try:
     from . import schemas
-    from . import SocketOpts as SO
+    from . import socketOpts as SO
     from . import helpers
     from . import decorators
     from . import args
 except:
     import schemas
-    import SocketOpts as SO
+    import socketOpts as SO
     import helpers
     import decorators
     import args

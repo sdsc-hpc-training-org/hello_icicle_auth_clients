@@ -7,16 +7,16 @@ from functools import update_wrapper, partial
 try:
     from . import helpers
     from . import schemas
-    from . import SocketOpts
+    from . import socketOpts
     from . import exceptions
 except:
     import helpers
     import schemas
-    import SocketOpts
+    import socketOpts
     import exceptions
 
 
-class BaseRequirementDecorator(SocketOpts.SocketOpts, helpers.OperationsHelper):
+class BaseRequirementDecorator(socketOpts.SocketOpts, helpers.OperationsHelper):
     connection: typing.Optional[socket.socket] = None
     username: typing.Optional[str] = None
     password: typing.Optional[str] = None
