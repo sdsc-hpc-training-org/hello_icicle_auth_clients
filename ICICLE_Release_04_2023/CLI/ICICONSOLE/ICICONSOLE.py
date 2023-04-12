@@ -13,12 +13,10 @@ from getpass import getpass
 # This is how we actually connect to TAPIS and get the required information to connect to a Pod
 from tapipy.tapis import Tapis
 # These are to clear the screen
-import io
 import os
 import signal
 import BasicCypherCommands as bcc
 import json
-import sys, getopt
 
 # Recording login time
 start = time.time()
@@ -119,10 +117,7 @@ def console(graph, pod_id):
                 query = bcc.allPropertiesForNode()
             case _:
                 pass
-            
-        
-        print(query)
-        
+                    
         # This tries to read the input as Cypher and apply the command to the Neo4j graph object.
         try: 
             # Storing the results of the query as a pandas dataframe
