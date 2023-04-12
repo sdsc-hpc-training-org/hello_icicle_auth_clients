@@ -19,7 +19,7 @@ mechanisms. To connect our clients, we used Tapis, which is a framework that sup
   
 ## Software Releases<a name="sw-release"></a></a>
 
-### icicle_rel_04_2023
+### [icicle_rel_04_2023](https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients/tree/main/icicle_rel_04_2023)
 
 For this software release, we focussed on developing authenticated connections to kubernetes pods hosted on any Tapis service. These applciations are stand-alone and can be installed separately. For details, see:
 
