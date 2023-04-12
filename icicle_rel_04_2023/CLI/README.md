@@ -1,4 +1,8 @@
-# Command Line Interface applications 
+# Hello Icicle Authentication Clients Software Release Notes:
+## Command Line Interface applications 
+**Software release:**  icicle_rel_04_2023
+**Date:** 04/14/2023
+<hr>
 
 ## Secure Notebooks for Accessing Tapis PODs
 
