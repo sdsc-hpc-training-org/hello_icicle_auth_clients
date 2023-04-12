@@ -6,7 +6,7 @@ Repo for Authenticated Clients and Applications for ICICLE CI Services
 * [Software Releases](#sw-release)
 * [About the Team](#about)
 
-<img src="ICICLE_Release_04_2023/images/HelloICICLE-Tapis-KG-Client-ArchDiag-apr-10-2023.png
+<img src="icicle_rel_04_2023/images/HelloICICLE-Tapis-KG-Client-ArchDiag-apr-10-2023.png
 " alt="Hello ICICLE Tapis-KG Architecture" width="400px">
 
 
@@ -20,12 +20,12 @@ mechanisms. To connect our clients, we used Tapis, which is a framework that sup
   
 ## Software Releases<a name="sw-release"></a></a>
 
-### ICICLE_Release_04_2023
+### icicle_rel_04_2023
 
 For this software release, we focussed on developing authenticated connections to kubernetes pods hosted on any Tapis service. These applciations are stand-alone and can be installed separately. For details, see:
 
-* [Jupyter Notebooks](https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients/tree/main/ICICLE_Release_04_2023/CLI)
-* [Command Line Interfaces](https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients/tree/main/ICICLE_Release_04_2023/Notebooks)
+* [Jupyter Notebooks](https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients/tree/main/icicle_rel_04_2023/CLI)
+* [Command Line Interfaces](https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients/tree/main/icicle_rel_04_2023/Notebooks)
 
 The Notebooks and the CLIs each have their own directory and software requirements which are described here: 
 
