@@ -21,3 +21,12 @@ def allProperty():
 def allPropertiesForNode():
     id = str(input("Enter id: "))
     return "MATCH(n) WHERE n.id = '" + id + "' RETURN keys(n)"
+
+def createSingularNode():
+    label = str(input("Enter label: "))
+    name = str(input("Enter name: "))
+    return "CREATE (n:" + label + " {name: '" + name + "'})"
+
+def deleteSingularNode():
+    id = str(input("Enter id: "))
+    return "MATCH(n) WHERE n.id = '" + id + "' DELETE n"
