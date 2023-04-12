@@ -3,10 +3,6 @@
 **Software release:** icicle_rel_04_2023
 
 **Date:** 04/14/2023
-<hr>
-
-## Secure Notebooks for Accessing Tapis PODs
-
 
 ## Description/Oveverview
 Overview here
@@ -14,63 +10,36 @@ Overview here
 ## Installation/Software Reqquirements
 software requirements here
 
-## Notebook Overview
-about the notebooks, packagages, etc
+## Overview
+These two command line applications provide a user friendly way to access and manage Tapis services. 
+**General Requirements**
+1. An account and login credentials for a Tapis service running on HPC system (TACC or Expanse for instance)
+2. A python installation
 
-### CLI App1 description
-* what does the app do?
-* packages
+### TapisCL-ICICLE
+**Functions:**
+* Command line interface to manage and operate Tapis services
+ * Pods
+ * Services
+ * Files
+ * Apps/Jobs
 
-### CLI App2 description
-* what does the app do?
-* packages
+**Dependencies:** [here](https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients/blob/main/icicle_rel_04_2023/CLI/TapisCL-ICICLE/requirements.txt)
 
+**Installation Options:** 
+1. As PyPi package
+2. Directly from github
+[see here for installation instructions](https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients/blob/main/icicle_rel_04_2023/CLI/TapisCL-ICICLE/README.md)
 
-<hr>
-### MPT Notes:
-* where they run from
-* module dependencies
+### ICICONSOLE
+**Functions:**
+* Command line interface specifically aimed toward working with Neo4j hosted on Tapis pods.
+ * Direct entry of cypher commands into the console to be executed by Neo4j
+ * Also provides python library which wraps over Cypher commands
+ 
+**Dependencies:** [here](https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients/blob/main/icicle_rel_04_2023/CLI/ICICONSOLE/requirements.txt)
 
-
-
-* Authenticates a user to Tacc
-* Creates a Tapis pod with a Neo4j template
-* Sets permissions for a Tapis pod
-* Establishes a connection to the Pod via py2neo
-
-## load_data.ipynb
-
-* Shows how to load pre-existing CSV data into an empty Neo4j Tapis Pod
-
-
-
-
-
-
-
-<hr>
-<hr>
-that we developed. (these will probably be combined later)
-
-## ICICONSOLE
-
-* Requires Tacc Authentication
-* Allows for direct access to all Tapis Pods authorized to the signed in Tacc user
-* Cypher console for Neo4j Pods
-* Direct parsing of commands to cypher with basic display of results 
-* includes python library that wraps simple cypher commands in python functions
-
-## TapisCLI
-
-* Requires Tacc Authentication
-* Tapis service management
-  * pods
-  * services
-  * files
-  * apps
-* command line interface for above services
-* use as a full terminal application, or enter commands directly into the terminal window
-* also interface with individual pods
-  * enter commands for neo4j pods
-* planning to add curses interface in the future
-* I will make the pypi toml later
+**Installation Options:** 
+1. As PyPi package
+2. Directly from github
+[see here for installation instructions](https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients/blob/main/icicle_rel_04_2023/CLI/ICICONSOLE/README.md)
