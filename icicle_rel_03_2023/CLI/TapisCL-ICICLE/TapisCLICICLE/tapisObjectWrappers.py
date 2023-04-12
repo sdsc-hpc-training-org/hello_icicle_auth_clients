@@ -422,3 +422,4 @@ class Apps(tapisObject):
         with open(file, 'w') as f:
             f.write(jobs_output)
         return f"Successfully downloaded job output to {file}"
+    
