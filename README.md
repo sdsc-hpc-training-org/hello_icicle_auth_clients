@@ -22,9 +22,14 @@ mechanisms. To connect our clients, we used Tapis, which is a framework that sup
 ### [icicle_rel_04_2023](https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients/tree/main/icicle_rel_04_2023)
 
 For this software release, we focussed on developing authenticated connections to kubernetes pods hosted on any Tapis service. These applciations are stand-alone and can be installed separately. For details, see:
-
 * [Jupyter Notebooks](https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients/tree/main/icicle_rel_04_2023/CLI)
 * [Command Line Interfaces](https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients/tree/main/icicle_rel_04_2023/Notebooks)
+
+### Command Line Applications
+Our CLI's are production software intended for use as interfaces to Tapis services hosted on HPC systems. These are ready to install and use, provided the proper [requirements](https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients/tree/main/icicle_rel_04_2023/CLI) are fulfilled.
+
+### Jupyter Notebooks
+The Jupyter notebooks in this repository are primarily [demonstrators](https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients/tree/main/icicle_rel_04_2023/Notebooks/ExampleApplications) for working Tapis code, written in python. We also made an [extensible template notebook](https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients/blob/main/icicle_rel_04_2023/Notebooks/TapisAuth/tapis_pods_auth.ipynb) which has Tapis auth prebuilt, and can be easily modified to carry out specific Tapis related tasks.
 
 The Notebooks and the CLIs each have their own directory and software requirements which are described here: 
 
