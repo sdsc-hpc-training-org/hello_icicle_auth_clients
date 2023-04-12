@@ -13,6 +13,7 @@ Allows you to work with all major Tapis services: Pods, Systems, Files, and Apps
 #### Running Python Code Directly
 1. Clone the repository to local machine.
 2. `python -m pip install -r requirements.txt`
+3. `python cli.py`
 ### Operations
 1. to see a list of all commands and their parameters, just enter help
 
