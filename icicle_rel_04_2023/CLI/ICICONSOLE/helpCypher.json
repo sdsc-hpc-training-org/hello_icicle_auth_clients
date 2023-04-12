@@ -1,0 +1,7 @@
+{
+    "all": "Prints all nodes in the Knowledge Graph.",
+    "allProperty": "Prints the value of a property in all nodes with the given property.",
+    "allNames": "Prints all names in the Knowledge Graph.",
+    "oneByName": "Prints one node by name.",
+    "allPropertiesForNode": "Prints all properties for a given node by ID."
+}
