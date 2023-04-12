@@ -1,21 +1,14 @@
 import json
-import os
-import re
-import sys
 import pyperclip
-from tapipy import tapis
 import tapipy
 from py2neo import Graph
 import typing
-from TypeEnforcement.type_enforcer import TypeEnforcer
 try:
     from . import helpers
     from . import decorators
-    from . import args
 except:
     import helpers 
     import decorators
-    import args
 
 
 class tapisObject(helpers.OperationsHelper, decorators.DecoratorSetup, helpers.DynamicHelpUtility):

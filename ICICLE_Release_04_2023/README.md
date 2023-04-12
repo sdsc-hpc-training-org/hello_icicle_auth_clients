@@ -1,20 +1,24 @@
 ## ICICLE_Release_04_2023
 
-In this project we developed authenticated connections to kubernetes pods hosted on a TACC server. These clients include:
+For this software release, we focussed on developing authenticated connections to kubernetes pods hosted on a TACC server (URL???). 
+The primary goals of these applications included:
 
-* Jupyter Notebooks 
-* Command Line Interfaces
+* Authenticating users using TACC accounts
+* Creating Neo4j Pods to be able to store data on Tacc Servers
+* Loading pre-existing data into the Neo4j Pods
+* Setting permissions of Pods
+* Parsing Cypher queries from our clients and directly communicate with the data on our Pods
+* Visualizing data through neo4jupyter (notebooks)
+* Developing an interactive user interface for requesting Cypher input (CLIs)
 
-The Notebooks and the CLIs each have their own directory which is seen above.
+### ICICLE_Release_04_2023
 
-The primary goals of our work were:
+For this software release, we focussed on developing authenticated connections to kubernetes pods hosted on any Tapis service. These applciations are stand-alone and can be installed separately. For details, see:
 
-* Authenticate users using TACC accounts
-* Create Neo4j Pods to be able to store data on Tacc Servers
-* Load pre existing data into the Neo4j Pods
-* Be able to set permissions of Pods
-* Be able to parse Cypher queries from our clients and directly communicate with the data on our Pods
-* Visualize data through neo4jupyter (notebooks)
-* Have interactive user interface for requesting Cypher input (CLIs)
+* [Jupyter Notebooks](https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients/tree/main/ICICLE_Release_04_2023/CLI)
+   * [
+* [Command Line Interfaces](https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients/tree/main/ICICLE_Release_04_2023/Notebooks)
+   * [CLI: ICICONSOLE}(https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients/tree/main/ICICLE_Release_04_2023/CLI/ICICONSOLE)
+   * [CLI: TapisCL-ICICLE](https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients/tree/main/ICICLE_Release_04_2023/CLI/TapisCL-ICICLE)
 
-
+The Notebooks and the CLIs each have their own directory and software requirements which are described here: 

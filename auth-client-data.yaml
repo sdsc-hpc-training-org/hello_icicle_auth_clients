@@ -1,10 +1,27 @@
-  # - id: hello_icicle_auth_clients
-  #   owner: Mary Thomas
-  #   name: Hello ICICLE Auth Clients
-  #   primaryThrust: core/Software
-  #   description: Repo for Authenticated Clients and Applications for ICICLE CI Services
-  #   status: PrototypeRelease
-  #   targetIcicleRelease: VC3
-  #   publicAccess: true
-  #   componentVersion: Unknown
-  #   licenseUrl: Unknown
+components:
+  - id: hello_icicle_auth_clients
+    name: Base ICICLE Tapis Software
+    componentVersion: 0.0.1
+    status: PrototypeRelease
+    owner: Mary Thomas
+    primaryThrust: core/Software
+    description: Repo for Authenticated Clients and Applications for ICICLE CI Services
+    citation: 
+    website: https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients
+    licenseUrl: https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients/blob/main/LICENSE
+    sourceCodeUrl: https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients
+    releaseNotesUrl: https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients
+    usageDocumentationUrl: https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients
+    targetIcicleRelease: VC3
+    publicAccess: True
+    containerImage: False
+    codeReviewConducted: False
+    testsWritten: False
+    securityReviewConducted: False 
+    usageDocumentationAvailable: True
+    developerDocumentationAvailable: False
+    developerDocumentationUrl: NA
+    trainingTutorialsAvailable: False
+    trainingTutorialsUrl: NA
+    usageMetricsCollected: False
+    pypiPackage: tbm

@@ -107,10 +107,13 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup,
         start = time.time()
         self.username = username
         self.password = password
-        t = Tapis(base_url=name,
-                  username=username,
-                  password=password)
-        t.get_tokens()
+        try:
+            t = Tapis(base_url=name,
+                    username=username,
+                    password=password)
+            t.get_tokens()
+        except:
+            raise exceptions.InvalidCredentialsReceived(function=self.tapis_init, cred_type="Tapis Auth")
 
         self.configure_decorators()
         # V3 Headers
