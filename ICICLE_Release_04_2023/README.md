@@ -11,10 +11,14 @@ The primary goals of these applications included:
 * Visualizing data through neo4jupyter (notebooks)
 * Developing an interactive user interface for requesting Cypher input (CLIs)
 
-Based on thes goals, we developed the following clients:
+### ICICLE_Release_04_2023
+
+For this software release, we focussed on developing authenticated connections to kubernetes pods hosted on any Tapis service. These applciations are stand-alone and can be installed separately. For details, see:
 
 * [Jupyter Notebooks](https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients/tree/main/ICICLE_Release_04_2023/CLI)
+   * [
 * [Command Line Interfaces](https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients/tree/main/ICICLE_Release_04_2023/Notebooks)
+   * [CLI: ICICONSOLE}(https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients/tree/main/ICICLE_Release_04_2023/CLI/ICICONSOLE)
+   * [CLI: TapisCL-ICICLE](https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients/tree/main/ICICLE_Release_04_2023/CLI/TapisCL-ICICLE)
 
-The Notebooks and the CLIs each have their own directory and software requirements which are described (where???).
-
+The Notebooks and the CLIs each have their own directory and software requirements which are described here: 
