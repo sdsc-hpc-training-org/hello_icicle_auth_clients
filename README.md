@@ -6,8 +6,7 @@ Repo for Authenticated Clients and Applications for ICICLE CI Services
 * [Software Releases](#sw-release)
 * [About the Team](#about)
 
-<img src="icicle_rel_04_2023/images/HelloICICLE-Tapis-KG-Client-ArchDiag-apr-10-2023.png
-" alt="Hello ICICLE Tapis-KG Architecture" width="400px">
+<img src="images/HelloICICLE-Tapis-KG-Client-ArchDiag-apr-10-2023.png" alt="Hello ICICLE Tapis-KG Architecture" width="400px">
 
 
 ## Overview <a name="overview"></a></a>
