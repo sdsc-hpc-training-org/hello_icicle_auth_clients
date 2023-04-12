@@ -1,5 +1,5 @@
-from typing import Type, Any, Optional
-from pydantic import BaseModel, SecretStr
+from typing import Any, Optional
+from pydantic import BaseModel
 
 
 class CommandData(BaseModel):

@@ -1,15 +1,9 @@
-import pyfiglet
-import argparse
 import sys
 from getpass import getpass
 import time
 import re
 from tapipy.tapis import Tapis
-import tapipy.tapis
 import socket
-import json
-import threading
-import multiprocessing
 import os
 import logging
 from tapisObjectWrappers import Files, Apps, Pods, Systems, Neo4jCLI

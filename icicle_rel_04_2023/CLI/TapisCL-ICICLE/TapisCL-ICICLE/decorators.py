@@ -2,7 +2,6 @@ import typing
 import socket
 import sys
 import time
-import functools
 from functools import update_wrapper, partial
 try:
     from . import helpers
