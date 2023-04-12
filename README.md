@@ -19,7 +19,7 @@ mechanisms. To connect our clients, we used Tapis, which is a framework that sup
 
 ### ICICLE_Release_04_2023
 
-For this software release, we focussed on developing authenticated connections to kubernetes pods hosted on any Tapis service. 
+For this software release, we focussed on developing authenticated connections to kubernetes pods hosted on any Tapis service. These applciations are stand-alone and can be installed separately. For details, see:
 
 * [Jupyter Notebooks](https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients/tree/main/ICICLE_Release_04_2023/CLI)
 * [Command Line Interfaces](https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients/tree/main/ICICLE_Release_04_2023/Notebooks)
