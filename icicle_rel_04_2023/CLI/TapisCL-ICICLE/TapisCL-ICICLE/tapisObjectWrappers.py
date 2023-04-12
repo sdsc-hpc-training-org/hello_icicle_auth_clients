@@ -84,7 +84,8 @@ class Systems(tapisObject):
     
     def create_system(self, file: str) -> str: # create a tapius system. Takes a path to a json file with all system information, as well as an ID
         """
-        @help: create a system from a descriptor file
+        @help: create a system. Must have a properly configured system file.
+        see the template at https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients/blob/main/icicle_rel_04_2023/CLI/TapisCL-ICICLE/tapis-config-files/system-config.json
         """
         with open(file, 'r') as f:
             system = json.loads(f.read())
@@ -93,8 +94,7 @@ class Systems(tapisObject):
     
     def system_credential_upload(self, file: str) -> str: # upload key credentials for the system
         """
-        @help: upload system credentials to a system
-        @doc: Must generate keys first using 'ssh-keygen -m PEM -f id_rsa', and format with, 'awk -v ORS='\\n' '1' <private_key_name>'
+        @help: upload system credentials to a system. Must generate keys first using 'ssh-keygen -m PEM -f id_rsa', and format with, 'awk -v ORS='\\n' '1' <private_key_name>
         """
         with open(file.split(",")[0], 'r') as f:
             private_key = f.read()
@@ -109,7 +109,7 @@ class Systems(tapisObject):
 
         return str(cred_return_value)
 
-    #@decorators.SecureInput
+    @decorators.SecureInput
     def system_password_set(self, id: str, password: str) -> str: # set the password for a system
         """
         @help: set a system password
@@ -331,7 +331,8 @@ class Apps(tapisObject):
 
     def create_app(self, file: str) -> str: # create a tapis app taking a json descriptor file path
         """
-        @help: create an app 
+        @help: create an app. You must have a properly configured app config file. 
+        See a template at https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients/blob/main/icicle_rel_04_2023/CLI/TapisCL-ICICLE/tapis-config-files/app-config.json
         """
         with open(file, 'r') as f:
             app_def = json.loads(f.read())
@@ -364,7 +365,8 @@ class Apps(tapisObject):
 
     def run_job(self, file: str)->str: # run a job using an app. Takes a job descriptor json file path
         """
-        @help: run a job from an app on a system
+        @help: run a job from an app on a system. You must have a properly configured job config file. 
+        See a template at https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients/blob/main/icicle_rel_04_2023/CLI/TapisCL-ICICLE/tapis-config-files/job-config.json
         """
         with open(file, 'r') as f:
             app = json.loads(f.read())
