@@ -4,15 +4,10 @@
 
 **Date:** 04/14/2023
 
-## Description/Oveverview
-Overview here
-
-## Installation/Software Reqquirements
-software requirements here
-
 ## Overview
 These two command line applications provide a user friendly way to access and manage Tapis services. 
-**General Requirements**
+
+### General Requirements
 1. An account and login credentials for a Tapis service running on HPC system (TACC or Expanse for instance)
 2. A python installation
 
