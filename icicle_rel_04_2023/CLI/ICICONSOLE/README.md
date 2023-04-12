@@ -39,7 +39,7 @@ Next, you will see the Tapis Pods that you have been given permission to access.
 Once you do this, you will be in a custom made console for interfacing with the Knowledge Graph, using the Cypher language. If you know Cypher, you can start typing in commands like 
 
 ```
-MATCH(n) RETURN n
+MATCH(n) RETURN n LIMIT 10
 ```
 
 If you are not familiar with Cypher, don't worry! This is meant for users who have never used Cypher before. Type in "help" to view some of the built in commands to start exploring the knowledge graph. These built in commands will grow more extensive as time goes on. 
