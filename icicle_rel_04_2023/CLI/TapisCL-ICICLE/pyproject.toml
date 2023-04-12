@@ -19,7 +19,6 @@ classifiers = [
 keywords = ["Tapis", "CLI", "Agave", "HPC", "Tapis Pods", "TACC"]
 dependencies = [
     "pydantic",
-    "TypeEnforcement",
     "pyfiglet",
     "tapipy",
     "pyperclip",
