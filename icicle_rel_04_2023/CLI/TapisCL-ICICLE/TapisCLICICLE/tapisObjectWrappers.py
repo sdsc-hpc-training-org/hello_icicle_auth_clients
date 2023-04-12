@@ -68,7 +68,7 @@ class Systems(tapisObject):
     def get_systems(self, verbose: bool):
         """
         @help: Gets and returns the list of systems the current Tapis service and account have access to
-        @doc: this is an example of the doc segment of the docstring
+        @doc: this is an example of the doc segment of the docstring. not included in help message
         """
         systems = self.t.systems.getSystems()
         if systems and verbose:
@@ -101,6 +101,7 @@ class Systems(tapisObject):
     def system_credential_upload(self, file: str) -> str: # upload key credentials for the system
         """
         @help: upload system credentials to a system. Must generate keys first using 'ssh-keygen -m PEM -f id_rsa', and format with, 'awk -v ORS='\\n' '1' <private_key_name>
+        file argument must contain the path to the private and public keys respectively, separated by a ','
         """
         with open(file.split(",")[0], 'r') as f:
             private_key = f.read()
@@ -174,9 +175,11 @@ class Pods(tapisObject):
                 'restart_pod':self.restart_pod,
                 'delete_pod':self.delete_pod,
                 'set_pod_perms':self.set_pod_perms,
+                'stop_pod':self.stop_pod,
                 'delete_pod_perms':self.delete_pod_perms,
                 'get_perms':self.get_perms,
                 'copy_pod_password':self.copy_pod_password,
+                'get_logs':self.get_pod_logs,
                 'help':self.help
             }
         super().__init__(tapis_instance, username, password, connection, command_map=command_map)
@@ -226,7 +229,15 @@ class Pods(tapisObject):
         if verbose:
             return str(return_information)
         return return_information
-
+    
+    @decorators.NeedsConfirmation
+    def stop_pod(self, id: str):
+        """
+        @help: stop a pod's operations
+        """
+        return_information = self.t.pods.stop_pod(pod_id=id)
+        return return_information
+        
     @decorators.NeedsConfirmation
     def delete_pod(self, id: str, verbose: bool) -> str: 
         """
@@ -268,6 +279,17 @@ class Pods(tapisObject):
         pyperclip.copy(password)
         password = None
         return 'copied to clipboard'
+    
+    def get_pod_logs(self, id: str, file=None):
+        """
+        @help: retrieve the logs of an active pod and either print them to the console, or write them to the specified file
+        """
+        logs = self.t.pods.get_pod_logs(pod_id=id)
+        if file:
+            with open(file, 'w') as f:
+                f.write(logs)
+            return f"Log saved at {file}"
+        return logs
 
 
 class Files(tapisObject):
@@ -298,7 +320,8 @@ class Files(tapisObject):
 
     def upload(self, file: str, id: str) -> str: # upload a file from local to remote using tapis. Takes source and destination paths
         """
-        @help: upload a file to the system
+        @help: upload a file to the system 
+        the source and destination files must both be in the file argument, respectively, separated by a comma
         """
         source = file.split(",")[0]
         destination = file.split(",")[1]
@@ -310,6 +333,7 @@ class Files(tapisObject):
     def download(self, file: str, id: str) -> str: # download a remote file using tapis, operates basically the same as upload
         """
         @help: download a file from the system
+        the source and destination files must both be in the file argument, respectively, separated by a comma
         """
         source = file.split(",")[0]
         destination = file.split(",")[1]
