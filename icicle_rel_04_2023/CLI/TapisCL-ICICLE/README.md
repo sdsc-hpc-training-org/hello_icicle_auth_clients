@@ -16,10 +16,11 @@ Allows you to work with all major Tapis services: Pods, Systems, Files, and Apps
 3. `python cli.py`
 ### Operations
 **Full Terminal Interface:**
-1. You will be promted to enter a Tapis service link. You can find this on the Tapis service provider's wesbite usually. If you are working with icicle, this should be https://icicle.tapis.io
-2. enter your username and password when prompted
-3. if all went well the console should open. You can run `help` to see command options
-4. to exit the application, run `exit`
+1. run ``python -m TapisCLICICLE``
+2. You will be promted to enter a Tapis service link. You can find this on the Tapis service provider's wesbite usually. If you are working with icicle, this should be https://icicle.tapis.io
+3. enter your username and password when prompted
+4. if all went well the console should open. You can run `help` to see command options
+5. to exit the application, run `exit`
 
 **Command Line:**
 
