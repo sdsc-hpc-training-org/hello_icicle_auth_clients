@@ -15,4 +15,16 @@ Allows you to work with all major Tapis services: Pods, Systems, Files, and Apps
 2. `python -m pip install -r requirements.txt`
 3. `python cli.py`
 ### Operations
-1. to see a list of all commands and their parameters, just enter help
+**Full Terminal Interface**
+1. You will be promted to enter a Tapis service link. You can find this on the Tapis service provider's wesbite usually. If you are working with icicle, this should be https://icicle.tapis.io
+2. enter your username and password when prompted
+3. if all went well the console should open. You can run `help` to see command options
+4. to exit the application, run `exit`
+
+**Command Line**
+Alternatively, if you do not want to enter the actual command line environment of the TapisCL-ICICLE application, you can run commands directly from the command line like this:
+
+`python -m TapisCLICICLE pods -c help`
+
+this may still ask you for authentication, however once you are logged in once, you do not need to enter your credentials again unless the 5 minute timeout period passes, in which case the application shuts itself off.
+
