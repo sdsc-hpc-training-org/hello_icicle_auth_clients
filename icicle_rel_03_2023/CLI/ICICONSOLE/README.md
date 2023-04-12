@@ -8,7 +8,7 @@ This application is specialized for knowledge graph querying, and has some basic
 
 ### Dependencies
  
-* Dependencies are listed [here](https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients/blob/main/icicle_rel_04_2023/CLI/ICICONSOLE/requirements.txt)
+* Dependencies are listed [here](https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients/blob/main/icicle_rel_03_2023/CLI/ICICONSOLE/requirements.txt)
 
 ### Installation
 
@@ -19,7 +19,7 @@ git clone https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients.git
 ```
 
 ```shell
-cd hello_icicle_auth_clients/icicle_rel_04_2023/CLI/ICICONSOLE
+cd hello_icicle_auth_clients/icicle_rel_03_2023/CLI/ICICONSOLE
 ```
 
 ```shell
