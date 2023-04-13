@@ -33,9 +33,8 @@ The Jupyter notebooks in this repository are primarily [demonstrators](https://g
 
 The Notebooks and the CLIs each have their own directory and software requirements which are described here: 
 
-## About the Team <a naem="about"></a>
-This software was developed as part of the [San Diego Supercomputer Center](https://education.sdsc.edu/studenttech/rehs/) 
-
+## About the Team <a name="about"></a>
+This software was developed By the [SDSC/UCSD Smmer 2022 REHS Project](https://education.sdsc.edu/studenttech/rehs/), titled *Developing Interactive Jupyter Notebooks to run on the SDSC HPC Expanse System and the “AI institute for Intelligent Cyberinfrastructure with Computational Learning in the Environment” (ICICLE) project.* 
 
 <hr>
 NOTES:
