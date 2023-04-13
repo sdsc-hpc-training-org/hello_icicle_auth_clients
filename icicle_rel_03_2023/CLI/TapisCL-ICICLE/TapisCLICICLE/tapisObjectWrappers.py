@@ -4,12 +4,18 @@ import tapipy
 from tapipy.tapis import TapisResult
 from py2neo import Graph
 import typing
+import os
 try:
     from . import helpers
     from . import decorators
 except:
     import helpers 
     import decorators
+
+
+__location__ = os.path.realpath(
+    os.path.join(os.getcwd(), os.path.dirname(__file__)))
+server_path = os.path.join(__location__, 'server.py')
 
 
 class tapisObject(helpers.OperationsHelper, decorators.DecoratorSetup, helpers.DynamicHelpUtility):
@@ -65,6 +71,18 @@ class Systems(tapisObject):
     def return_formatter(self, info):
         return f"id: {info.id}\nhost: {info.host}\n\n"
 
+    def __keygen(self):
+        local_files = os.listdir(__location__)
+        if "id_rsa" not in local_files or "id_rsa.pub" not in local_files:
+            os.system(f'ssh-keygen -q -m PEM -f {__location__}\\id_rsa -N ""')
+            with open(f"{__location__}\\id_rsa", 'r') as f:
+                formatted_key = ""
+                for line in f.readlines()[1:-1]:
+                    formatted_key += line.strip()
+
+            with open(f"{__location__}\\id_rsa", 'w') as f:
+                f.write(formatted_key)
+
     def get_systems(self, verbose: bool):
         """
         @help: Gets and returns the list of systems the current Tapis service and account have access to
@@ -92,13 +110,16 @@ class Systems(tapisObject):
         """
         @help: create a system. Must have a properly configured system file.
         see the template at https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients/blob/main/icicle_rel_04_2023/CLI/TapisCL-ICICLE/tapis-config-files/system-config.json
+        this command will automatically create and upload the ssh keys
         """
+        self.__keygen()
         with open(file, 'r') as f:
             system = json.loads(f.read())
-        self.t.systems.createSystem(**system)
-        return str
+        return_value = self.t.systems.createSystem(**system)
+        self.system_credential_upload(id=system['id'], file=f"{__location__}\\id_rsa,{__location__}\\id_rsa.pub")
+        return str(return_value)
     
-    def system_credential_upload(self, file: str) -> str: # upload key credentials for the system
+    def system_credential_upload(self, id: str, file: str) -> str: # upload key credentials for the system
         """
         @help: upload system credentials to a system. Must generate keys first using 'ssh-keygen -m PEM -f id_rsa', and format with, 'awk -v ORS='\\n' '1' <private_key_name>
         file argument must contain the path to the private and public keys respectively, separated by a ','
