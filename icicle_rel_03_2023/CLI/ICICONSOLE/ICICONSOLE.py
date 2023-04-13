@@ -145,10 +145,11 @@ def choosePod():
     for pod in t.pods.get_pods():
         # pod.pod_id takes each element of the list, representing each pod, and extracts only the pod id
         # This is done because connecting to a Neo4j pod only requires the pod id.
-        print(str(i) + ". " + pod.pod_id)
-        i += 1
+        if pod.pod_template == "neo4j":
+            print(str(i) + ". " + pod.pod_id)
+            i += 1
     if (i == 1):
-        print("You don't have access to any TAPIS pods. Try again after you have verified access to at least one pod.")
+        print("You don't have access to any TAPIS Neo4j pods. Try again after you have verified access to at least one pod.")
     i = 1
 
     while(True):
