@@ -90,14 +90,16 @@ def console(graph, pod_id):
         match query:
             case "exit":
                 os._exit(0)
+                executeCypher = False
             # The command to pick a new pod to connect to. Calls the choosePod function, defined below.
             case "new":
                 choosePod()
-                return
+                executeCypher = False
             # The command to clear the screen. Has a recursive call to itself so that the user is once again prompted, and the instruction message is still shown.
             case "clear":
                 os.system('cls' if os.name == 'nt' else 'clear')
                 console(graph, pod_id)
+                executeCypher = False
             case "help":
                 helpCypher()
                 executeCypher = False
