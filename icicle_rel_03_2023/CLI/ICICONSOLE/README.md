@@ -23,7 +23,19 @@ cd hello_icicle_auth_clients/icicle_rel_03_2023/CLI/ICICONSOLE
 ```
 
 ```shell
-python -m pip install -r requirements.txt
+pip install pandas
+```
+
+```shell
+pip install py2neo
+```
+
+```shell
+pip install pytz
+```
+
+```shell
+pip install tapipy
 ```
 
 ```shell
