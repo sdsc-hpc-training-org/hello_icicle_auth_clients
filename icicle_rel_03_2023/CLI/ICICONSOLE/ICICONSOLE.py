@@ -149,6 +149,7 @@ def choosePod():
             i += 1
     if (i == 1):
         print("You don't have access to any TAPIS Neo4j pods. Try again after you have verified access to at least one pod.")
+        os._exit(0)
     i = 1
 
     while(True):
