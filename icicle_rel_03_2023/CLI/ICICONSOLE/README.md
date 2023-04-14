@@ -15,24 +15,12 @@ This application is specialized for knowledge graph querying, and has some basic
 Right now, the only way to use this application is to directly run the python code. Additionally, it requies python 3.10.
 
 ```shell 
-git clone https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients.git
-```
+git clone https://github.com/icicle-ai/hello_icicle_auth_clients.git
 
-```shell
-cd hello_icicle_auth_clients/icicle_rel_03_2023/CLI/ICICONSOLE
-```
-
-```shell
-pip install pandas
-```
-
-```shell
-pip install py2neo
-```
-
-
-```shell
-pip install tapipy
+$ cd hello_icicle_auth_clients/icicle_rel_03_2023/CLI/ICICONSOLE
+$ pip install pandas
+$ pip install py2neo
+$ pip install tapipy
 ```
 
 ```shell
