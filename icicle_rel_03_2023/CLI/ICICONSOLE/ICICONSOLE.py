@@ -83,25 +83,26 @@ def console(graph, pod_id):
     while(True):
         # This is reading the actual input from the user; the input message shows the username and the pod id
         query = str(input("[" + user + "@" + pod_id + "] "))
-        # The exit command, to leave the ICICONSOLE application
-        if(query == "exit"):
-            os._exit(0)
-        # The command to pick a new pod to connect to. Calls the choosePod function, defined below.
-        if(query == "new"):
-            choosePod()
-            return
-        # The command to clear the screen. Has a recursive call to itself so that the user is once again prompted, and the instruction message is still shown.
-        if(query == "clear"):
-            os.system('cls' if os.name == 'nt' else 'clear')
-            console(graph, pod_id)
 
-        if(query == "help"):
-            helpCypher()
-            continue
+        executeCypher = True
 
-
-        # Cypher Shortcuts
+        # This is a switch statement that allows for the user to type in a command, and the console will execute the command.
         match query:
+            case "exit":
+                os._exit(0)
+                executeCypher = False
+            # The command to pick a new pod to connect to. Calls the choosePod function, defined below.
+            case "new":
+                choosePod()
+                executeCypher = False
+            # The command to clear the screen. Has a recursive call to itself so that the user is once again prompted, and the instruction message is still shown.
+            case "clear":
+                os.system('cls' if os.name == 'nt' else 'clear')
+                console(graph, pod_id)
+                executeCypher = False
+            case "help":
+                helpCypher()
+                executeCypher = False
             case "all":
                 query = bcc.getAll()
             case "allNames":
@@ -116,21 +117,22 @@ def console(graph, pod_id):
                 query = bcc.allPropertiesForNode()
             case _:
                 pass
-                    
-        # This tries to read the input as Cypher and apply the command to the Neo4j graph object.
-        try: 
-            # Storing the results of the query as a pandas dataframe
-            df = graph.run(query).to_data_frame()
-            # Displaying the result
-            with pd.option_context('expand_frame_repr', False, 'display.max_rows', None): 
-                print(df)
+
+        if (executeCypher):
+            # This tries to read the input as Cypher and apply the command to the Neo4j graph object.
+            try: 
+                # Storing the results of the query as a pandas dataframe
+                df = graph.run(query).to_data_frame()
+                # Displaying the result
+                with pd.option_context('expand_frame_repr', False, 'display.max_rows', None): 
+                    print(df)
 
 
-        # Error catching, if the Cypher was not executed properly
-        except:
-            if flag.exit():
-                break
-            print("Something went wrong")
+            # Error catching, if the Cypher was not executed properly
+            except:
+                if flag.exit():
+                    break
+                print("Something went wrong")
 
 
 # This is the function that allows the user to pick a pod to connect to. It needs no paramters.
