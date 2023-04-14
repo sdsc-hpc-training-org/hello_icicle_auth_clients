@@ -189,6 +189,7 @@ def choosePod():
             if flag.exit():
                 break
             print("There was a connection error.")
+            break
             
 # The below loop handles initial login.
 while(True):
