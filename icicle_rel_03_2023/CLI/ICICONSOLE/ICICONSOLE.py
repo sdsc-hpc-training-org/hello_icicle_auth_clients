@@ -6,7 +6,6 @@ from py2neo import GraphService
 from py2neo import wiring
 # These are optional
 import time
-import pytz
 import datetime
 # This is used to securely get user password for initial authentication to TAPIS
 from getpass import getpass
