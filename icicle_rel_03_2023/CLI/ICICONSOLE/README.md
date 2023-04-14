@@ -13,16 +13,17 @@ This application is specialized for knowledge graph querying, and has some basic
 ### Installation
 
 Right now, the only way to use this application is to directly run the python code. Additionally, it requies python 3.10.
-
 ```shell 
 git clone https://github.com/icicle-ai/hello_icicle_auth_clients.git
-
 cd hello_icicle_auth_clients/icicle_rel_03_2023/CLI/ICICONSOLE
+```
+Install dependencies.
+```shell
 pip install pandas
 pip install py2neo
 pip install tapipy
 ```
-
+Run ICICONSOLE.
 ```shell
 python ICICONSOLE.py
 ```
