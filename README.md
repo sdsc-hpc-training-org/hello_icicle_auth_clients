@@ -36,6 +36,18 @@ The Notebooks and the CLIs each have their own directory and software requiremen
 ## About the Team <a name="about"></a>
 This software was developed as part of the [SDSC/UCSD Smmer 2022 REHS Project](https://education.sdsc.edu/studenttech/rehs/), titled [*Developing Interactive Jupyter Notebooks to run on the SDSC HPC Expanse System and the “AI institute for Intelligent Cyberinfrastructure with Computational Learning in the Environment” (ICICLE) project.*](https://github.com/sdsc-hpc-students/REHS2022)
 
+* _Project Lead:_  Mary Thomas, Ph.D., SDSC HPC Training lead, and Computational Data Scientist in the Data-Enabled Scientific Computing Division.
+* REHS Students:
+   * Sahil Samar, Del Norte High School, San Diego, CA, sahilsamar031@gmail.com
+   * Mia Chen, Westview High School, San Diego, CA, mialunachen@gmail.com
+   * Jack Karpinski, San Diego High School, San Diego, CA, USA, jackadoo4@gmail.com
+   * Michael Ray, JSerra Catholic High School, San Juan Capistrano, CA, michael.ray@jserra.org
+   * Archita Sarin, Mission San Jose High School, Fremont, CA, archita.sarin@gmail.com
+* Collaborators/Mentors:
+   * Christian Garcia, Engineering Scientist Associate (Texas Advanced Computing Center [5]).
+   * Matthew Lange, Ph.D., CEO, International Center for Food Ontology Operability Data and Semantics (IC-FOODS [4]); 
+   * Joe Stubbs, Ph.D., Manager, Cloud & Interactive Computing (Texas Advanced Computing Center [5]).
+
 <hr>
 NOTES:
 * YAML file: See
