@@ -30,9 +30,6 @@ pip install pandas
 pip install py2neo
 ```
 
-```shell
-pip install pytz
-```
 
 ```shell
 pip install tapipy
