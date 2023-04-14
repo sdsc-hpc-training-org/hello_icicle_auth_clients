@@ -79,13 +79,14 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup,
             'pods':self.pods,
             'systems':self.systems,
             'files':self.files,
-            'apps':self.apps
+            'apps':self.apps,
         }
         self.command_map = {
             'help':self.help,
             'whoami':self.pods.whoami,
             'exit':self.__exit,
             'shutdown':self.__shutdown,
+            'neo4j':self.neo4j,
             'switch_service':self.tapis_init
         }
         help0, help1 = self.help_generation()

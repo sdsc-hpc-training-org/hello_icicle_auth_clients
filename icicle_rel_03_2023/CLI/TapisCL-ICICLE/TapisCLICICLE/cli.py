@@ -81,8 +81,8 @@ class CLI(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup, he
         """
         connect to the local server
         """
-        self.connection_initialization() # connect to the server
-        #self.connection.connect((self.ip, self.port)) # enable me for debugging. Requires manual server start
+        #self.connection_initialization() # connect to the server
+        self.connection.connect((self.ip, self.port)) # enable me for debugging. Requires manual server start
         connection_info: schemas.StartupData = self.schema_unpack() # receive info from the server whether it is a first time connection
         if connection_info.initial: # if the server is receiving its first connection for the session\
             while True:
@@ -128,7 +128,8 @@ class CLI(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup, he
         line = ''
         while line != 'exit': # handles multiple lines of input. Good for neo4j expressions
             line = str(input("> "))
-            expression += line
+            if line != 'exit':
+                expression += line
         return expression
 
     def fillout_form(self, form: list) -> dict:

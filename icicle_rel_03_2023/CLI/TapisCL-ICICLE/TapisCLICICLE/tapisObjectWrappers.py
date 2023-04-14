@@ -50,6 +50,21 @@ class tapisObject(helpers.OperationsHelper, decorators.DecoratorSetup, helpers.D
         if name:
             return self.help[name]
         return self.help
+    
+
+class TapisQuery(tapisObject):
+    def __init__(self, tapis_object, uname, pword, connection):
+        super().__init__(tapis_object, uname, pword, connection)
+        self.t = tapis_object
+        self.__code__ = self.query.__code__
+
+    def __call__(self, **kwargs):
+        try:
+            kwargs = self.filter_kwargs(self.query, kwargs)
+            result = self.query(**kwargs)
+            return result
+        except (tapipy.errors.NotFoundError, tapipy.errors.BadRequestError, tapipy.errors.BaseTapyException) as e:
+            return str(e)
 
 
 class Systems(tapisObject):
@@ -159,19 +174,15 @@ class Systems(tapisObject):
         return return_value
 
 
-class Neo4jCLI(tapisObject):
-    def __init__(self, tapis_object, uname, pword, connection):
-        super().__init__(tapis_object, uname, pword, connection)
-        self.t = tapis_object
-   
+class Neo4jCLI(TapisQuery):
+    """
+    @help: integrated CLI to interface with Neo4j pods
+    """
     @decorators.RequiresExpression
-    def submit_query(self, file: str, id: str, expression: str) -> str: # function to submit queries to a Neo4j knowledge graph
+    def query(self, id: str, expression: str) -> str: # function to submit queries to a Neo4j knowledge graph
         uname, pword = self.t.pods.get_pod_credentials(pod_id=id).user_username, self.t.pods.get_pod_credentials(pod_id=id).user_password
         graph = Graph(f"bolt+ssc://{id}.pods.icicle.tapis.io:443", auth=(uname, pword), secure=True, verify=True)
-        if file:
-            with open(file, 'r') as f:
-                expression = f.read()
-        
+
         try:
             return_value = graph.run(expression)
             print(type(return_value))
@@ -180,6 +191,8 @@ class Neo4jCLI(tapisObject):
             elif str(return_value) == '(No data)':
                 return f'[-][{id}@pods.icicle.tapis.io:443] KG is empty'
 
+            print(return_value)
+            print(type(return_value))
             return str(f'[+][{id}] {return_value}')
         except Exception as e:
             return str(e)
