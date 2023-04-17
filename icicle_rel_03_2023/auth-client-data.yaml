@@ -15,7 +15,7 @@ components:
     targetIcicleRelease: VC3
     publicAccess: True
     containerImage: False
-    codeReviewConducted: False
+    codeReviewConducted: True
     testsWritten: False
     securityReviewConducted: False 
     usageDocumentationAvailable: True
@@ -24,4 +24,4 @@ components:
     trainingTutorialsAvailable: False
     trainingTutorialsUrl: NA
     usageMetricsCollected: False
-    pypiPackage: tbm
+    pypiPackage: https://pypi.org/project/TapisCL-ICICLE/
