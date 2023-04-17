@@ -19,7 +19,7 @@ server_path = os.path.join(__location__, 'server.py')
 
 
 class tapisObject(helpers.OperationsHelper, decorators.DecoratorSetup, helpers.DynamicHelpUtility):
-    def __init__(self, tapis_instance, username, password, connection, command_map=None):
+    def __init__(self, tapis_instance, username, password, connection=None, command_map=None):
         self.t = tapis_instance
         self.username = username
         self.password = password
@@ -53,8 +53,8 @@ class tapisObject(helpers.OperationsHelper, decorators.DecoratorSetup, helpers.D
     
 
 class TapisQuery(tapisObject):
-    def __init__(self, tapis_object, uname, pword, connection):
-        super().__init__(tapis_object, uname, pword, connection)
+    def __init__(self, tapis_object, uname, pword, connection=None):
+        super().__init__(tapis_object, uname, pword, connection=connection)
         self.t = tapis_object
         self.__code__ = self.query.__code__
 
@@ -71,7 +71,7 @@ class Systems(tapisObject):
     """
     @help: Access Tapis systems through the connected service
     """
-    def __init__(self, tapis_instance, username, password, connection):
+    def __init__(self, tapis_instance, username, password, connection=None):
         command_map = {
             'get_systems':self.get_systems,
             'get_system_info':self.get_system_info,
@@ -81,7 +81,7 @@ class Systems(tapisObject):
             'delete_system':self.delete_system,
             'help':self.help
         }
-        super().__init__(tapis_instance, username, password, connection, command_map=command_map)
+        super().__init__(tapis_instance, username, password, connection=connection, command_map=command_map)
 
     def return_formatter(self, info):
         return f"id: {info.id}\nhost: {info.host}\n\n"
@@ -202,7 +202,7 @@ class Pods(tapisObject):
     """
     @help: Access Tapis pods through the connected service
     """
-    def __init__(self, tapis_instance, username, password, connection):
+    def __init__(self, tapis_instance, username, password, connection=None):
         command_map = {
                 'get_pods':self.get_pods,
                 'create_pod':self.create_pod,
@@ -216,7 +216,7 @@ class Pods(tapisObject):
                 'get_logs':self.get_pod_logs,
                 'help':self.help
             }
-        super().__init__(tapis_instance, username, password, connection, command_map=command_map)
+        super().__init__(tapis_instance, username, password, connection=connection, command_map=command_map)
 
     def return_formatter(self, info):
         return f"Pod ID: {info.pod_id}\nPod Template: {info.pod_template}\nStatus: {info.status_requested}\n\n"
@@ -330,14 +330,14 @@ class Files(tapisObject):
     """
     @help: Access Tapis files through the connected service
     """
-    def __init__(self, tapis_instance, username, password, connection):
+    def __init__(self, tapis_instance, username, password, connection=None):
         command_map = {
             'list_files':self.list_files,
             'upload':self.upload,
             'download':self.download,
             'help':self.help
         }
-        super().__init__(tapis_instance, username, password, connection, command_map=command_map)
+        super().__init__(tapis_instance, username, password, connection=connection, command_map=command_map)
 
     def return_formatter(self, info):
         return f"name: {info.name}\ngroup: {info.group}\npath: {info.path}\n"
@@ -384,7 +384,7 @@ class Apps(tapisObject):
     """
     @help: Access Tapis systems through the connected service
     """
-    def __init__(self, tapis_instance, username, password, connection):
+    def __init__(self, tapis_instance, username, password, connection=None):
         command_map = {
             'create_app':self.create_app,
             'get_apps':self.get_apps,
@@ -395,7 +395,7 @@ class Apps(tapisObject):
             'download_app_results':self.download_job_output,
             'help':self.help,
         }
-        super().__init__(tapis_instance, username, password, connection, command_map=command_map)
+        super().__init__(tapis_instance, username, password, connection=connection, command_map=command_map)
 
     def create_app(self, file: str) -> str: # create a tapis app taking a json descriptor file path
         """

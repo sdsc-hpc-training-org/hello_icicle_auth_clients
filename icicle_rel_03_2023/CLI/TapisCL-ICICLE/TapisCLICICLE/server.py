@@ -127,11 +127,11 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup,
         else: # unix based
             os.system(f"export JWT={access_token}")
 
-        self.pods = Pods(t, username, password, self.connection)
-        self.systems = Systems(t, username, password, self.connection)
-        self.files = Files(t, username, password, self.connection)
-        self.apps = Apps(t, username, password, self.connection)
-        self.neo4j = Neo4jCLI(t, username, password, self.connection)
+        self.pods = Pods(t, username, password, connection=self.connection)
+        self.systems = Systems(t, username, password, connection=self.connection)
+        self.files = Files(t, username, password, connection=self.connection)
+        self.apps = Apps(t, username, password, connection=self.connection)
+        self.neo4j = Neo4jCLI(t, username, password, connection=self.connection)
 
         self.t = t
         self.url = url
