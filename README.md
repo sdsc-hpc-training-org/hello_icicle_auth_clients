@@ -5,7 +5,7 @@ Repo for Authenticated Clients and Applications for ICICLE CI Services
 * [Overview](#overview)
 * [Software Releases](#sw-release)
 * [About the Team](#about)
-* [Acknowledgement (#acks)
+* [Acknowledgement](#acks)
 
 <img src="images/HelloICICLE-Tapis-KG-Client-ArchDiag-apr-10-2023.png" alt="Hello ICICLE Tapis-KG Architecture" width="400px">
 
@@ -52,12 +52,11 @@ This software was developed as part of the [SDSC/UCSD Smmer 2022 REHS Project](h
 <hr>
 ## Acknowledgement <a name="acks"></a>
 This work has been funded by grants from the National Science Foundation, including:
-* the AI Institute for Intelligent CyberInfrastructure with Computational Learning in the Environment (ICICLE) (\#2112606);
-* Tapis (OAC 1931439)
-* SDSC Expanse project (\#1928224)
-* TACC Stampede System (\# 1663578) 
-* Tapis projects (\#1931439)
-* the NSF Track 3 Award: COre National Ecosystem for CyberinfrasTructure (CONECT) (\#2138307) and the Extreme Science and Engineering Discovery Environment (XSEDE) (**ACI-1548562**).
+* The AI Institute for Intelligent CyberInfrastructure with Computational Learning in the Environment (ICICLE) (_#2112606_);
+* The SDSC Expanse project (_#1928224_)
+* The TACC Stampede System (_#1663578_) 
+* Tapis projects (_#1931439_)
+* the NSF Track 3 Award: COre National Ecosystem for CyberinfrasTructure (CONECT) (_#2138307_) and the Extreme Science and Engineering Discovery Environment (XSEDE) (_ACI-1548562_).
 
 * NOTES:
   * YAML file: See
