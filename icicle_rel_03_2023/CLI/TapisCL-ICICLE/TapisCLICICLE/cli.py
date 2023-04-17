@@ -10,7 +10,6 @@ import os
 import time
 from pprint import pprint
 import json
-from TypeEnforcement.type_enforcer import TypeEnforcer
 
 try:
     from . import schemas
@@ -32,7 +31,6 @@ server_path = os.path.join(__location__, 'server.py')
 
 
 class CLI(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup, helpers.Formatters):
-    @TypeEnforcer.enforcer(recursive=True)
     def __init__(self, IP: str, PORT: int):
         self.ip, self.port = IP, PORT
         self.connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
@@ -83,8 +81,8 @@ class CLI(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup, he
         """
         connect to the local server
         """
-        self.connection_initialization() # connect to the server
-        #self.connection.connect((self.ip, self.port)) # enable me for debugging. Requires manual server start
+        #self.connection_initialization() # connect to the server
+        self.connection.connect((self.ip, self.port)) # enable me for debugging. Requires manual server start
         connection_info: schemas.StartupData = self.schema_unpack() # receive info from the server whether it is a first time connection
         if connection_info.initial: # if the server is receiving its first connection for the session\
             while True:
@@ -117,7 +115,6 @@ class CLI(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup, he
         print(f"[+] Connected to the Tapis service at {connection_info.url}")
         return connection_info.username, connection_info.url # return the username and url
 
-    @TypeEnforcer.enforcer(recursive=True)
     def process_command(self, command: str) -> list[str]: 
         """
         split the command string into a list. Not sure why this was even made
@@ -125,17 +122,16 @@ class CLI(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup, he
         command = command.strip().split(' ') 
         return command
 
-    @TypeEnforcer.enforcer(recursive=True)
     def expression_input(self) -> str: # for subclients. Pods and apps running through Tapis will have their own inputs. This gives user an interface
         print("Enter 'exit' to submit") # user must enter exit to submit their input
         expression = ''
         line = ''
         while line != 'exit': # handles multiple lines of input. Good for neo4j expressions
             line = str(input("> "))
-            expression += line
+            if line != 'exit':
+                expression += line
         return expression
 
-    @TypeEnforcer.enforcer(recursive=True)
     def fillout_form(self, form: list) -> dict:
         filled_form = dict()
         for field in form:
@@ -143,7 +139,6 @@ class CLI(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup, he
             filled_form.update({field:value})
         return filled_form
 
-    @TypeEnforcer.enforcer(recursive=True)
     def command_operator(self, kwargs: dict | list, exit_: int=0): # parses command input
         if isinstance(kwargs, list): # check if the command input is from the CLI, or direct input
             kwargs = vars(self.parser.parse_args(kwargs)) # parse the arguments

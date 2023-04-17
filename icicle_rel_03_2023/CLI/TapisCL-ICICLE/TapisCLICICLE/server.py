@@ -7,7 +7,6 @@ import socket
 import os
 import logging
 from tapisObjectWrappers import Files, Apps, Pods, Systems, Neo4jCLI
-from TypeEnforcement.type_enforcer import TypeEnforcer
 import typing
 
 try:
@@ -24,7 +23,6 @@ except:
     import decorators
 
 class Server(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup, helpers.DynamicHelpUtility):
-    @TypeEnforcer.enforcer(recursive=True)
     def __init__(self, IP: str, PORT: int):
         # logger setup
         self.logger = logging.getLogger(__name__)
@@ -81,13 +79,14 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup,
             'pods':self.pods,
             'systems':self.systems,
             'files':self.files,
-            'apps':self.apps
+            'apps':self.apps,
         }
         self.command_map = {
             'help':self.help,
             'whoami':self.pods.whoami,
             'exit':self.__exit,
             'shutdown':self.__shutdown,
+            'neo4j':self.neo4j,
             'switch_service':self.tapis_init
         }
         help0, help1 = self.help_generation()
@@ -142,7 +141,6 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup,
 
         return f"Successfully initialized tapis service on {self.url}"
 
-    @TypeEnforcer.enforcer(recursive=True)
     def accept(self, initial: bool=False):  # function to accept CLI connection to the server
         self.connection, ip_port = self.sock.accept()  # connection request is accepted
         self.logger.info("Received connection request")
