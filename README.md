@@ -1,4 +1,4 @@
-# Hello Icicle Authentication Clients
+# Hello ICICLE Authentication Clients
 Repo for Authenticated Clients and Applications for ICICLE CI Services
 
 <a name="top">Contents:
