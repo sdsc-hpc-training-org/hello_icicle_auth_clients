@@ -184,8 +184,11 @@ class AnimatedLoading:
                 time.sleep(0.5)
     
     def __call__(self, obj, *args, **kwargs):
-        animation_thread = helpers.KillableThread(target=self.animation)
-        animation_thread.start()
-        result = self.function(obj, *args, **kwargs)
-        animation_thread.kill()
+        if BaseRequirementDecorator.username:
+            animation_thread = helpers.KillableThread(target=self.animation)
+            animation_thread.start()
+            result = self.function(obj, *args, **kwargs)
+            animation_thread.kill()
+        else:
+            result = self.function(obj, *args, **kwargs)
         return result

@@ -114,7 +114,6 @@ class CLI(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup, he
                         sys.exit(0)
                     continue
 
-        print(f"[+] Connected to the Tapis service at {connection_info.url}")
         return connection_info.username, connection_info.url # return the username and url
 
     def process_command(self, command: str) -> list[str]: 
