@@ -207,6 +207,7 @@ class Pods(tapisObject):
         command_map = {
                 'get_pods':self.get_pods,
                 'create_pod':self.create_pod,
+                'start_pod':self.start_pod,
                 'restart_pod':self.restart_pod,
                 'delete_pod':self.delete_pod,
                 'set_pod_perms':self.set_pod_perms,
@@ -253,6 +254,13 @@ class Pods(tapisObject):
         if verbose:
             return str(pod_information)
         return pod_information
+    
+    def start_pod(self, id: str):
+        """
+        @help: start the pod specified with ID
+        """
+        return_information = self.t.pods.start_pod(pod_id=id)
+        return str(return_information)
 
     @decorators.NeedsConfirmation
     def restart_pod(self, id: str, verbose: bool) -> str:
