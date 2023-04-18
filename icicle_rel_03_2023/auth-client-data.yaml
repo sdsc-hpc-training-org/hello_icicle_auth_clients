@@ -7,21 +7,26 @@ components:
     primaryThrust: core/Software
     description: Repo for Authenticated Clients and Applications for ICICLE CI Services
     citation: 
+    pypiPackage: TapisCL-ICICLE 0.0.26
     website: https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients
     licenseUrl: https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients/blob/main/LICENSE
     sourceCodeUrl: https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients
     releaseNotesUrl: https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients
-    usageDocumentationUrl: https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients
     targetIcicleRelease: VC3
+    hasDependentComponents:
+      - related_to: TapisBase
+        relationship_type: DependsOn
+      - related_to: PodsService
+        relationship_type: DependsOn
     publicAccess: True
     containerImage: False
-    codeReviewConducted: False
+    codeReviewConducted: True
     testsWritten: False
     securityReviewConducted: False 
     usageDocumentationAvailable: True
+    usageDocumentationUrl: https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients
     developerDocumentationAvailable: False
     developerDocumentationUrl: NA
     trainingTutorialsAvailable: False
     trainingTutorialsUrl: NA
     usageMetricsCollected: False
-    pypiPackage: tbm

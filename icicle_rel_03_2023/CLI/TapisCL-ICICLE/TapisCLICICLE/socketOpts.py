@@ -18,12 +18,15 @@ schema_types: dict = {
 
 
 class SocketOpts:
+    """
+    behind the scenes, low level functions to handle the socket operations of the client-server model
+    """
     def json_receive_explicit(self, connection):
         json_data = ""
         while True:
-            try: #to handle long files, so that it continues to receive data and create a complete file
-                json_data = json_data + connection.recv(1024).decode('utf-8') #formulate a full file. Combine sequential data streams to unpack
-                return json.loads(json_data) #this is necessary whenever transporting any large amount of data over TCP streams
+            try: 
+                json_data = json_data + connection.recv(1024).decode('utf-8') 
+                return json.loads(json_data) 
             except ValueError:
                 continue
     

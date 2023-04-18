@@ -1,4 +1,5 @@
 # TapisCLI
+Please remember to create an issue in this repository if you encounter any bugs, we will do our best to fix it quick!
 ## Overview
 Tapis CLI is designed to provide a simple to use, versatile way to interface with Tapis services hosted on HPC resources. User can either start the app and use it as a traditional command line applications, or pass commands directly from bash.
 Allows you to work with all major Tapis services: Pods, Systems, Files, and Apps in one place. It can also interface directly with services being hosted on Tapis pods, like Neo4j. Although currently Neo4j is the only 3rd party application it can work with, adding support for Postgres and the like will not be difficult.
@@ -29,4 +30,8 @@ Alternatively, if you do not want to enter the actual command line environment o
 `python -m TapisCLICICLE pods -c help`
 
 this may still ask you for authentication, however once you are logged in once, you do not need to enter your credentials again unless the 5 minute timeout period passes, in which case the application shuts itself off.
+
+**Scripting**
+
+Python and Bash scripting examples are available [here](https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients/tree/main/icicle_rel_03_2023/CLI/TapisCL-ICICLE/Scripting-Examples)
 

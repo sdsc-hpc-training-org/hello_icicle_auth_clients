@@ -1,4 +1,7 @@
 class Args:
+    """
+    specifies the set of arguments for the argparser in the CLI.py file. Putting them in here allows the helpers.py file to access these options, and generate help menus
+    """
     argparser_args = \
     {
         "command":{
