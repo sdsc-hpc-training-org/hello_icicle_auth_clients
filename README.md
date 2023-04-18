@@ -1,10 +1,11 @@
-# Hello Icicle Authentication Clients
+# Hello ICICLE Authentication Clients
 Repo for Authenticated Clients and Applications for ICICLE CI Services
 
 <a name="top">Contents:
 * [Overview](#overview)
 * [Software Releases](#sw-release)
 * [About the Team](#about)
+* [Acknowledgement](#acks)
 
 <img src="images/HelloICICLE-Tapis-KG-Client-ArchDiag-apr-10-2023.png" alt="Hello ICICLE Tapis-KG Architecture" width="400px">
 
@@ -36,8 +37,28 @@ The Notebooks and the CLIs each have their own directory and software requiremen
 ## About the Team <a name="about"></a>
 This software was developed as part of the [SDSC/UCSD Smmer 2022 REHS Project](https://education.sdsc.edu/studenttech/rehs/), titled [*Developing Interactive Jupyter Notebooks to run on the SDSC HPC Expanse System and the “AI institute for Intelligent Cyberinfrastructure with Computational Learning in the Environment” (ICICLE) project.*](https://github.com/sdsc-hpc-students/REHS2022)
 
+* _Project Lead:_  Mary Thomas, Ph.D., SDSC HPC Training lead, and Computational Data Scientist in the Data-Enabled Scientific Computing Division.
+* REHS Students:
+   * Sahil Samar, Del Norte High School, San Diego, CA, sahilsamar031@gmail.com
+   * Mia Chen, Westview High School, San Diego, CA, mialunachen@gmail.com
+   * Jack Karpinski, San Diego High School, San Diego, CA, USA, jackadoo4@gmail.com
+   * Michael Ray, JSerra Catholic High School, San Juan Capistrano, CA, michael.ray@jserra.org
+   * Archita Sarin, Mission San Jose High School, Fremont, CA, archita.sarin@gmail.com
+* Collaborators/Mentors:
+   * Christian Garcia, Engineering Scientist Associate (Texas Advanced Computing Center [5]).
+   * Matthew Lange, Ph.D., CEO, International Center for Food Ontology Operability Data and Semantics (IC-FOODS [4]); 
+   * Joe Stubbs, Ph.D., Manager, Cloud & Interactive Computing (Texas Advanced Computing Center [5]).
+
 <hr>
-NOTES:
-* YAML file: See
-** Component Data Yaml file:  https://github.com/ICICLE-ai/CI-Components-Catalog/blob/master/components-data.yaml
+## Acknowledgement <a name="acks"></a>
+This work has been funded by grants from the National Science Foundation, including:
+* The AI Institute for Intelligent CyberInfrastructure with Computational Learning in the Environment (ICICLE) (_#2112606_);
+* The SDSC Expanse project (_#1928224_)
+* The TACC Stampede System (_#1663578_) 
+* Tapis projects (_#1931439_)
+* the NSF Track 3 Award: COre National Ecosystem for CyberinfrasTructure (CONECT) (_#2138307_) and the Extreme Science and Engineering Discovery Environment (XSEDE) (_ACI-1548562_).
+
+* NOTES:
+  * YAML file: See
+  * Component Data Yaml file:  https://github.com/ICICLE-ai/CI-Components-Catalog/blob/master/components-data.yaml
 
