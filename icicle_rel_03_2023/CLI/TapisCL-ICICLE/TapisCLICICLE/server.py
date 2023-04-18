@@ -23,6 +23,9 @@ except:
     import decorators
 
 class Server(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup, helpers.DynamicHelpUtility):
+    """
+    Receives commands from the client and executes Tapis operations
+    """
     def __init__(self, IP: str, PORT: int):
         # logger setup
         self.logger = logging.getLogger(__name__)
@@ -141,8 +144,11 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup,
 
         return f"Successfully initialized tapis service on {self.url}"
 
-    def accept(self, initial: bool=False):  # function to accept CLI connection to the server
-        self.connection, ip_port = self.sock.accept()  # connection request is accepted
+    def accept(self, initial: bool=False):
+        """
+        accept connection request and initialize communication with the client
+        """  
+        self.connection, ip_port = self.sock.accept() 
         self.logger.info("Received connection request")
 
         if initial:  # if this is the first time in the session that the cli is connecting
@@ -150,30 +156,24 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup,
             self.json_send(startup_data.dict())
             self.logger.info("send the initial status update")
 
-            # give the cli 3 attempts to provide authentication
             for attempt in range(1, 4):
-                  # receive the username and password
                 url: schemas.StartupData = self.schema_unpack().url
                 try:
-                # try intializing tapis with the supplied credentials
                     auth_request = schemas.AuthRequest()
                     self.json_send(auth_request.dict())
                     auth_data: schemas.AuthData = self.schema_unpack()
                     username, password = auth_data.username, auth_data.password
-
                     self.tapis_init(link=url, username=username, password=password)
-                    # send to confirm to the CLI that authentication succeeded
                     self.logger.info("Verification success")
                     break
                 except Exception as e:
-                    # send failure message to CLI
                     login_failure_data = schemas.ResponseData(response_message = (str(e), attempt))
                     self.json_send(login_failure_data.dict())
                     self.logger.warning(f"Verification failure, {e}")
-                    if attempt == 3:  # If there have been 3 login attempts
+                    if attempt == 3:  
                         self.logger.error(
                             "Attempted verification too many times. Exiting")
-                        os._exit(0)  # shutdown the server
+                        os._exit(0)  
                     continue
         else:
             self.configure_decorators()
@@ -195,13 +195,12 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup,
         self.logger.info("Shutdown initiated")
         raise exceptions.Shutdown
 
-    def timeout_handler(self):  # handle timeouts
-        if time.time() > self.end_time:  # if the time exceeds the timeout time
+    def timeout_handler(self):  
+        """
+        checks if the timeout has been exceeded
+        """
+        if time.time() > self.end_time: 
             raise exceptions.TimeoutError
-    
-    def format_help(self, command: dict):
-        return f"Command: {command['command_name']}\nDescription:{command['description']}\n{command['syntax']}\n"
-
 
     def help(self, command: str):
         """
@@ -211,7 +210,10 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup,
             return self.help[command]
         return self.help
 
-    def run_command(self, command_data: dict):  # process and run commands
+    def run_command(self, command_data: dict):
+        """
+        process and run command based on received kwargs
+        """
         command_group = command_data['command_group']
         if command_group in self.command_group_map:
             command_group = self.command_group_map[command_group]
@@ -226,6 +228,9 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup,
             raise exceptions.CommandNotFoundError(command_group)
 
     def main(self):
+        """
+        receive and process commands
+        """
         while True: 
             try:
                 message = self.schema_unpack()  

@@ -70,6 +70,7 @@ class TapisQuery(tapisObject):
 class Systems(tapisObject):
     """
     @help: Access Tapis systems through the connected service
+    @doc: provides a CLI interface to the Tapis Systems service
     """
     def __init__(self, tapis_instance, username, password, connection=None):
         command_map = {
@@ -224,7 +225,6 @@ class Pods(tapisObject):
     def get_pods(self, verbose: bool) -> str: 
         """
         @help: return a list of pods the current tapis instance has access to
-        @doc: notes
         """
         pods_list = self.t.pods.get_pods()
         if verbose:

@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-
 import socket
 import argparse
 from argparse import SUPPRESS
@@ -31,6 +30,9 @@ server_path = os.path.join(__location__, 'server.py')
 
 
 class CLI(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup, helpers.Formatters):
+    """
+    Receive user input, either direct from bash environment or from the custom interface, then parse these commands and send them to the server to be executed. 
+    """
     def __init__(self, IP: str, PORT: int):
         self.ip, self.port = IP, PORT
         self.connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
@@ -55,18 +57,18 @@ class CLI(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup, he
             os.system(f"python {server_path} &")
 
     @decorators.AnimatedLoading
-    def connection_initialization(self): # patience. This sometimes takes a while
+    def connection_initialization(self):
         """
         start the local server through the client
         """
-        startup_flag = False # flag to tell code not to run multiple server setup threads at once
+        startup_flag = False
         timeout_time = time.time() + 30 # server setup timeout. If expires, there is a problem!
         while True:
             if time.time() > timeout_time: # connection timeout condition
                 sys.stdout.write("\r[-] Connection timeout")
                 os._exit(0)
             try:
-                self.connection.connect((self.ip, self.port)) # try to establish a connection
+                self.connection.connect((self.ip, self.port)) 
                 if startup_flag:
                     startup.kill()
                 break
@@ -81,7 +83,7 @@ class CLI(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup, he
         """
         connect to the local server
         """
-        self.connection_initialization() # connect to the server
+        self.connection_initialization() 
         #self.connection.connect((self.ip, self.port)) # enable me for debugging. Requires manual server start
         connection_info: schemas.StartupData = self.schema_unpack() # receive info from the server whether it is a first time connection
         if connection_info.initial: # if the server is receiving its first connection for the session\
@@ -95,15 +97,15 @@ class CLI(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup, he
                 self.json_send(url_data.dict())
                 auth_request: schemas.AuthRequest = self.schema_unpack()
                 try:
-                    username = str(input("\nUsername: ")).strip() # take the username
-                    password = getpass("Password: ").strip() # take the password
+                    username = str(input("\nUsername: ")).strip()
+                    password = getpass("Password: ").strip() 
                 except KeyboardInterrupt:
                     username, password = " ", " "
                     pass
                 auth_data = schemas.AuthData(username = username, password = password)
-                self.json_send(auth_data.dict()) # send the username and password to the server to be used
+                self.json_send(auth_data.dict())
 
-                verification: schemas.ResponseData | schemas.StartupData = self.schema_unpack() # server responds saying if the verification succeeded or not
+                verification: schemas.ResponseData | schemas.StartupData = self.schema_unpack() 
                 if verification.schema_type == 'StartupData': # verification success, program moves forward
                     return verification.username, verification.url
                 else: # verification failed. User has 3 tries, afterwards the program will shut down
@@ -122,32 +124,44 @@ class CLI(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup, he
         command = command.strip().split(' ') 
         return command
 
-    def expression_input(self) -> str: # for subclients. Pods and apps running through Tapis will have their own inputs. This gives user an interface
-        print("Enter 'exit' to submit") # user must enter exit to submit their input
+    def expression_input(self) -> str: 
+        """
+        Input an expression as requested by the server for something like cypher queries
+        """
+        print("Enter 'exit' to submit") 
         expression = ''
         line = ''
-        while line != 'exit': # handles multiple lines of input. Good for neo4j expressions
+        while line != 'exit': 
             line = str(input("> "))
             if line != 'exit':
                 expression += line
         return expression
 
     def fillout_form(self, form: list) -> dict:
+        """
+        fill out a form as requested by the server for more complicated functions
+        """
         filled_form = dict()
         for field in form:
             value = str(input(f"{field}: "))
             filled_form.update({field:value})
         return filled_form
 
-    def command_operator(self, kwargs: dict | list, exit_: int=0): # parses command input
+    def command_operator(self, kwargs: dict | list, exit_: int=0): 
+        """
+        parse arguments, handling bash and CLI input
+        """
         if isinstance(kwargs, list): # check if the command input is from the CLI, or direct input
-            kwargs = vars(self.parser.parse_args(kwargs)) # parse the arguments
+            kwargs = vars(self.parser.parse_args(kwargs)) 
         if not kwargs['command_group']:
             return False
         command = schemas.CommandData(kwargs = kwargs, exit_status = exit_)
         return command
     
     def special_forms_ops(self):
+        """
+        handle special form requests sent by the server
+        """
         while True:
             response = self.schema_unpack()
             if response.schema_type == 'FormRequest' and not response.arguments_list:
@@ -182,6 +196,9 @@ class CLI(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup, he
             self.json_send(filled_form.dict())
 
     def print_response(self, response_message):
+        """
+        format response messages from the server
+        """
         if type(response_message) == dict:
             self.recursive_dict_print(response_message)
         elif (type(response_message) == list or 

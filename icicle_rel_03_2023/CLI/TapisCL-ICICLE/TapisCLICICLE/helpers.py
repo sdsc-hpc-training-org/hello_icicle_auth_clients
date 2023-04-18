@@ -1,3 +1,7 @@
+"""
+HELPERS
+Aggregation of helper functions and classes
+"""
 import typing
 import sys
 import threading
@@ -20,6 +24,9 @@ def get_parameters(func):
     return args
 
 class OperationsHelper:
+    """
+    filters the kwargs received by the server to prevent an error from happening
+    """
     def filter_kwargs(self, func: typing.Callable, kwargs: dict) -> dict:
         filtered = dict()
         variables = list(get_parameters(func))
@@ -40,6 +47,9 @@ class DynamicHelpUtility:
     to generate helps for each command, iterate over the command map of the selected tapis wrapper object, and generate separate help menu for each
     """
     def __locate_docstring_help(self, func: typing.Callable | object, command_name: str) -> str:
+        """
+        extract @help from the docstring
+        """
         docstring_components = func.__doc__
         if docstring_components:
             docstring_components = docstring_components.split("@")
@@ -52,6 +62,9 @@ class DynamicHelpUtility:
             raise exceptions.HelpDoesNotExist(command_name)
 
     def __tapis_service_commands_help_gen(self, map) -> dict:
+        """
+        generate help menu based on the parameters of the function and the docstring
+        """
         help_menu = dict()
         for command_name, command in map.items():
             command_help = dict()
@@ -77,6 +90,9 @@ class DynamicHelpUtility:
         return help_menu
             
     def help_generation(self) -> dict:
+        """
+        generate different help menu based on the classname
+        """
         if self.__class__.__name__ != 'Server': 
             return self.__tapis_service_commands_help_gen(map=self.command_map)
         else:
@@ -84,6 +100,9 @@ class DynamicHelpUtility:
     
 
 class KillableThread(threading.Thread):
+    """
+    Extends the threading.Thread class from python threading library. Used for the loading animation
+    """
     def __init__(self, *args, **keywords):
         threading.Thread.__init__(self, *args, **keywords)
         self.killed = False
@@ -115,6 +134,9 @@ class KillableThread(threading.Thread):
 
 
 class Formatters:
+    """
+    Format received dictionaries in the client code
+    """
     def recursive_dict_print(self, input_data: dict, depth: int=0):
         for key, value in input_data.items():
             if isinstance(value, dict):
