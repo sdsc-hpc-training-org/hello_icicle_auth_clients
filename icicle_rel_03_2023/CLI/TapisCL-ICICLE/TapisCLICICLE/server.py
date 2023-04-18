@@ -243,12 +243,10 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup,
                 self.logger.info(message)
                 if exit_status == 1:
                     self.__exit()
-            except (exceptions.CommandNotFoundError, exceptions.NoConfirmationError, exceptions.InvalidCredentialsReceived) as e:
-                error_response = schemas.ResponseData(response_message = str(e))
-                self.json_send(error_response.dict())
             except (exceptions.TimeoutError, exceptions.Shutdown) as e:
                 error_response = schemas.ResponseData(response_message = str(e), exit_status=1)
                 self.json_send(error_response.dict())
+                self.logger.warning(str(e))
                 sys.exit(0)
             except exceptions.Exit as e:
                 self.logger.info("user exit initiated")
@@ -256,6 +254,10 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup,
                 self.json_send(error_response.dict())
                 self.connection.close()  # close the connection
                 self.accept()  # wait for CLI to reconnect
+            except (exceptions.CommandNotFoundError, exceptions.NoConfirmationError, exceptions.InvalidCredentialsReceived, Exception) as e:
+                error_response = schemas.ResponseData(response_message = str(e))
+                self.json_send(error_response.dict())
+                self.logger.warning(str(e))
 
 
 
