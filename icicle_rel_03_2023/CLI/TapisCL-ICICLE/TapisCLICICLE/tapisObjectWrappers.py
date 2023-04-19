@@ -5,6 +5,7 @@ from tapipy.tapis import TapisResult
 from py2neo import Graph
 import typing
 import os
+import psycopg2
 try:
     from . import helpers
     from . import decorators
@@ -31,17 +32,12 @@ class tapisObject(helpers.OperationsHelper, decorators.DecoratorSetup, helpers.D
             self.help = self.help_generation()
 
     def __call__(self, **kwargs):
-        try:
-            command = self.command_map[kwargs['command']]
-            kwargs = self.filter_kwargs(command, kwargs)
-            result = command(**kwargs)
-            if type(result) == TapisResult:
-                return str(result)
-            return result
-        except (tapipy.errors.NotFoundError, tapipy.errors.BadRequestError, tapipy.errors.BaseTapyException) as e:
-            return str(e)
-        except KeyError:
-            return self.help
+        command = self.command_map[kwargs['command']]
+        kwargs = self.filter_kwargs(command, kwargs)
+        result = command(**kwargs)
+        if type(result) == TapisResult:
+            return str(result)
+        return result
     
     def help(self, name: typing.Optional[str]):
         """
@@ -59,12 +55,13 @@ class TapisQuery(tapisObject):
         self.__code__ = self.query.__code__
 
     def __call__(self, **kwargs):
-        try:
-            kwargs = self.filter_kwargs(self.query, kwargs)
-            result = self.query(**kwargs)
-            return result
-        except (tapipy.errors.NotFoundError, tapipy.errors.BadRequestError, tapipy.errors.BaseTapyException) as e:
-            return str(e)
+        kwargs = self.filter_kwargs(self.query, kwargs)
+        result = self.query(**kwargs)
+        return result
+        
+    def get_credentials(self):
+        uname, pword = self.t.pods.get_pod_credentials(pod_id=id).user_username, self.t.pods.get_pod_credentials(pod_id=id).user_password
+        return uname, pword
 
 
 class Systems(tapisObject):
@@ -173,6 +170,21 @@ class Systems(tapisObject):
         """
         return_value = self.t.systems.deleteSystem(systemId=id)
         return return_value
+    
+
+class PostgresCLI(TapisQuery):
+    """
+    @help: integrated CLI to interface with Postgres pods
+    """
+    @decorators.RequiresExpression
+    def query(self, id: str, expression: str) -> str:
+        uname, pword = self.get_credentials()
+        with psycopg2.connect(f"postgresql://{uname}:{pword}@{id}.pods.{self.t.base_url.split('https://')[1]}:443") as conn:
+            conn.autocommit = True
+            with conn.cursor() as cur:
+                cur.execute(query=expression)
+                return_value = cur.fetchall()
+        return str(f'[+][{id}] {return_value}')
 
 
 class Neo4jCLI(TapisQuery):
@@ -181,16 +193,16 @@ class Neo4jCLI(TapisQuery):
     """
     @decorators.RequiresExpression
     def query(self, id: str, expression: str) -> str: # function to submit queries to a Neo4j knowledge graph
-        uname, pword = self.t.pods.get_pod_credentials(pod_id=id).user_username, self.t.pods.get_pod_credentials(pod_id=id).user_password
-        graph = Graph(f"bolt+ssc://{id}.pods.icicle.tapis.io:443", auth=(uname, pword), secure=True, verify=True)
+        uname, pword = self.get_credentials()
+        graph = Graph(f"bolt+ssc://{id}.pods.{self.t.base_url.split('https://')[1]}:443", auth=(uname, pword), secure=True, verify=True)
 
         try:
             return_value = graph.run(expression)
             print(type(return_value))
             if str(return_value) == '(No data)' and 'create' in expression.lower(): # if no data is returned (mostly if something is created) then just say 'success'
-                return f'[+][{id}@pods.icicle.tapis.io:443] Success'
+                return f'[+][{id}@pods.{self.t.base_url.split("https://")[1]}:443] Success'
             elif str(return_value) == '(No data)':
-                return f'[-][{id}@pods.icicle.tapis.io:443] KG is empty'
+                return f'[-][{id}@pods.{self.t.base_url.split("https://")[1]}:443] KG is empty'
 
             print(return_value)
             print(type(return_value))
@@ -246,7 +258,7 @@ class Pods(tapisObject):
         return user_info.username
 
     @decorators.RequiresForm
-    def create_pod(self, description: str, id: str, template: str, verbose: bool) -> str:
+    def create_pod(self, id: str, template: str, verbose: bool, description: str | None = None) -> str:
         """
         @help: create a new pod on the selected Tapis service
         """

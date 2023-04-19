@@ -6,7 +6,7 @@ from tapipy.tapis import Tapis
 import socket
 import os
 import logging
-from tapisObjectWrappers import Files, Apps, Pods, Systems, Neo4jCLI
+from tapisObjectWrappers import Files, Apps, Pods, Systems, Neo4jCLI, PostgresCLI
 import typing
 
 try:
@@ -90,6 +90,7 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup,
             'exit':self.__exit,
             'shutdown':self.__shutdown,
             'neo4j':self.neo4j,
+            'postgres':self.postgres,
             'switch_service':self.tapis_init
         }
         help0, help1 = self.help_generation()
@@ -135,6 +136,7 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup,
         self.files = Files(t, username, password, connection=self.connection)
         self.apps = Apps(t, username, password, connection=self.connection)
         self.neo4j = Neo4jCLI(t, username, password, connection=self.connection)
+        self.postgres = PostgresCLI(t, username, password, connection=self.connection)
 
         self.t = t
         self.url = url
@@ -257,7 +259,7 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup,
             except (exceptions.CommandNotFoundError, exceptions.NoConfirmationError, exceptions.InvalidCredentialsReceived, Exception) as e:
                 error_response = schemas.ResponseData(response_message = str(e))
                 self.json_send(error_response.dict())
-                self.logger.warning(str(e))
+                self.logger.warning(f"{str(e)}\n{e.__traceback__}")
 
 
 

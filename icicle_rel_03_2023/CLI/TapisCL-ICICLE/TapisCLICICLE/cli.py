@@ -142,7 +142,9 @@ class CLI(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup, he
         """
         filled_form = dict()
         for field in form:
-            value = str(input(f"{field}: "))
+            value = str(input(f"{field}: ")).strip()
+            if not value:
+                value = None
             filled_form.update({field:value})
         return filled_form
 
