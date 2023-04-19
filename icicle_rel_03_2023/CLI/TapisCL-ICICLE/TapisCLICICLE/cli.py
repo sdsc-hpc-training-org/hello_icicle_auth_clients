@@ -172,11 +172,11 @@ class CLI(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup, he
                 form = self.fillout_form(response.arguments_list)
                 filled_form = schemas.FormResponse(arguments_list=form)
             elif response.schema_type == 'AuthRequest':
-                if not response.secure_input:
-                    username = input("Username: ")
+                if response.secure_input or not response.requires_username:
+                    username = self.username
                     password = getpass("Password: ")
-                else:
-                    username = None
+                else: 
+                    username = input("Username: ")
                     password = getpass("Password: ")
                 filled_form = schemas.AuthData(username=username, password=password)
             elif response.schema_type == "ConfirmationRequest":
@@ -225,7 +225,7 @@ class CLI(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup, he
                 self.print_response(response.response_message)
             os._exit(0)
 
-        title = pyfiglet.figlet_format("---------\nTapiconsole\n---------", font="slant") # print the title when CLI is accessed
+        title = pyfiglet.figlet_format("-----------\nTapisCLICICLE\n-----------", font="slant") # print the title when CLI is accessed
         print(title)
         
         while True: # open the CLI if no arguments provided on startup

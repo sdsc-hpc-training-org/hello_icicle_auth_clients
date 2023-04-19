@@ -147,7 +147,8 @@ class Formatters:
                     print(("  " * (depth + 1)) + data)
             else: 
                 print(("  " * depth) + f"{key}: {str(value).strip()}")
-        print("\n")
+        if depth == 1:
+            print("\n")
 
 
 if __name__ == "__main__":

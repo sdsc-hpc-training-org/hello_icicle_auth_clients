@@ -15,12 +15,14 @@ try:
     from . import helpers
     from . import schemas
     from . import decorators
+    from . import args
 except:
     import exceptions
     import socketOpts as SO
     import helpers
     import schemas
     import decorators
+    import args
 
 class Server(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup, helpers.DynamicHelpUtility):
     """
@@ -206,9 +208,11 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup,
 
     def help(self, command: str):
         """
-        @help: returns help information. To get specific help information for tapis services, you can run <service> -c help
+        @help: returns help information. To get specific help information for tapis services, you can run <service> -c help. enter -c args to see detailed command usage
         """
-        if command in self.help:
+        if command == "args":
+            return args.Args.argparser_args
+        elif command in self.help:
             return self.help[command]
         return self.help
 

@@ -65,6 +65,7 @@ class AuthRequest(BaseModel):
     Request auth credentials from the client
     """
     schema_type: str = 'AuthRequest'
+    requires_username: bool = True
     secure_input: bool = False
 
 
