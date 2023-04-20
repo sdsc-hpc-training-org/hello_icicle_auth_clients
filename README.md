@@ -52,7 +52,7 @@ This software was developed as part of the [SDSC/UCSD Smmer 2022 REHS Project](h
 
 ## Acknowledgement <a name="acks"></a>
 This work has been funded by grants from the National Science Foundation, including:
-* The AI Institute for Intelligent CyberInfrastructure with Computational Learning in the Environment (ICICLE) (_#2112606_);
+* The AI Institute for Intelligent CyberInfrastructure with Computational Learning in the Environment (ICICLE) (_#2112606_)
 * The SDSC Expanse project (_#1928224_)
 * The TACC Stampede System (_#1663578_) 
 * Tapis projects (_#1931439_)
