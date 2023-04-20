@@ -111,16 +111,23 @@ class Auth(BaseRequirementDecorator):
     the client, and checks those credentials against the stored credentials in the server.
     """
     def __call__(self, obj, *args, **kwargs):
+        no_username = False
         if BaseRequirementDecorator.connection:
             if self.function.__name__ == 'tapis_init' and kwargs['username'] and kwargs['password']:
                 return self.function(obj, **kwargs)
             fields = list(helpers.get_parameters(self.function))
-            auth_request = schemas.AuthRequest()
+            if kwargs['username']:
+                no_username = True
+                auth_request = schemas.AuthRequest(requires_username=False)
+            else:
+                auth_request = schemas.AuthRequest()
             self.json_send_explicit(BaseRequirementDecorator.connection, auth_request.dict())
             auth_data: schemas.AuthData = self.schema_unpack_explicit(self.connection)
-            if 'username' in fields and 'password' in fields:
+            if 'username' in fields and 'password' in fields and not no_username:
                 kwargs['username'], kwargs['password'] = auth_data.username, auth_data.password
                 return self.function(obj, **kwargs)
+            elif 'password' in fields and no_username:
+                kwargs['password'] = auth_data.password
             username, password = auth_data.username, auth_data.password
             if username != BaseRequirementDecorator.username:
                 raise exceptions.InvalidCredentialsReceived(self.function, 'username')
@@ -184,11 +191,13 @@ class AnimatedLoading:
                 time.sleep(0.5)
     
     def __call__(self, obj, *args, **kwargs):
-        if BaseRequirementDecorator.username:
+        if not BaseRequirementDecorator.username:
             animation_thread = helpers.KillableThread(target=self.animation)
             animation_thread.start()
             result = self.function(obj, *args, **kwargs)
+            sys.stdout.flush()
             animation_thread.kill()
+            sys.stdout.flush()
         else:
             result = self.function(obj, *args, **kwargs)
         return result

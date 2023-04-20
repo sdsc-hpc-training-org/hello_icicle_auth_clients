@@ -31,9 +31,8 @@ class OperationsHelper:
         filtered = dict()
         variables = list(get_parameters(func))
         for arg in variables:
-            if arg != "password" and arg != "expression": filtered.update({arg:kwargs[arg]})
-            elif arg == "password": filtered.update({'password':None})
-            elif arg == "expression": filtered.update({'expression':None})
+            if arg in command_parameters: filtered.update({arg:kwargs[arg]})
+            else: filtered.update({arg:None})
         return filtered
 
     def print_dict(self, dict_):
@@ -82,7 +81,7 @@ class DynamicHelpUtility:
                     argument_help = f"{command_name} -c help"
             if arguments:
                 for argument in arguments:
-                    if argument != "password" and argument != "description" and argument != "expression":
+                    if argument in args.Args.argparser_args:
                         argument_help += f" {command_parameters[argument]['args'][1]} <{argument}>"
 
             command_help['syntax'] = argument_help
@@ -148,7 +147,8 @@ class Formatters:
                     print(("  " * (depth + 1)) + data)
             else: 
                 print(("  " * depth) + f"{key}: {str(value).strip()}")
-        print("\n")
+        if depth == 1:
+            print("\n")
 
 
 if __name__ == "__main__":

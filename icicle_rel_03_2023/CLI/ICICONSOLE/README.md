@@ -6,10 +6,6 @@ ICICONSOLE is designed to provide an efficient and powerful interface to Neo4j K
 
 This application is specialized for knowledge graph querying, and has some basic CYPHER commands built in. 
 
-### Dependencies
- 
-* Dependencies are listed [here](https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients/blob/main/icicle_rel_03_2023/CLI/ICICONSOLE/requirements.txt)
-
 ### Installation
 
 Right now, the only way to use this application is to directly run the python code. Additionally, it requies python 3.10.

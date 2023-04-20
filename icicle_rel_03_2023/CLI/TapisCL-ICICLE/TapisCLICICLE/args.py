@@ -40,10 +40,6 @@ class Args:
             "args":["-U", "--uuid"],
             "kwargs":{"action":"store"}
         },
-        "description":{
-            "args":["-d", "--description"],
-            "kwargs":{"action":"store"}
-        },
         "link":{
             "args":["-l", "--link"],
             "kwargs":{"action":"store"}
