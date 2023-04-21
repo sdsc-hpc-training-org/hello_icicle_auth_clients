@@ -14,8 +14,11 @@ from tapipy.tapis import Tapis
 # These are to clear the screen
 import os
 import signal
-import BasicCypherCommands as bcc
 import json
+try:
+    from . import BasicCypherCommands as bcc
+except:
+    import BasicCypherCommands as bcc
 
 # Recording login time
 start = time.time()
