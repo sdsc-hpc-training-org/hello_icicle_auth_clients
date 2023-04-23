@@ -7,7 +7,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "ICICONSOLE"
 version = "0.0.1"
-description = "Provide command line interface for Neo4j Knowledge Graph (KG) pods hosted on Tapis"
+description = "Command-line Interface tailored to working with Neo4j Knowledge Graph Databses hosted through via Tapis Pods.
 readme = "README.md"
 authors = [{ name = "Sahil Samar", email = "sahilsamar031@gmail.com" }]
 license = { file = "LICENSE" }
@@ -22,7 +22,7 @@ dependencies = [
     "py2neo",
     "pandas"
 ]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 
 [project.optional-dependencies]
 dev = []
