@@ -7,7 +7,7 @@ Repo for Authenticated Clients and Applications for ICICLE CI Services
 * [About the Team](#about)
 * [Acknowledgement](#acks)
 
-<img src="images/HelloICICLE-Tapis-KG-Client-ArchDiag-apr-10-2023.png" alt="Hello ICICLE Tapis-KG Architecture" width="400px">
+<img src="images/HelloICICLE-Tapis-KG-Client-ArchDiag-apr-23-2023.png" alt="Hello ICICLE Tapis-KG Architecture" width="400px">
 
 
 ## Overview <a name="overview"></a></a>
