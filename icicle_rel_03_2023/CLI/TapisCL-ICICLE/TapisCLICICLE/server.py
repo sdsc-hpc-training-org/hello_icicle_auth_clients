@@ -24,6 +24,9 @@ except:
     import decorators
     import args
 
+
+class 
+
 class Server(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup, helpers.DynamicHelpUtility):
     """
     Receives commands from the client and executes Tapis operations
@@ -260,6 +263,9 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup,
                 self.json_send(error_response.dict())
                 self.connection.close()  # close the connection
                 self.accept()  # wait for CLI to reconnect
+            except OSError:
+                self.logger.info("connection was lost, waiting to reconnect")
+                self.accept()
             except (exceptions.CommandNotFoundError, exceptions.NoConfirmationError, exceptions.InvalidCredentialsReceived, Exception) as e:
                 error_response = schemas.ResponseData(response_message = str(e))
                 self.json_send(error_response.dict())
