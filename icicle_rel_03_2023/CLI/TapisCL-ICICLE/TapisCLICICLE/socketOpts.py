@@ -34,6 +34,9 @@ class SocketOpts:
         json_data = json.dumps(data)
         connection.send(json_data.encode())
 
+    def schema_send_explicit(self, connection, data):
+        self.json_send_explicit(connection, data.dict())
+
     def schema_unpack_explicit(self, connection):
         data = self.json_receive_explicit(connection)
         schema_type = schema_types[data['schema_type']]

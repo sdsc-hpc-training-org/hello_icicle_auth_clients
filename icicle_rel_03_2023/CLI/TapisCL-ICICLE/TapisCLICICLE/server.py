@@ -60,11 +60,13 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup,
         # setting up socket server
         self.ip, self.port = IP, PORT
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.sock.setsockopt()
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.bind((self.ip, self.port))
         self.sock.listen(1)
-        self.connection = None  # initialize the connection variable
         self.end_time = time.time() + 300  # start the countdown on the timeout
+
+        self.connection_dict = {}  # initialize the connection variable
 
         self.logger.info("Awaiting connection")
 
@@ -219,30 +221,30 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup,
             return self.help[command]
         return self.help
 
-    def run_command(self, command_data: dict):
+    def run_command(self, connection, command_data: dict):
         """
         process and run command based on received kwargs
         """
         command_group = command_data['command_group']
         if command_group in self.command_group_map:
             command_group = self.command_group_map[command_group]
-            return command_group(**command_data)
+            return command_group(connection, **command_data)
         elif command_group in self.command_map:
             command = self.command_map[command_group]
             command_data = self.filter_kwargs(command, command_data)
             if command_data:
-                return command(**command_data)
+                return command(connection, **command_data)
             return command()
         else:
             raise exceptions.CommandNotFoundError(command_group)
 
-    def main(self):
+    def receive_and_execute(self, connection):
         """
         receive and process commands
         """
         while True: 
             try:
-                message = self.schema_unpack()  
+                message = self.schema_unpack_explicit(connection=connection)  
                 self.timeout_handler()  
                 kwargs, exit_status = message.kwargs, message.exit_status
                 result = self.run_command(kwargs)

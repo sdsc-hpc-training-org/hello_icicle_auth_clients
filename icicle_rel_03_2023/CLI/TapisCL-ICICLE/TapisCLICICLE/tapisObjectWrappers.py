@@ -31,7 +31,7 @@ class tapisObject(helpers.OperationsHelper, decorators.DecoratorSetup, helpers.D
         if self.command_map:
             self.help = self.help_generation()
 
-    def __call__(self, **kwargs):
+    def __call__(self, connection, **kwargs):
         command = self.command_map[kwargs['command']]
         kwargs = self.filter_kwargs(command, kwargs)
         result = command(**kwargs)
@@ -54,7 +54,7 @@ class TapisQuery(tapisObject):
         self.t = tapis_object
         self.__code__ = self.query.__code__
 
-    def __call__(self, **kwargs):
+    def __call__(self, connection, **kwargs):
         kwargs = self.filter_kwargs(self.query, kwargs)
         result = self.query(**kwargs)
         return result
