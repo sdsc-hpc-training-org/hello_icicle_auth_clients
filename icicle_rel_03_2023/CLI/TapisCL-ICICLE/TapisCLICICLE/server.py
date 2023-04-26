@@ -8,6 +8,7 @@ import os
 import logging
 from tapisObjectWrappers import Files, Apps, Pods, Systems, Neo4jCLI, PostgresCLI
 import typing
+import traceback
 
 try:
     from . import exceptions
@@ -23,6 +24,7 @@ except:
     import schemas
     import decorators
     import args
+
 
 class Server(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup, helpers.DynamicHelpUtility):
     """
@@ -261,9 +263,11 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup,
                 self.connection.close()  # close the connection
                 self.accept()  # wait for CLI to reconnect
             except (exceptions.CommandNotFoundError, exceptions.NoConfirmationError, exceptions.InvalidCredentialsReceived, Exception) as e:
-                error_response = schemas.ResponseData(response_message = str(e))
+                error_str = traceback.format_exc()
+                print(error_str)
+                error_response = schemas.ResponseData(response_message = f"{str(e)}")
                 self.json_send(error_response.dict())
-                self.logger.warning(f"{str(e)}\n{e.__traceback__}")
+                self.logger.warning(f"{error_str}")
 
 
 
