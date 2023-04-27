@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ICICONSOLE"
-version = "0.0.2"
+version = "0.0.5"
 description = "Command-line Interface tailored to working with Neo4j Knowledge Graph Databses hosted through via Tapis Pods."
 readme = "README.md"
 authors = [{ name = "Sahil Samar", email = "sahilsamar031@gmail.com" }]
@@ -28,7 +28,7 @@ requires-python = ">=3.10"
 dev = []
 
 [project.urls]
-Homepage = "https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients/tree/main/icicle_rel_04_2023/CLI/ICICONSOLE"
+Homepage = "https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients/tree/main/icicle_rel_03_2023/CLI/ICICONSOLE"
 
-[project.entry-points."TapisCLICICLE.__main__"]
+[project.entry-points."ICICONSOLE.__main__"]
 tomatoes = "ICICONSOLE:__main__"
