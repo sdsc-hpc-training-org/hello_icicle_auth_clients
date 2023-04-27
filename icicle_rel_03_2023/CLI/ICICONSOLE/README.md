@@ -8,7 +8,13 @@ This application is specialized for knowledge graph querying, and has some basic
 
 ### Installation
 
-Right now, the only way to use this application is to directly run the python code. Additionally, it requies python 3.10.
+Requires Python 3.10 or higher. You can clone this repository and manually install the requirements, or you can directly install the application from PyPi.
+
+```shell 
+pip install ICICONSOLE
+```
+
+**OR**
 
 ```shell 
 git clone https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients.git
