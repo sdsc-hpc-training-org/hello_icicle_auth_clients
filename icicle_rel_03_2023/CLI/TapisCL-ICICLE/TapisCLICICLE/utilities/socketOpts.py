@@ -2,7 +2,7 @@ import json
 try:
     from . import schemas
 except:
-    import schemas
+    import utilities.schemas as schemas
 
 
 schema_types: dict = {
@@ -29,10 +29,15 @@ class SocketOpts:
                 return json.loads(json_data) 
             except ValueError:
                 continue
+            except BlockingIOError:
+                continue
     
     def json_send_explicit(self, connection, data):
         json_data = json.dumps(data)
         connection.send(json_data.encode())
+
+    def schema_send_explicit(self, connection, data):
+        self.json_send_explicit(connection, data.dict())
 
     def schema_unpack_explicit(self, connection):
         data = self.json_receive_explicit(connection)

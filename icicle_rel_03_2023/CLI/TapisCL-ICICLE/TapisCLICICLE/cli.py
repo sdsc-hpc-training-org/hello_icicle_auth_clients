@@ -7,21 +7,18 @@ import pyfiglet
 from getpass import getpass
 import os
 import time
-from pprint import pprint
-import json
-
 try:
-    from . import schemas
-    from . import socketOpts as SO
-    from . import helpers
-    from . import decorators
-    from . import args
+    from .utilities import schemas
+    from .utilities import socketOpts as SO
+    from .utilities import helpers
+    from .utilities import decorators
+    from .utilities import args
 except:
-    import schemas
-    import socketOpts as SO
-    import helpers
-    import decorators
-    import args
+    import utilities.schemas as schemas
+    import utilities.socketOpts as SO
+    import utilities.helpers as helpers
+    import utilities.decorators as decorators
+    import utilities.args as args
 
 
 __location__ = os.path.realpath(
@@ -43,6 +40,12 @@ class CLI(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup, he
         # set up argparse
         self.parser = argparse.ArgumentParser(description="Command Line Argument Parser", exit_on_error=False, usage=SUPPRESS)
         self.parser.add_argument('command_group')
+
+        self.message_handlers = {
+            'FormRequest':self.form_handler,
+            'AuthRequest':self.auth_handler,
+            'ConfirmationRequest':self.confirmation_handler,
+        }
 
         for parameters in args.Args.argparser_args.values():
             self.parser.add_argument(*parameters["args"], **parameters["kwargs"])
@@ -148,7 +151,7 @@ class CLI(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup, he
             filled_form.update({field:value})
         return filled_form
 
-    def command_operator(self, kwargs: dict | list, exit_: int=0): 
+    def command_input_parser(self, kwargs: dict | list, exit_: int=0): 
         """
         parse arguments, handling bash and CLI input
         """
@@ -159,41 +162,51 @@ class CLI(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup, he
         command = schemas.CommandData(kwargs = kwargs, exit_status = exit_)
         return command
     
+    def form_handler(self, response):
+        if not response.arguments_list:
+            form = self.expression_input()
+            filled_form = schemas.FormResponse(arguments_list=form)
+        else: 
+            form = self.fillout_form(response.arguments_list)
+            filled_form = schemas.FormResponse(arguments_list=form)
+        return filled_form
+
+    def auth_handler(self, response):
+        if response.secure_input or not response.requires_username:
+            username = self.username
+            password = getpass("Password: ")
+        else: 
+            username = input("Username: ")
+            password = getpass("Password: ")
+        filled_form = schemas.AuthData(username=username, password=password)
+        return filled_form
+    
+    def confirmation_handler(self, response):
+        print(response.message)
+        while True:
+            decision = str(input("(y/n)"))
+            if decision == 'y':
+                decision = True
+                break
+            elif decision == 'n':
+                decision = False
+                break
+            else:
+                print("Enter valid response")
+        filled_form = schemas.ResponseData(response_message=decision)
+        return filled_form
+    
     def special_forms_ops(self):
         """
         handle special form requests sent by the server
         """
         while True:
-            response = self.schema_unpack()
-            if response.schema_type == 'FormRequest' and not response.arguments_list:
-                form = self.expression_input()
-                filled_form = schemas.FormResponse(arguments_list=form)
-            elif response.schema_type == 'FormRequest':
-                form = self.fillout_form(response.arguments_list)
-                filled_form = schemas.FormResponse(arguments_list=form)
-            elif response.schema_type == 'AuthRequest':
-                if response.secure_input or not response.requires_username:
-                    username = self.username
-                    password = getpass("Password: ")
-                else: 
-                    username = input("Username: ")
-                    password = getpass("Password: ")
-                filled_form = schemas.AuthData(username=username, password=password)
-            elif response.schema_type == "ConfirmationRequest":
-                print(response.message)
-                while True:
-                    decision = str(input("(y/n)"))
-                    if decision == 'y':
-                        decision = True
-                        break
-                    elif decision == 'n':
-                        decision = False
-                        break
-                    else:
-                        print("Enter valid response")
-                filled_form = schemas.ResponseData(response_message=decision)
+            message = self.schema_unpack()
+            message_type = message.schema_type
+            if message_type in self.message_handlers.keys():
+                filled_form = self.message_handlers[message_type](message)
             else:
-                return response
+                return message.dict()
             self.json_send(filled_form.dict())
 
     def print_response(self, response_message):
@@ -210,21 +223,30 @@ class CLI(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup, he
         else:
             print(response_message)
 
-    def main(self):
-        if len(sys.argv) > 1: # checks if any command line arguments were provided. Does not open CLI
-            try:
-                kwargs = self.parser.parse_args()
-            except:
-                print("Invalid Arguments")
-                os._exit(0)
-            kwargs = vars(kwargs)
-            command = self.command_operator(kwargs, exit_=1) # operate with args, send them over
-            self.json_send(command.dict())
-            response = self.special_forms_ops()
-            if response.schema_type == 'ResponseData':
-                self.print_response(response.response_message)
+    def environment_cli_response_stream_handler(self, response):
+        if response.schema_type == 'ResponseData' and response.exit_status: # if the command was a shutdown or exit, close the program
+            self.print_response(response.response_message)
             os._exit(0)
+        elif response.schema_type == 'ResponseData':
+            self.print_response(response.response_message)
+        elif response.command_name == "switch_service":
+            self.print_("Session was changed by another instance of the client, please re-enter your command")
 
+    def terminal_cli(self):
+        try:
+            kwargs = self.parser.parse_args()
+        except:
+            print("Invalid Arguments")
+            os._exit(0)
+        kwargs = vars(kwargs)
+        command = self.command_input_parser(kwargs, exit_=1) # operate with args, send them over
+        self.json_send(command.dict())
+        response = self.special_forms_ops()
+        if response.schema_type == 'ResponseData':
+            self.print_response(response.response_message)
+        os._exit(0)
+
+    def environment_cli(self):
         title = pyfiglet.figlet_format("-----------\nTapisCLICICLE\n-----------", font="slant") # print the title when CLI is accessed
         print(title)
         
@@ -233,18 +255,14 @@ class CLI(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup, he
                 time.sleep(0.01)
                 kwargs = self.process_command(str(input(f"[{self.username}@{self.url}] "))) # ask for and process user input
                 try:
-                    command = self.command_operator(kwargs) # run operations
+                    command = self.command_input_parser(kwargs) # run operations
                 except:
                     continue
                 if not command:
                     continue
                 self.json_send(command.dict())
                 response = self.special_forms_ops()
-                if response.schema_type == 'ResponseData' and response.exit_status: # if the command was a shutdown or exit, close the program
-                    self.print_response(response.response_message)
-                    os._exit(0)
-                elif response.schema_type == 'ResponseData':
-                    self.print_response(response.response_message)
+                self.environment_cli_response_stream_handler(response)
             except KeyboardInterrupt:
                 pass # keyboard interrupts mess with the server, dont do it! it wont work anyway, hahahaha
             except WindowsError: # if connection error with the server (there wont be any connection errors)
@@ -252,6 +270,11 @@ class CLI(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup, he
                 os._exit(0)
             except Exception as e: # if something else happens
                 print(e)
+
+    def main(self):
+        if len(sys.argv) > 1: # checks if any command line arguments were provided. Does not open CLI
+            self.terminal_cli()
+        self.environment_cli()
 
 
 if __name__ == "__main__":

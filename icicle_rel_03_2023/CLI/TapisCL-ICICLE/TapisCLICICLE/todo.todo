@@ -1,0 +1,2 @@
+1. add mechanism to filter out connection from external IP addresses, to prevent dropping in on connections from 3rd parties
+2. add selectors to make it so multiple instances of client can be running at once to improve productivity
