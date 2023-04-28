@@ -43,15 +43,6 @@ class Pods(baseWrappers.tapisObject):
         for pod in pods_list:
             pods_string += str(pod)
         return pods_string
-    
-    def whoami(self, verbose: bool, connection=None) -> str:
-        """
-        @help: returns the username of the current user
-        """
-        user_info = self.t.authenticator.get_userinfo()
-        if verbose:
-            return str(user_info)
-        return user_info.username
 
     @decorators.RequiresForm
     def create_pod(self, id: str, template: str, verbose: bool, description: str | None = None, connection=None) -> str:

@@ -67,13 +67,13 @@ class ServerCommands(decorators.DecoratorSetup):
 
         return f"Successfully initialized tapis service on {self.url}"
     
-    def __exit(self, connection=None):
+    def exit(self, connection=None):
         """
         @help: exit the CLI without shutting down the service
         """
         raise exceptions.Exit
     
-    def __shutdown(self, connection=None):
+    def shutdown(self, connection=None):
         """
         @help: exit the CLI and shutdown the service
         """
@@ -89,3 +89,12 @@ class ServerCommands(decorators.DecoratorSetup):
         elif command in self.help:
             return self.help[command]
         return self.help
+    
+    def whoami(self, verbose: bool, connection=None) -> str:
+        """
+        @help: returns the username of the current user
+        """
+        user_info = self.t.authenticator.get_userinfo()
+        if verbose:
+            return str(user_info)
+        return user_info.username

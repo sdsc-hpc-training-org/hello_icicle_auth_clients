@@ -28,6 +28,8 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, helpers.DynamicHelpUtility
     Receives commands from the client and executes Tapis operations
     """
     def __init__(self, IP: str, PORT: int):
+        self.initial = True
+
         self.selector = selectors.DefaultSelector()
         # logger setup
         self.logger = logging.getLogger(__name__)
@@ -58,7 +60,6 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, helpers.DynamicHelpUtility
         self.ip, self.port = IP, PORT
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.sock.setblocking(False)
-        self.sock.setsockopt()
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.bind((self.ip, self.port))
         self.sock.listen(1)
@@ -66,23 +67,26 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, helpers.DynamicHelpUtility
 
         self.connections_list = []  # initialize the connection variable
 
-        self.logger.info("Awaiting connection")
-
         self.pods = None
         self.systems = None
         self.files = None
         self.apps = None
         self.neo4j = None
+        self.postgres = None
         self.t = None
         self.url = None
         self.access_token = None
         self.username = None
         self.password = None
+        self.help_menu = None
 
-        self.accept(initial=True)  # connection returns the tapis object and user info
+        self.command_group_map = None
+        self.command_map = None
 
-        # instantiate the subsystems
         self.logger.info('initialization complete')
+
+    def commands_initializer(self):
+        # instantiate the subsystems
         self.command_group_map = {
             'pods':self.pods,
             'systems':self.systems,
@@ -91,15 +95,15 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, helpers.DynamicHelpUtility
         }
         self.command_map = {
             'help':self.help,
-            'whoami':self.pods.whoami,
-            'exit':self.__exit,
-            'shutdown':self.__shutdown,
+            'whoami':self.whoami,
+            'exit':self.exit,
+            'shutdown':self.shutdown,
             'neo4j':self.neo4j,
             'postgres':self.postgres,
             'switch_service':self.tapis_init
         }
         help0, help1 = self.help_generation()
-        self.help = dict(help0, **help1)
+        self.help_menu = dict(help0, **help1)
 
     def accept(self, initial: bool=False):
         """
@@ -111,7 +115,6 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, helpers.DynamicHelpUtility
             raise exceptions.UnauthorizedAccessError(ip)
         connection.setblocking(False)
         self.connections_list.append(connection)
-        self.selector.register(connection, selectors.EVENT_READ, lambda: self.receive_and_execute(connection))
         self.logger.info("Received connection request")
 
         if initial:  # if this is the first time in the session that the cli is connecting
@@ -123,10 +126,12 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, helpers.DynamicHelpUtility
                 url: schemas.StartupData = self.schema_unpack_explicit(connection).url
                 try:
                     auth_request = schemas.AuthRequest()
+                    self.logger.info("send the auth request")
                     self.json_send_explicit(connection, auth_request.dict())
                     auth_data: schemas.AuthData = self.schema_unpack_explicit(connection)
                     username, password = auth_data.username, auth_data.password
                     self.tapis_init(link=url, username=username, password=password, connection=connection)
+                    self.commands_initializer()
                     self.logger.info("Verification success")
                     break
                 except Exception as e:
@@ -140,10 +145,12 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, helpers.DynamicHelpUtility
                     continue
         else:
             self.configure_decorators()
+        self.initial = False
         startup_result = schemas.StartupData(initial = initial, username = self.username, url = self.url)
         self.logger.info("Connection success")
         self.json_send_explicit(connection, startup_result.dict())
         self.logger.info("Final connection data sent")
+        self.selector.register(connection, selectors.EVENT_READ, lambda: self.receive_and_execute(connection))
 
     def timeout_handler(self):  
         """
@@ -218,7 +225,7 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, helpers.DynamicHelpUtility
                 self.logger.warning(f"{str(e)}\n{e.__traceback__}")
     
     def main(self):
-        self.selector.register(self.sock, selectors.EVENT_READ, self.accept)
+        self.selector.register(self.sock, selectors.EVENT_READ, lambda: self.accept(initial=self.initial))
         while True:
             try:
                 events = self.selector.select()

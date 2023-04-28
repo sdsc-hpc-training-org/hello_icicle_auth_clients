@@ -274,6 +274,7 @@ class CLI(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup, he
     def main(self):
         if len(sys.argv) > 1: # checks if any command line arguments were provided. Does not open CLI
             self.terminal_cli()
+        self.environment_cli()
 
 
 if __name__ == "__main__":
