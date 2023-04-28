@@ -13,14 +13,13 @@ try:
     from . import socketOpts
     from . import exceptions
 except:
-    import helpers
-    import schemas
-    import socketOpts
-    import exceptions
+    import utilities.helpers as helpers
+    import utilities.schemas as schemas
+    import utilities.socketOpts as socketOpts
+    import utilities.exceptions as exceptions
 
 
 class BaseRequirementDecorator(socketOpts.SocketOpts, helpers.OperationsHelper):
-    connection: typing.Optional[socket.socket] = None
     username: typing.Optional[str] = None
     password: typing.Optional[str] = None
     def __init__(self, func: typing.Callable):
@@ -157,10 +156,9 @@ class DecoratorSetup:
     for instantiation of the tapis wrappers, and the server, to set up decorators with user credentials and the socket connection. If you want to use the decorators in your class
     YOU WILL NEED TO USE THIS!
     """
-    def configure_decorators(self):
-        BaseRequirementDecorator.connection = self.connection
-        BaseRequirementDecorator.username = self.username
-        BaseRequirementDecorator.password = self.password
+    def configure_decorators(self, username, password):
+        BaseRequirementDecorator.username = username
+        BaseRequirementDecorator.password = password
     
 
 class AnimatedLoading:

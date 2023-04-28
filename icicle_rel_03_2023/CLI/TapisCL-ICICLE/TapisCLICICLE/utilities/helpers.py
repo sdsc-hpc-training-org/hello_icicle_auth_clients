@@ -10,8 +10,8 @@ try:
     from . import exceptions
     from . import args
 except:
-    import exceptions
-    import args
+    import utilities.exceptions as exceptions
+    import utilities.args as args
 
 
 command_parameters = args.Args.argparser_args

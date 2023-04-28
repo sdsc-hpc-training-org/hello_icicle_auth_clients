@@ -2,7 +2,7 @@ import json
 try:
     from . import schemas
 except:
-    import schemas
+    import utilities.schemas as schemas
 
 
 schema_types: dict = {
