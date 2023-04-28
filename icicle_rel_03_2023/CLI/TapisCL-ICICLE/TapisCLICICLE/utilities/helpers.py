@@ -31,13 +31,9 @@ class OperationsHelper:
         filtered = dict()
         variables = list(get_parameters(func))
         for arg in variables:
-            if arg in command_parameters: filtered.update({arg:kwargs[arg]})
+            if arg in command_parameters or arg == "connection": filtered.update({arg:kwargs[arg]})
             else: filtered.update({arg:None})
         return filtered
-
-    def print_dict(self, dict_):
-        for key, value in dict_.items():
-            print(f"{key}: {value}")
     
 
 class DynamicHelpUtility:
@@ -149,6 +145,20 @@ class Formatters:
                 print(("  " * depth) + f"{key}: {str(value).strip()}")
         if depth == 1:
             print("\n")
+
+    def print_response(self, response_message):
+        """
+        format response messages from the server
+        """
+        if type(response_message) == dict:
+            self.recursive_dict_print(response_message)
+        elif (type(response_message) == list or 
+             type(response_message) == tuple or 
+             type(response_message) == set):
+            for value in response_message:
+                print(value)
+        else:
+            print(response_message)
 
 
 if __name__ == "__main__":

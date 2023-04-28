@@ -9,12 +9,14 @@ try:
     from ..utilities import exceptions
     from ..utilities import decorators
     from ..utilities import args
+    from ..utilities import schemas
     from commands import apps, files, pods, query, systems
 except:
     import utilities.exceptions as exceptions
     import utilities.decorators as decorators
     import utilities.args as args
     import utilities.decorators as decorators
+    import utilities.schemas as schemas
     import commands.apps as apps
     import commands.files as files
     import commands.pods as pods
@@ -61,7 +63,7 @@ class ServerCommands(decorators.DecoratorSetup):
         self.help_menu = dict(help0, **help1)
 
     @decorators.Auth
-    def tapis_init(self, username: str, password: str, link: str, connection=None) -> tuple[typing.Any, str, str] | None:  # link is the baseURL
+    def tapis_init(self, username: str, password: str, link: str, connection=None, initial_connection=False) -> tuple[typing.Any, str, str] | None:  # link is the baseURL
         """
         @help: switch the connected tapis service
         """
@@ -107,6 +109,10 @@ class ServerCommands(decorators.DecoratorSetup):
         self.access_token = access_token
 
         self.logger.info(f"initiated in {time.time()-start}")
+
+        if not initial_connection:
+            message = schemas.ResponseData(response_message={'url':url, 'username':username}, command_name="switch_service")
+            self.broadcast(message)
 
         return f"Successfully initialized tapis service on {self.url}"
       

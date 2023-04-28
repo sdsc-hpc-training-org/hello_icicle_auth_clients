@@ -109,6 +109,7 @@ class CLI(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup, he
                 self.json_send(auth_data.dict())
 
                 verification: schemas.ResponseData | schemas.StartupData = self.schema_unpack() 
+                print(verification)
                 if verification.schema_type == 'StartupData': # verification success, program moves forward
                     return verification.username, verification.url
                 else: # verification failed. User has 3 tries, afterwards the program will shut down
@@ -206,22 +207,8 @@ class CLI(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup, he
             if message_type in self.message_handlers.keys():
                 filled_form = self.message_handlers[message_type](message)
             else:
-                return message.dict()
+                return message
             self.json_send(filled_form.dict())
-
-    def print_response(self, response_message):
-        """
-        format response messages from the server
-        """
-        if type(response_message) == dict:
-            self.recursive_dict_print(response_message)
-        elif (type(response_message) == list or 
-             type(response_message) == tuple or 
-             type(response_message) == set):
-            for value in response_message:
-                print(value)
-        else:
-            print(response_message)
 
     def environment_cli_response_stream_handler(self, response):
         if response.schema_type == 'ResponseData' and response.exit_status: # if the command was a shutdown or exit, close the program
@@ -230,7 +217,9 @@ class CLI(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup, he
         elif response.schema_type == 'ResponseData':
             self.print_response(response.response_message)
         elif response.command_name == "switch_service":
-            self.print_("Session was changed by another instance of the client, please re-enter your command")
+            self.url = response.response_message['url']
+            self.username = response.response_message['username']
+            self.print_(f"Session was changed to {self.url} with username {self.username}")
 
     def terminal_cli(self):
         try:

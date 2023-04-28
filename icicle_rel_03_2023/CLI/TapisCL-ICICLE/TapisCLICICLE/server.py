@@ -76,6 +76,7 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, helpers.DynamicHelpUtility
         accept connection request and initialize communication with the client
         """  
         connection, ip_port = self.sock.accept() 
+        connection.setblocking(False)
         ip, port = ip_port
         if ip != socket.gethostbyname(socket.gethostname()):
             raise exceptions.UnauthorizedAccessError(ip)
@@ -96,7 +97,7 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, helpers.DynamicHelpUtility
                     self.json_send_explicit(connection, auth_request.dict())
                     auth_data: schemas.AuthData = self.schema_unpack_explicit(connection)
                     username, password = auth_data.username, auth_data.password
-                    self.tapis_init(link=url, username=username, password=password, connection=connection)
+                    self.tapis_init(link=url, username=username, password=password, connection=connection, initial_connection=True)
                     self.commands_initializer()
                     self.logger.info("Verification success")
                     break
@@ -107,17 +108,16 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, helpers.DynamicHelpUtility
                     if attempt == 3:  
                         self.logger.error(
                             "Attempted verification too many times. Exiting")
-                        os._exit(0)  
+                        return
                     continue
         else:
-            self.configure_decorators()
+            self.configure_decorators(self.username, self.password)
         self.initial = False
         startup_result = schemas.StartupData(initial = self.initial, username = self.username, url = self.url)
         self.logger.info("Connection success")
         self.json_send_explicit(connection, startup_result.dict())
         self.logger.info("Final connection data sent")
-        connection.setblocking(False)
-        self.selector.register(connection, selectors.EVENT_READ, lambda: self.receive_and_execute(connection))
+        self.selector.register(connection, selectors.EVENT_READ | selectors.EVENT_WRITE, lambda: self.receive_and_execute(connection))
 
     def timeout_handler(self):  
         """
@@ -137,7 +137,9 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, helpers.DynamicHelpUtility
             return command_group(**command_data)
         elif command_group in self.command_map:
             command = self.command_map[command_group]
+            print(command_data)
             command_data = self.filter_kwargs(command, command_data)
+            print(command_data)
             if command_data:
                 return command(**command_data)
             return command()
@@ -149,8 +151,7 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, helpers.DynamicHelpUtility
         self.connections_list.remove(connection)
         connection.close()
 
-    def broadcast(self, message, command_name=None):
-        message = schemas.ResponseData(response_message=message, command_name=command_name)
+    def broadcast(self, message):
         for connection in self.connections_list:
             self.json_send_explicit(connection, message.dict())
 
@@ -163,18 +164,18 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, helpers.DynamicHelpUtility
                 message = self.schema_unpack_explicit(connection=connection)  
                 self.timeout_handler()  
                 kwargs, exit_status = message.kwargs, message.exit_status
-                result = self.run_command(kwargs)
+                result = self.run_command(connection, kwargs)
                 response = schemas.ResponseData(response_message = result)
                 self.end_time = time.time() + 300 
                 self.json_send_explicit(connection, response.dict()) 
-                self.logger.info(message)
+                self.logger.info(message.schema_type)
                 if exit_status == 1:
                     self.__exit()
             except (exceptions.TimeoutError, exceptions.Shutdown) as e:
                 error_response = schemas.ResponseData(response_message = str(e), exit_status=1)
                 self.broadcast(error_response)
                 self.logger.warning(str(e))
-                for connection in self.connections:
+                for connection in self.connections_list:
                     self.close_connection(connection)
                 sys.exit(0)
             except exceptions.Exit as e:
@@ -189,11 +190,11 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, helpers.DynamicHelpUtility
             except (exceptions.CommandNotFoundError, exceptions.NoConfirmationError, exceptions.InvalidCredentialsReceived, Exception) as e:
                 error_str = traceback.format_exc()
                 error_response = schemas.ResponseData(response_message = f"{str(e)}")
-                self.json_send(error_response.dict())
+                self.json_send_explicit(connection, error_response.dict())
                 self.logger.warning(f"{error_str}")
     
     def main(self):
-        self.selector.register(self.sock, selectors.EVENT_READ, self.accept)
+        self.selector.register(self.sock, selectors.EVENT_READ | selectors.EVENT_WRITE, self.accept)
         while True:
             try:
                 events = self.selector.select()
