@@ -50,7 +50,7 @@ class RequiresForm(BaseRequirementDecorator):
     to request the unreceived parameters, and receives a message in response from the client to execute the function
     """
     def __call__(self, obj, *args, **kwargs):
-        if BaseRequirementDecorator.connection:
+        if kwargs['connection']:
             fields = list(helpers.get_parameters(self.function))
             for key, value in kwargs.items():
                 if value or value == False:
@@ -58,7 +58,7 @@ class RequiresForm(BaseRequirementDecorator):
             if not fields:
                 raise AttributeError(f"The decorated function {self.function} has no parameters.")
             form_request = schemas.FormRequest(arguments_list=fields)
-            self.json_send_explicit(BaseRequirementDecorator.connection, form_request.dict())
+            self.json_send_explicit(kwargs['connection'], form_request.dict())
             filled_form: schemas.FormResponse = self.schema_unpack_explicit(self.connection).arguments_list
             for key, value in filled_form.items():
                 kwargs[key] = value
@@ -73,12 +73,12 @@ class RequiresExpression(BaseRequirementDecorator):
     The client will open a new interface to type the expression. This is then sent back and fed to the function
     """
     def __call__(self, obj, *args, **kwargs):
-        if BaseRequirementDecorator.connection:
+        if kwargs['connection']:
             fields = list(helpers.get_parameters(self.function))
             if 'expression' not in fields:
                 raise AttributeError(f"The function {self.function} does not contain an 'expression' parameter")
             form_request = schemas.FormRequest(arguments_list=[])
-            self.json_send_explicit(BaseRequirementDecorator.connection, form_request.dict())
+            self.json_send_explicit(kwargs['connection'], form_request.dict())
             filled_form: schemas.FormResponse = self.schema_unpack()
             kwargs['expression'] = filled_form.arguments_list
 
@@ -91,11 +91,11 @@ class SecureInput(BaseRequirementDecorator):
     want to authenticate. Checks if the decorated function has a password parameter, then requests secure input of a new password from the client
     """
     def __call__(self, obj, *args, **kwargs):
-        if BaseRequirementDecorator.connection:
+        if kwargs['connection']:
             fields = list(helpers.get_parameters(self.function))
             if 'password' in fields:
                 secure_input_request = schemas.AuthRequest(secure_input=True)
-                self.json_send_explicit(BaseRequirementDecorator.connection, secure_input_request.dict())
+                self.json_send_explicit(kwargs['connection'], secure_input_request.dict())
                 secure_input_data: schemas.AuthData = self.schema_unpack_explicit(self.connection)
                 kwargs['password'] = secure_input_data.password
                 return self.function(obj, **kwargs)
@@ -110,7 +110,7 @@ class Auth(BaseRequirementDecorator):
     """
     def __call__(self, obj, *args, **kwargs):
         no_username = False
-        if BaseRequirementDecorator.connection:
+        if kwargs['connection']:
             if self.function.__name__ == 'tapis_init' and kwargs['username'] and kwargs['password']:
                 return self.function(obj, **kwargs)
             fields = list(helpers.get_parameters(self.function))
@@ -119,7 +119,7 @@ class Auth(BaseRequirementDecorator):
                 auth_request = schemas.AuthRequest(requires_username=False)
             else:
                 auth_request = schemas.AuthRequest()
-            self.json_send_explicit(BaseRequirementDecorator.connection, auth_request.dict())
+            self.json_send_explicit(kwargs['connection'], auth_request.dict())
             auth_data: schemas.AuthData = self.schema_unpack_explicit(self.connection)
             if 'username' in fields and 'password' in fields and not no_username:
                 kwargs['username'], kwargs['password'] = auth_data.username, auth_data.password
@@ -140,9 +140,9 @@ class NeedsConfirmation(BaseRequirementDecorator):
     add to functions that you want user confirmation to exit. If you accidentally enter a command to delete a pod, this will not let you until you confirm
     """
     def __call__(self, obj, *args, **kwargs):
-        if BaseRequirementDecorator.connection:
+        if kwargs['connection']:
             confirmation_request = schemas.ConfirmationRequest(message=f"YOU REQUESTED TO {self.function.__name__}. THIS MIGHT CAUSE DATA LOSS! Please confirm (y/n)")
-            self.json_send_explicit(BaseRequirementDecorator.connection, confirmation_request.dict())
+            self.json_send_explicit(kwargs['connection'], confirmation_request.dict())
             confirmation_reply: schemas.ResponseData = self.schema_unpack_explicit(self.connection)
             confirmed = confirmation_reply.response_message
             if not confirmed:

@@ -29,6 +29,8 @@ class SocketOpts:
                 return json.loads(json_data) 
             except ValueError:
                 continue
+            except BlockingIOError:
+                continue
     
     def json_send_explicit(self, connection, data):
         json_data = json.dumps(data)

@@ -54,6 +54,6 @@ class TapisQuery(tapisObject):
         result = self.query(**kwargs)
         return result
         
-    def get_credentials(self):
+    def get_credentials(self, id):
         uname, pword = self.t.pods.get_pod_credentials(pod_id=id).user_username, self.t.pods.get_pod_credentials(pod_id=id).user_password
         return uname, pword

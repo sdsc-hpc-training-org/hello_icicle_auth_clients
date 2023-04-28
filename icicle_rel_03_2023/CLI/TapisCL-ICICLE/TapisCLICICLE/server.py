@@ -8,12 +8,15 @@ import os
 import logging
 import typing
 import selectors
+import traceback
 
 try:
     from .utilities import exceptions
     from .utilities import socketOpts as SO
     from .utilities import helpers
     from .utilities import schemas
+    from .utilities import decorators
+    from .commands import apps, files, pods, query, systems
     from .commands import serverCommands as serverCommands
 except:
     import utilities.exceptions as exceptions
@@ -21,6 +24,12 @@ except:
     import utilities.helpers as helpers
     import utilities.schemas as schemas
     import commands.serverCommands as serverCommands
+    import utilities.decorators as decorators
+    import commands.apps as apps
+    import commands.files as files
+    import commands.pods as pods
+    import commands.query as query
+    import commands.systems as systems
 
 
 class Server(SO.SocketOpts, helpers.OperationsHelper, helpers.DynamicHelpUtility, serverCommands.ServerCommands):
@@ -105,7 +114,57 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, helpers.DynamicHelpUtility
         help0, help1 = self.help_generation()
         self.help_menu = dict(help0, **help1)
 
-    def accept(self, initial: bool=False):
+    @decorators.Auth
+    def tapis_init(self, username: str, password: str, link: str, connection=None) -> tuple[typing.Any, str, str] | None:  # link is the baseURL
+        """
+        @help: switch the connected tapis service
+        """
+        start = time.time()
+        self.username = username
+        self.password = password
+        try:
+            t = Tapis(base_url=link,
+                    username=username,
+                    password=password)
+            t.get_tokens()
+        except:
+            raise exceptions.InvalidCredentialsReceived(function=self.tapis_init, cred_type="Tapis Auth")
+
+        self.configure_decorators(self.username, self.password)
+        # V3 Headers
+        header_dat = {"X-Tapis-token": t.access_token.access_token,
+                      "Content-Type": "application/json"}
+
+        # Service URL
+        url = f"{link}/v3"
+
+        # create authenticator for tapis systems
+        authenticator = t.access_token
+        # extract the access token from the authenticator
+        access_token = re.findall(
+            r'(?<=access_token: )(.*)', str(authenticator))[0]
+        
+        if 'win' in sys.platform:
+            os.system(f"set JWT={access_token}")
+        else: # unix based
+            os.system(f"export JWT={access_token}")
+
+        self.pods = pods.Pods(t, username, password)
+        self.systems = systems.Systems(t, username, password)
+        self.files = files.Files(t, username, password)
+        self.apps = apps.Apps(t, username, password)
+        self.neo4j = query.Neo4jCLI(t, username, password)
+        self.postgres = query.PostgresCLI(t, username, password)
+
+        self.t = t
+        self.url = url
+        self.access_token = access_token
+
+        self.logger.info(f"initiated in {time.time()-start}")
+
+        return f"Successfully initialized tapis service on {self.url}"
+
+    def accept(self):
         """
         accept connection request and initialize communication with the client
         """  
@@ -113,17 +172,17 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, helpers.DynamicHelpUtility
         ip, port = ip_port
         if ip != socket.gethostbyname(socket.gethostname()):
             raise exceptions.UnauthorizedAccessError(ip)
-        connection.setblocking(False)
         self.connections_list.append(connection)
         self.logger.info("Received connection request")
 
-        if initial:  # if this is the first time in the session that the cli is connecting
-            startup_data = schemas.StartupData(initial = initial)
+        if self.initial:  # if this is the first time in the session that the cli is connecting
+            startup_data = schemas.StartupData(initial = self.initial)
             self.json_send_explicit(connection, startup_data.dict())
             self.logger.info("send the initial status update")
 
             for attempt in range(1, 4):
                 url: schemas.StartupData = self.schema_unpack_explicit(connection).url
+                self.logger.info("received the link")
                 try:
                     auth_request = schemas.AuthRequest()
                     self.logger.info("send the auth request")
@@ -146,10 +205,11 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, helpers.DynamicHelpUtility
         else:
             self.configure_decorators()
         self.initial = False
-        startup_result = schemas.StartupData(initial = initial, username = self.username, url = self.url)
+        startup_result = schemas.StartupData(initial = self.initial, username = self.username, url = self.url)
         self.logger.info("Connection success")
         self.json_send_explicit(connection, startup_result.dict())
         self.logger.info("Final connection data sent")
+        connection.setblocking(False)
         self.selector.register(connection, selectors.EVENT_READ, lambda: self.receive_and_execute(connection))
 
     def timeout_handler(self):  
@@ -220,20 +280,22 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, helpers.DynamicHelpUtility
                 self.logger.info("connection was lost, waiting to reconnect")
                 self.close_connection(connection)
             except (exceptions.CommandNotFoundError, exceptions.NoConfirmationError, exceptions.InvalidCredentialsReceived, Exception) as e:
-                error_response = schemas.ResponseData(response_message = str(e))
-                self.json_send_explicit(connection, error_response.dict())
-                self.logger.warning(f"{str(e)}\n{e.__traceback__}")
+                error_str = traceback.format_exc()
+                error_response = schemas.ResponseData(response_message = f"{str(e)}")
+                self.json_send(error_response.dict())
+                self.logger.warning(f"{error_str}")
     
     def main(self):
-        self.selector.register(self.sock, selectors.EVENT_READ, lambda: self.accept(initial=self.initial))
+        self.selector.register(self.sock, selectors.EVENT_READ, self.accept)
         while True:
             try:
                 events = self.selector.select()
                 for key, mask in events:
                     callback = key.data
                     callback()
-            except:
-                pass
+            except Exception as e:
+                error_str = traceback.format_exc()
+                self.logger.warning(error_str)
 
 
 

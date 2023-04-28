@@ -14,7 +14,7 @@ class PostgresCLI(baseWrappers.TapisQuery):
     """
     @decorators.RequiresExpression
     def query(self, id: str, expression: str, connection=None) -> str:
-        uname, pword = self.get_credentials()
+        uname, pword = self.get_credentials(id)
         with psycopg2.connect(f"postgresql://{uname}:{pword}@{id}.pods.{self.t.base_url.split('https://')[1]}:443") as conn:
             conn.autocommit = True
             with conn.cursor() as cur:
@@ -29,7 +29,7 @@ class Neo4jCLI(baseWrappers.TapisQuery):
     """
     @decorators.RequiresExpression
     def query(self, id: str, expression: str, connection=None) -> str: # function to submit queries to a Neo4j knowledge graph
-        uname, pword = self.get_credentials()
+        uname, pword = self.get_credentials(id)
         graph = Graph(f"bolt+ssc://{id}.pods.{self.t.base_url.split('https://')[1]}:443", auth=(uname, pword), secure=True, verify=True)
 
         try:
