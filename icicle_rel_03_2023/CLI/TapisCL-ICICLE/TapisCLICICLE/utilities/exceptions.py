@@ -56,3 +56,11 @@ class HelpDoesNotExist(AttributeError):
     """
     def __init__(self, command_name):
         super().__init__(f"The command {command_name} has no help menu.\nMust include a docstring with @help: <help information>")
+
+
+class UnauthorizedAccessError(Exception):
+    """
+    raise error when an unauthorized IP tries to connect to the server
+    """
+    def __init__(self, ip):
+        super().__init__(f"DANGER! UNAUTHORIZED IP {ip} TRIED TO CONNECT TO THE SERVER. SOMEONE IS TRYING TO PIGGYBACK ON THE TAPIS APPLICATION, AND ATTEMPTING TO STEAL YOUR DATA.")

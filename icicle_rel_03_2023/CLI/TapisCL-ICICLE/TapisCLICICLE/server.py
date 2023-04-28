@@ -110,6 +110,9 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, helpers.DynamicHelpUtility
         accept connection request and initialize communication with the client
         """  
         connection, ip_port = self.sock.accept() 
+        ip, port = ip_port
+        if ip != socket.gethostbyname(socket.gethostname()):
+            raise exceptions.UnauthorizedAccessError(ip)
         connection.setblocking(False)
         self.connections_list.append(connection)
         self.selector.register(connection, selectors.EVENT_READ, lambda: self.receive_and_execute(connection))
@@ -201,6 +204,8 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, helpers.DynamicHelpUtility
                 error_response = schemas.ResponseData(response_message = str(e), exit_status=1)
                 self.broadcast(error_response)
                 self.logger.warning(str(e))
+                for connection in self.connections:
+                    self.close_connection(connection)
                 sys.exit(0)
             except exceptions.Exit as e:
                 self.logger.info("user exit initiated")
@@ -219,10 +224,13 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, helpers.DynamicHelpUtility
     def main(self):
         self.selector.register(self.sock, selectors.EVENT_READ, self.accept)
         while True:
-            events = self.selector.select()
-            for key, mask in events:
-                callback = key.data
-                callback()
+            try:
+                events = self.selector.select()
+                for key, mask in events:
+                    callback = key.data
+                    callback()
+            except:
+                pass
 
 
 
