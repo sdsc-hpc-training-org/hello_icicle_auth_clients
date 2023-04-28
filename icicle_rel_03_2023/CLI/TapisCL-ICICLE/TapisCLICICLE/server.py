@@ -183,6 +183,7 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, helpers.DynamicHelpUtility
                 error_response = schemas.ResponseData(response_message = str(e), exit_status=1)
                 self.json_send_explicit(connection, error_response.dict())
                 self.close_connection(connection)
+                return
                 #self.accept()  # wait for CLI to reconnect
             except OSError:
                 self.logger.info("connection was lost, waiting to reconnect")
@@ -204,7 +205,6 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, helpers.DynamicHelpUtility
             except Exception as e:
                 error_str = traceback.format_exc()
                 self.logger.warning(error_str)
-
 
 
 if __name__ == '__main__':
