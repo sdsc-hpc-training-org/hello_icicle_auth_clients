@@ -3,7 +3,6 @@ DECORATORS
 These decorators are used in the tapisObjectWrappers.py file to standardize special functions. Allows for increased code reusability
 """
 import typing
-import socket
 import sys
 import time
 from functools import update_wrapper, partial

@@ -14,20 +14,16 @@ try:
     from .utilities import socketOpts as SO
     from .utilities import helpers
     from .utilities import schemas
-    from .utilities import decorators
-    from .utilities import args
-    from .commands import serverCommands
+    from .commands import serverCommands as serverCommands
 except:
     import utilities.exceptions as exceptions
     import utilities.socketOpts as SO
     import utilities.helpers as helpers
     import utilities.schemas as schemas
-    import utilities.decorators as decorators
-    import utilities.args as args
-    import commands.serverCommands
+    import commands.serverCommands as serverCommands
 
 
-class Server(SO.SocketOpts, helpers.OperationsHelper, helpers.DynamicHelpUtility, commands.serverCommands.ServerCommands):
+class Server(SO.SocketOpts, helpers.OperationsHelper, helpers.DynamicHelpUtility, serverCommands.ServerCommands):
     """
     Receives commands from the client and executes Tapis operations
     """

@@ -7,9 +7,6 @@ import pyfiglet
 from getpass import getpass
 import os
 import time
-from pprint import pprint
-import json
-
 try:
     from .utilities import schemas
     from .utilities import socketOpts as SO
