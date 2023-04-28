@@ -5,7 +5,7 @@ try:
     from . import baseWrappers
 except:
     import utilities.decorators as decorators
-    import baseWrappers
+    import commands.baseWrappers as baseWrappers
 
 
 class PostgresCLI(baseWrappers.TapisQuery):

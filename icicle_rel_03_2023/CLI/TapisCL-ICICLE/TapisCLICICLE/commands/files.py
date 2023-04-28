@@ -1,7 +1,7 @@
 try:
     from . import baseWrappers
 except:
-    import baseWrappers
+    import commands.baseWrappers as baseWrappers
 
 
 class Files(baseWrappers.tapisObject):
