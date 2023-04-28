@@ -68,21 +68,11 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, helpers.DynamicHelpUtility
         self.end_time = time.time() + 300  # start the countdown on the timeout
 
         self.connections_list = []  # initialize the connection variable
+        self.acceptance_blocker_flag = False
 
         self.logger.info('initialization complete')
-
-    def accept(self):
-        """
-        accept connection request and initialize communication with the client
-        """  
-        connection, ip_port = self.sock.accept() 
-        connection.setblocking(False)
-        ip, port = ip_port
-        if ip != socket.gethostbyname(socket.gethostname()):
-            raise exceptions.UnauthorizedAccessError(ip)
-        self.connections_list.append(connection)
-        self.logger.info("Received connection request")
-
+    
+    def handshake(self, connection):
         if self.initial:  # if this is the first time in the session that the cli is connecting
             startup_data = schemas.StartupData(initial = self.initial)
             self.json_send_explicit(connection, startup_data.dict())
@@ -117,7 +107,25 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, helpers.DynamicHelpUtility
         self.logger.info("Connection success")
         self.json_send_explicit(connection, startup_result.dict())
         self.logger.info("Final connection data sent")
-        self.selector.register(connection, selectors.EVENT_READ | selectors.EVENT_WRITE, lambda: self.receive_and_execute(connection))
+
+    def accept(self):
+        """
+        accept connection request and initialize communication with the client
+        """  
+        connection, ip_port = self.sock.accept() 
+        connection.setblocking(True)
+        ip, port = ip_port
+        if ip != socket.gethostbyname(socket.gethostname()):
+            raise exceptions.UnauthorizedAccessError(ip)
+        self.connections_list.append(connection)
+        self.logger.info("Received connection request")
+        #self.selector.register(connection, selectors.EVENT_READ, lambda: self.handshake(connection))
+        self.handshake(connection)
+ 
+        connection.setblocking(False)
+        self.selector.register(connection, selectors.EVENT_READ, lambda: self.receive_and_execute(connection))
+        self.logger.info("connection is running now")
+
 
     def timeout_handler(self):  
         """
@@ -159,43 +167,42 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, helpers.DynamicHelpUtility
         """
         receive and process commands
         """
-        while True: 
-            try:
-                message = self.schema_unpack_explicit(connection=connection)  
-                self.timeout_handler()  
-                kwargs, exit_status = message.kwargs, message.exit_status
-                result = self.run_command(connection, kwargs)
-                response = schemas.ResponseData(response_message = result)
-                self.end_time = time.time() + 300 
-                self.json_send_explicit(connection, response.dict()) 
-                self.logger.info(message.schema_type)
-                if exit_status == 1:
-                    self.__exit()
-            except (exceptions.TimeoutError, exceptions.Shutdown) as e:
-                error_response = schemas.ResponseData(response_message = str(e), exit_status=1)
-                self.broadcast(error_response)
-                self.logger.warning(str(e))
-                for connection in self.connections_list:
-                    self.close_connection(connection)
-                sys.exit(0)
-            except exceptions.Exit as e:
-                self.logger.info("user exit initiated")
-                error_response = schemas.ResponseData(response_message = str(e), exit_status=1)
-                self.json_send_explicit(connection, error_response.dict())
+        try:
+            message = self.schema_unpack_explicit(connection=connection)  
+            self.timeout_handler()  
+            kwargs, exit_status = message.kwargs, message.exit_status
+            result = self.run_command(connection, kwargs)
+            response = schemas.ResponseData(response_message = result)
+            self.end_time = time.time() + 300 
+            self.json_send_explicit(connection, response.dict()) 
+            self.logger.info(message.schema_type)
+            if exit_status == 1:
+                self.__exit()
+        except (exceptions.TimeoutError, exceptions.Shutdown) as e:
+            error_response = schemas.ResponseData(response_message = str(e), exit_status=1)
+            self.broadcast(error_response)
+            self.logger.warning(str(e))
+            for connection in self.connections_list:
                 self.close_connection(connection)
-                return
-                #self.accept()  # wait for CLI to reconnect
-            except OSError:
-                self.logger.info("connection was lost, waiting to reconnect")
-                self.close_connection(connection)
-            except (exceptions.CommandNotFoundError, exceptions.NoConfirmationError, exceptions.InvalidCredentialsReceived, Exception) as e:
-                error_str = traceback.format_exc()
-                error_response = schemas.ResponseData(response_message = f"{str(e)}")
-                self.json_send_explicit(connection, error_response.dict())
-                self.logger.warning(f"{error_str}")
+            sys.exit(0)
+        except exceptions.Exit as e:
+            self.logger.info("user exit initiated")
+            error_response = schemas.ResponseData(response_message = str(e), exit_status=1)
+            self.json_send_explicit(connection, error_response.dict())
+            self.close_connection(connection)
+            return
+            #self.accept()  # wait for CLI to reconnect
+        except OSError:
+            self.logger.info("connection was lost, waiting to reconnect")
+            self.close_connection(connection)
+        except (exceptions.CommandNotFoundError, exceptions.NoConfirmationError, exceptions.InvalidCredentialsReceived, Exception) as e:
+            error_str = traceback.format_exc()
+            error_response = schemas.ResponseData(response_message = f"{str(e)}")
+            self.json_send_explicit(connection, error_response.dict())
+            self.logger.warning(f"{error_str}")
     
     def main(self):
-        self.selector.register(self.sock, selectors.EVENT_READ | selectors.EVENT_WRITE, self.accept)
+        self.selector.register(self.sock, selectors.EVENT_READ, self.accept)
         while True:
             try:
                 events = self.selector.select()
