@@ -31,6 +31,7 @@ class CLI(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup, he
     Receive user input, either direct from bash environment or from the custom interface, then parse these commands and send them to the server to be executed. 
     """
     def __init__(self, IP: str, PORT: int):
+
         self.ip, self.port = IP, PORT
         self.connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
 
@@ -49,6 +50,8 @@ class CLI(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup, he
 
         for parameters in args.Args.argparser_args.values():
             self.parser.add_argument(*parameters["args"], **parameters["kwargs"])
+
+        print(r"If you find any issues, please create a new issue here: https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients/issues")
 
     def initialize_server(self): 
         """
@@ -109,7 +112,6 @@ class CLI(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup, he
                 self.json_send(auth_data.dict())
 
                 verification: schemas.ResponseData | schemas.StartupData = self.schema_unpack() 
-                print(verification)
                 if verification.schema_type == 'StartupData': # verification success, program moves forward
                     return verification.username, verification.url
                 else: # verification failed. User has 3 tries, afterwards the program will shut down
@@ -220,10 +222,6 @@ class CLI(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup, he
             if response.url:
                 self.url = response.url
             self.print_response(response.response_message)
-        elif response.command_name == "switch_service":
-            self.url = response.response_message['url']
-            self.username = response.response_message['username']
-            self.print_(f"Session was changed to {self.url} with username {self.username}")
 
     def terminal_cli(self):
         try:

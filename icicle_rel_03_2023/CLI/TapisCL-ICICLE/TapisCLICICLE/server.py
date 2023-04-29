@@ -138,10 +138,6 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, serverCommands.ServerComma
         self.connections_list.remove(connection)
         connection.close()
 
-    def broadcast(self, message):
-        for connection in self.connections_list:
-            self.json_send_explicit(connection, message.dict())
-
     def receive_and_execute(self, connection):
         """
         receive and process commands
@@ -159,7 +155,7 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, serverCommands.ServerComma
                 self.__exit()
         except (exceptions.TimeoutError, exceptions.Shutdown) as e:
             error_response = schemas.ResponseData(response_message = str(e), exit_status=1)
-            self.broadcast(error_response)
+            self.schema_send_explicit(connection, error_response)
             self.logger.warning(str(e))
             for connection in self.connections_list:
                 self.close_connection(connection)
