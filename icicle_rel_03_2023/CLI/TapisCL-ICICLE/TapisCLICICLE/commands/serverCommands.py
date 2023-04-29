@@ -10,8 +10,10 @@ try:
     from ..utilities import decorators
     from ..utilities import args
     from ..utilities import schemas
+    from ..utilities import helpers
     from commands import apps, files, pods, query, systems
 except:
+    import utilities.helpers as helpers
     import utilities.exceptions as exceptions
     import utilities.decorators as decorators
     import utilities.args as args
@@ -24,7 +26,7 @@ except:
     import commands.systems as systems
 
 
-class ServerCommands(decorators.DecoratorSetup):  
+class ServerCommands(decorators.DecoratorSetup, helpers.DynamicHelpUtility):  
     def __init__(self):
         self.pods = None
         self.systems = None
@@ -61,9 +63,10 @@ class ServerCommands(decorators.DecoratorSetup):
         }
         help0, help1 = self.help_generation()
         self.help_menu = dict(help0, **help1)
+        print(self.help_menu)
 
     @decorators.Auth
-    def tapis_init(self, username: str, password: str, link: str, connection=None, initial_connection=False) -> tuple[typing.Any, str, str] | None:  # link is the baseURL
+    def tapis_init(self, username: str, password: str, link: str, connection=None) -> tuple[typing.Any, str, str] | None:  # link is the baseURL
         """
         @help: switch the connected tapis service
         """
@@ -110,10 +113,6 @@ class ServerCommands(decorators.DecoratorSetup):
 
         self.logger.info(f"initiated in {time.time()-start}")
 
-        if not initial_connection:
-            message = schemas.ResponseData(response_message={'url':url, 'username':username}, command_name="switch_service")
-            self.broadcast(message)
-
         return f"Successfully initialized tapis service on {self.url}"
       
     def exit(self, connection=None):
@@ -135,9 +134,9 @@ class ServerCommands(decorators.DecoratorSetup):
         """
         if command == "args":
             return args.Args.argparser_args
-        elif command in self.help:
-            return self.help[command]
-        return self.help
+        elif command in self.help_menu:
+            return self.help_menu[command]
+        return self.help_menu
     
     def whoami(self, verbose: bool, connection=None) -> str:
         """

@@ -215,6 +215,10 @@ class CLI(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup, he
             self.print_response(response.response_message)
             os._exit(0)
         elif response.schema_type == 'ResponseData':
+            if response.active_username:
+                self.username = response.active_username
+            if response.url:
+                self.url = response.url
             self.print_response(response.response_message)
         elif response.command_name == "switch_service":
             self.url = response.response_message['url']

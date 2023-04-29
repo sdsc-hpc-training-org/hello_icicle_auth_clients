@@ -119,8 +119,10 @@ class Auth(BaseRequirementDecorator):
                 auth_request = schemas.AuthRequest(requires_username=False)
             else:
                 auth_request = schemas.AuthRequest()
+            kwargs['connection'].setblocking(True)
             self.json_send_explicit(kwargs['connection'], auth_request.dict())
             auth_data: schemas.AuthData = self.schema_unpack_explicit(kwargs['connection'])
+            kwargs['connection'].setblocking(False)
             if 'username' in fields and 'password' in fields and not no_username:
                 kwargs['username'], kwargs['password'] = auth_data.username, auth_data.password
                 return self.function(obj, **kwargs)

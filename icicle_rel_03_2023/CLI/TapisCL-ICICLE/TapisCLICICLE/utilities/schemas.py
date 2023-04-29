@@ -43,6 +43,8 @@ class ResponseData(BaseModel):
     response_message: Any
     command_name: str | None = None
     exit_status: int = 0
+    url: str | None = None
+    active_username: str | None = None
 
 
 class FormRequest(BaseModel):

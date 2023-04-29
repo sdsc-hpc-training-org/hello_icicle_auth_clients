@@ -27,12 +27,15 @@ class tapisObject(helpers.OperationsHelper, decorators.DecoratorSetup, helpers.D
             self.help = self.help_generation()
 
     def __call__(self, **kwargs):
-        command = self.command_map[kwargs['command']]
-        kwargs = self.filter_kwargs(command, kwargs)
-        result = command(**kwargs)
-        if type(result) == TapisResult:
-            return str(result)
-        return result
+        try:
+            command = self.command_map[kwargs['command']]
+            kwargs = self.filter_kwargs(command, kwargs)
+            result = command(**kwargs)
+            if type(result) == TapisResult:
+                return str(result)
+            return result
+        except KeyError:
+            raise KeyError(f"The command {kwargs['command']} does not exist. See help menu")
     
     def help(self, name: typing.Optional[str]):
         """

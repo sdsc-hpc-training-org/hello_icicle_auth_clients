@@ -12,19 +12,21 @@ import traceback
 
 try:
     from .utilities import exceptions
+    from .utilities import logger
     from .utilities import socketOpts as SO
     from .utilities import helpers
     from .utilities import schemas
     from .commands import serverCommands as serverCommands
 except:
     import utilities.exceptions as exceptions
+    import utilities.logger as logger
     import utilities.socketOpts as SO
     import utilities.helpers as helpers
     import utilities.schemas as schemas
     import commands.serverCommands as serverCommands
 
 
-class Server(SO.SocketOpts, helpers.OperationsHelper, helpers.DynamicHelpUtility, serverCommands.ServerCommands):
+class Server(SO.SocketOpts, helpers.OperationsHelper, serverCommands.ServerCommands, logger.ServerLogger):
     """
     Receives commands from the client and executes Tapis operations
     """
@@ -33,31 +35,9 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, helpers.DynamicHelpUtility
         self.initial = True
 
         self.selector = selectors.DefaultSelector()
-        # logger setup
-        self.logger = logging.getLogger(__name__)
-        self.logger.setLevel(logging.INFO)
-        stream_handler = logging.StreamHandler(stream=sys.stdout)
 
-        file_handler = logging.FileHandler(
-            r'logs.log', mode='w')
-        stream_handler.setLevel(logging.INFO)
-        file_handler.setLevel(logging.INFO)
-
-        # set formats
-        stream_format = logging.Formatter(
-            '%(name)s - %(levelname)s - %(message)s')
-        file_format = logging.Formatter(
-            '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-
-        stream_handler.setFormatter(stream_format)
-        file_handler.setFormatter(file_format)
-
-        # add the handlers
-        self.logger.addHandler(stream_handler)
-        self.logger.addHandler(file_handler)
-
-        self.logger.disabled = False
-
+        self.__name__ = "Server"
+        self.initialize_logger(self.__name__)
         # setting up socket server
         self.ip, self.port = IP, PORT
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -87,7 +67,7 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, helpers.DynamicHelpUtility
                     self.json_send_explicit(connection, auth_request.dict())
                     auth_data: schemas.AuthData = self.schema_unpack_explicit(connection)
                     username, password = auth_data.username, auth_data.password
-                    self.tapis_init(link=url, username=username, password=password, connection=connection, initial_connection=True)
+                    self.tapis_init(link=url, username=username, password=password, connection=connection)
                     self.commands_initializer()
                     self.logger.info("Verification success")
                     break
@@ -113,6 +93,7 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, helpers.DynamicHelpUtility
         accept connection request and initialize communication with the client
         """  
         connection, ip_port = self.sock.accept() 
+        self.timeout_handler()
         connection.setblocking(True)
         ip, port = ip_port
         if ip != socket.gethostbyname(socket.gethostname()):
@@ -145,9 +126,7 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, helpers.DynamicHelpUtility
             return command_group(**command_data)
         elif command_group in self.command_map:
             command = self.command_map[command_group]
-            print(command_data)
             command_data = self.filter_kwargs(command, command_data)
-            print(command_data)
             if command_data:
                 return command(**command_data)
             return command()
@@ -172,7 +151,7 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, helpers.DynamicHelpUtility
             self.timeout_handler()  
             kwargs, exit_status = message.kwargs, message.exit_status
             result = self.run_command(connection, kwargs)
-            response = schemas.ResponseData(response_message = result)
+            response = schemas.ResponseData(response_message = result, url = self.url, active_username = self.username)
             self.end_time = time.time() + 300 
             self.json_send_explicit(connection, response.dict()) 
             self.logger.info(message.schema_type)
