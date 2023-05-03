@@ -21,6 +21,7 @@ except:
 class BaseRequirementDecorator(socketOpts.SocketOpts, helpers.OperationsHelper):
     username: typing.Optional[str] = None
     password: typing.Optional[str] = None
+    loop = None
     def __init__(self, func: typing.Callable):
         update_wrapper(self, func)
         self.function = func
@@ -157,9 +158,10 @@ class DecoratorSetup:
     for instantiation of the tapis wrappers, and the server, to set up decorators with user credentials and the socket connection. If you want to use the decorators in your class
     YOU WILL NEED TO USE THIS!
     """
-    def configure_decorators(self, username, password):
+    def configure_decorators(self, username, password, loop):
         BaseRequirementDecorator.username = username
         BaseRequirementDecorator.password = password
+        BaseRequirementDecorator.loop = loop
     
 
 class AnimatedLoading:
