@@ -23,10 +23,6 @@ Allows you to work with all major Tapis services: Pods, Systems, Files, and Apps
 4. if all went well the console should open. You can run `help` to see command options
 5. to exit the application, run `exit`
 
-**Running Several Instances of Client**
-
-There are some situations a user might want to have 2 or more windows of the same command line app open. For instance, you might need to be reading a static help menu at the same time as you are typing commands. TapisCLICICLE provides this capability, however, with some caveats. Since each client utilizes the same application resources, some commands are blocking. This means that if you run something that asks for authentication, or run a query to postgres or neo4j, you will have to respond to application prompts before any other commands are executed on other active clients.
-
 #### **Bash Command Line:**
 
 Alternatively, if you do not want to enter the actual command line environment of the TapisCL-ICICLE application, you can run commands directly from the command line like this:
