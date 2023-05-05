@@ -7,7 +7,7 @@ import socket
 import os
 import logging
 import typing
-import selectors
+import asyncio
 import traceback
 
 try:
@@ -16,6 +16,7 @@ try:
     from .utilities import socketOpts as SO
     from .utilities import helpers
     from .utilities import schemas
+    from .utilities import serverConnection
     from .commands import serverCommands as serverCommands
 except:
     import utilities.exceptions as exceptions
@@ -23,18 +24,17 @@ except:
     import utilities.socketOpts as SO
     import utilities.helpers as helpers
     import utilities.schemas as schemas
+    import utilities.serverConnection as serverConnection
     import commands.serverCommands as serverCommands
 
 
-class Server(SO.SocketOpts, helpers.OperationsHelper, serverCommands.ServerCommands, logger.ServerLogger):
+class Server(helpers.OperationsHelper, serverCommands.ServerCommands, logger.ServerLogger):
     """
     Receives commands from the client and executes Tapis operations
     """
     def __init__(self, IP: str, PORT: int):
         super().__init__()
         self.initial = True
-
-        self.selector = selectors.DefaultSelector()
 
         self.__name__ = "Server"
         self.initialize_logger(self.__name__)
@@ -47,65 +47,70 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, serverCommands.ServerComma
         self.sock.listen(1)
         self.end_time = time.time() + 300  # start the countdown on the timeout
 
-        self.connections_list = []  # initialize the connection variable
-        self.acceptance_blocker_flag = False
+        self.server = None
 
         self.logger.info('initialization complete')
     
-    def handshake(self, connection):
+    async def handshake(self, connection):
+        self.logger.info("Handshake starting")
         if self.initial:  # if this is the first time in the session that the cli is connecting
             startup_data = schemas.StartupData(initial = self.initial)
-            self.json_send_explicit(connection, startup_data.dict())
+            print("sending data")
+            await connection.send(startup_data)
             self.logger.info("send the initial status update")
 
             for attempt in range(1, 4):
-                url: schemas.StartupData = self.schema_unpack_explicit(connection).url
+                print("waiting on url")
+                url: schemas.StartupData = await connection.receive()
                 self.logger.info("received the link")
+                auth_request = schemas.AuthRequest()
+                self.logger.info("send the auth request")
+                await connection.send(auth_request)
+                auth_data: schemas.AuthData = await connection.receive()
+                url, username, password = url.url, auth_data.username, auth_data.password
                 try:
-                    auth_request = schemas.AuthRequest()
-                    self.logger.info("send the auth request")
-                    self.json_send_explicit(connection, auth_request.dict())
-                    auth_data: schemas.AuthData = self.schema_unpack_explicit(connection)
-                    username, password = auth_data.username, auth_data.password
-                    self.tapis_init(link=url, username=username, password=password, connection=connection)
-                    self.commands_initializer()
-                    self.logger.info("Verification success")
-                    break
-                except Exception as e:
+                    await self.tapis_init(link=url, username=username, password=password, connection=connection)
+                except exceptions.InvalidCredentialsReceived as e:
                     login_failure_data = schemas.ResponseData(response_message = (str(e), attempt))
-                    self.json_send_explicit(connection, login_failure_data.dict())
+                    await connection.send(login_failure_data)
                     self.logger.warning(f"Verification failure, {e}")
                     if attempt == 3:  
                         self.logger.error(
                             "Attempted verification too many times. Exiting")
-                        return
+                        raise exceptions.InvalidCredentialsReceived(self.handshake, "tapis auth")
                     continue
+                self.commands_initializer()
+                self.logger.info("Verification success")
+                break
         else:
             self.configure_decorators(self.username, self.password)
         self.initial = False
         startup_result = schemas.StartupData(initial = self.initial, username = self.username, url = self.url)
         self.logger.info("Connection success")
-        self.json_send_explicit(connection, startup_result.dict())
+        await connection.send(startup_result)
         self.logger.info("Final connection data sent")
 
-    def accept(self):
+    async def accept(self, reader, writer):
         """
         accept connection request and initialize communication with the client
         """  
-        connection, ip_port = self.sock.accept() 
+        connection = serverConnection.ServerConnection(reader=reader, writer=writer)
         self.timeout_handler()
-        connection.setblocking(True)
-        ip, port = ip_port
+        ip, port= writer.transport.get_extra_info('socket').getsockname()
+        print(ip)
         if ip != socket.gethostbyname(socket.gethostname()):
             raise exceptions.UnauthorizedAccessError(ip)
-        self.connections_list.append(connection)
         self.logger.info("Received connection request")
-        #self.selector.register(connection, selectors.EVENT_READ, lambda: self.handshake(connection))
-        self.handshake(connection)
- 
-        connection.setblocking(False)
-        self.selector.register(connection, selectors.EVENT_READ, lambda: self.receive_and_execute(connection))
+        try:
+            await self.handshake(connection)
+        except exceptions.InvalidCredentialsReceived:
+            logger.warning("invalid credentials entered too many times. Cancelling request")
+            await connection.close()
+            return
+
         self.logger.info("connection is running now")
+        loop = asyncio.get_event_loop()
+        await loop.create_task(self.receive_and_execute(connection))
 
 
     def timeout_handler(self):  
@@ -115,7 +120,7 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, serverCommands.ServerComma
         if time.time() > self.end_time: 
             raise exceptions.TimeoutError
 
-    def run_command(self, connection, command_data: dict):
+    async def run_command(self, connection, command_data: dict):
         """
         process and run command based on received kwargs
         """
@@ -123,72 +128,61 @@ class Server(SO.SocketOpts, helpers.OperationsHelper, serverCommands.ServerComma
         command_group = command_data['command_group']
         if command_group in self.command_group_map:
             command_group = self.command_group_map[command_group]
-            return command_group(**command_data)
+            return await command_group(**command_data)
         elif command_group in self.command_map:
             command = self.command_map[command_group]
             command_data = self.filter_kwargs(command, command_data)
             if command_data:
-                return command(**command_data)
-            return command()
+                return await command(**command_data)
+            return await command()
         else:
             raise exceptions.CommandNotFoundError(command_group)
-        
-    def close_connection(self, connection):
-        self.selector.unregister(connection)
-        self.connections_list.remove(connection)
-        connection.close()
 
-    def receive_and_execute(self, connection):
+    async def receive_and_execute(self, connection):
         """
         receive and process commands
         """
-        try:
-            message = self.schema_unpack_explicit(connection=connection)  
-            self.timeout_handler()  
-            kwargs, exit_status = message.kwargs, message.exit_status
-            result = self.run_command(connection, kwargs)
-            response = schemas.ResponseData(response_message = result, url = self.url, active_username = self.username)
-            self.end_time = time.time() + 300 
-            self.json_send_explicit(connection, response.dict()) 
-            self.logger.info(message.schema_type)
-            if exit_status == 1:
-                self.__exit()
-        except (exceptions.TimeoutError, exceptions.Shutdown) as e:
-            error_response = schemas.ResponseData(response_message = str(e), exit_status=1)
-            self.schema_send_explicit(connection, error_response)
-            self.logger.warning(str(e))
-            for connection in self.connections_list:
-                self.close_connection(connection)
-            sys.exit(0)
-        except exceptions.Exit as e:
-            self.logger.info("user exit initiated")
-            error_response = schemas.ResponseData(response_message = str(e), exit_status=1)
-            self.json_send_explicit(connection, error_response.dict())
-            self.close_connection(connection)
-            return
-            #self.accept()  # wait for CLI to reconnect
-        except OSError:
-            self.logger.info("connection was lost, waiting to reconnect")
-            self.close_connection(connection)
-        except (exceptions.CommandNotFoundError, exceptions.NoConfirmationError, exceptions.InvalidCredentialsReceived, Exception) as e:
-            error_str = traceback.format_exc()
-            error_response = schemas.ResponseData(response_message = f"{str(e)}")
-            self.json_send_explicit(connection, error_response.dict())
-            self.logger.warning(f"{error_str}")
-    
-    def main(self):
-        self.selector.register(self.sock, selectors.EVENT_READ, self.accept)
         while True:
             try:
-                events = self.selector.select()
-                for key, mask in events:
-                    callback = key.data
-                    callback()
-            except Exception as e:
+                message = await connection.receive()
+                self.timeout_handler()  
+                kwargs, exit_status = message.kwargs, message.exit_status
+                result = await self.run_command(connection, kwargs)
+                response = schemas.ResponseData(response_message = result, url = self.url, active_username = self.username)
+                self.end_time = time.time() + 300 
+                await connection.send(response)
+                self.logger.info(message.schema_type)
+            except (exceptions.TimeoutError, exceptions.Shutdown) as e:
+                error_response = schemas.ResponseData(response_message = str(e), exit_status=1)
+                await connection.send(error_response)
+                self.logger.warning(str(e))
+                self.server.close()
+                loop = asyncio.get_event_loop()
+                loop.stop()
+                loop.close()
+                sys.exit(0)
+            except exceptions.Exit as e:
+                self.logger.info("user exit initiated")
+                error_response = schemas.ResponseData(response_message = str(e), exit_status=1)
+                await connection.send(error_response)
+                await connection.close()
+                return
+                #self.accept()  # wait for CLI to reconnect
+            except OSError:
+                self.logger.info("connection was lost, waiting to reconnect")
+                await connection.close()
+            except (exceptions.CommandNotFoundError, exceptions.NoConfirmationError, exceptions.InvalidCredentialsReceived, Exception) as e:
                 error_str = traceback.format_exc()
-                self.logger.warning(error_str)
+                error_response = schemas.ResponseData(response_message = f"{str(e)}")
+                await connection.send(error_response)
+                self.logger.warning(f"{error_str}")
+    
+    async def main(self):
+        self.server = await asyncio.start_server(self.accept, sock=self.sock)
+        async with self.server:
+            await self.server.serve_forever()
 
 
 if __name__ == '__main__':
     server = Server(socket.gethostbyname(socket.gethostname()), 30000)
-    server.main()
+    asyncio.run(server.main())

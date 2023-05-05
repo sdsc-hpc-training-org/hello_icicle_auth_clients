@@ -46,7 +46,7 @@ class Systems(baseWrappers.tapisObject):
             with open(f"{__location__}\\id_rsa", 'w') as f:
                 f.write(formatted_key)
 
-    def get_systems(self, verbose: bool, connection=None):
+    async def get_systems(self, verbose: bool, connection=None):
         """
         @help: Gets and returns the list of systems the current Tapis service and account have access to
         @doc: this is an example of the doc segment of the docstring. not included in help message
@@ -60,7 +60,7 @@ class Systems(baseWrappers.tapisObject):
             systems_string += system
         return systems_string
 
-    def get_system_info(self, verbose: bool, id:str, connection=None): # get information about a system given its ID
+    async def get_system_info(self, verbose: bool, id:str, connection=None): # get information about a system given its ID
         """
         @help: get information on a selected system
         """
@@ -69,7 +69,7 @@ class Systems(baseWrappers.tapisObject):
             return str(system_info)
         return self.return_formatter(system_info)
     
-    def create_system(self, file: str, connection=None) -> str: # create a tapius system. Takes a path to a json file with all system information, as well as an ID
+    async def create_system(self, file: str, connection=None) -> str: # create a tapius system. Takes a path to a json file with all system information, as well as an ID
         """
         @help: create a system. Must have a properly configured system file.
         see the template at https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients/blob/main/icicle_rel_04_2023/CLI/TapisCL-ICICLE/tapis-config-files/system-config.json
@@ -82,7 +82,7 @@ class Systems(baseWrappers.tapisObject):
         self.system_credential_upload(id=system['id'], file=f"{__location__}\\id_rsa,{__location__}\\id_rsa.pub")
         return str(return_value)
     
-    def system_credential_upload(self, id: str, file: str, connection=None) -> str: # upload key credentials for the system
+    async def system_credential_upload(self, id: str, file: str, connection=None) -> str: # upload key credentials for the system
         """
         @help: upload system credentials to a system. Must generate keys first using 'ssh-keygen -m PEM -f id_rsa', and format with, 'awk -v ORS='\\n' '1' <private_key_name>
         file argument must contain the path to the private and public keys respectively, separated by a ','
@@ -101,7 +101,7 @@ class Systems(baseWrappers.tapisObject):
         return str(cred_return_value)
 
     @decorators.SecureInput
-    def system_password_set(self, id: str, password: str, connection=None) -> str: # set the password for a system
+    async def system_password_set(self, id: str, password: str, connection=None) -> str: # set the password for a system
         """
         @help: set a system password
         """
@@ -114,7 +114,7 @@ class Systems(baseWrappers.tapisObject):
             raise Exception(f"{e}\nTry running set_credentials if the problem persists")
 
     @decorators.NeedsConfirmation
-    def delete_system(self, id: str, connection=None) -> str:
+    async def delete_system(self, id: str, connection=None) -> str:
         """
         @help: delete the selected system
         """

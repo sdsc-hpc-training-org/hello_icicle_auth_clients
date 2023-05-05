@@ -20,7 +20,7 @@ class Files(baseWrappers.tapisObject):
     def return_formatter(self, info):
         return f"name: {info.name}\ngroup: {info.group}\npath: {info.path}\n"
 
-    def list_files(self, verbose: bool, id: str, file: str, connection=None) -> str: # lists files available on a tapis account
+    async def list_files(self, verbose: bool, id: str, file: str, connection=None) -> str: # lists files available on a tapis account
         """
         @help: list the files on a system 
         """
@@ -30,7 +30,7 @@ class Files(baseWrappers.tapisObject):
         file_list = [self.return_formatter(f) for f in file_list]
         return str(file_list)
 
-    def upload(self, file: str, id: str, connection=None) -> str: # upload a file from local to remote using tapis. Takes source and destination paths
+    async def upload(self, file: str, id: str, connection=None) -> str: # upload a file from local to remote using tapis. Takes source and destination paths
         """
         @help: upload a file to the system 
         the source and destination files must both be in the file argument, respectively, separated by a comma
@@ -42,7 +42,7 @@ class Files(baseWrappers.tapisObject):
                 dest_file_path=destination)
         return f'successfully uploaded {source} to {destination}'
             
-    def download(self, file: str, id: str, connection=None) -> str: # download a remote file using tapis, operates basically the same as upload
+    async def download(self, file: str, id: str, connection=None) -> str: # download a remote file using tapis, operates basically the same as upload
         """
         @help: download a file from the system
         the source and destination files must both be in the file argument, respectively, separated by a comma

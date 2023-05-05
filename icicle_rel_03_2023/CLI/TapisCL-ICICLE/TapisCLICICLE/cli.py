@@ -26,7 +26,7 @@ __location__ = os.path.realpath(
 server_path = os.path.join(__location__, 'server.py')
 
 
-class CLI(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup, helpers.Formatters):
+class CLI(SO.ClientSocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup, helpers.Formatters):
     """
     Receive user input, either direct from bash environment or from the custom interface, then parse these commands and send them to the server to be executed. 
     """
@@ -91,7 +91,7 @@ class CLI(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup, he
         """
         self.connection_initialization() 
         #self.connection.connect((self.ip, self.port)) # enable me for debugging. Requires manual server start
-        connection_info: schemas.StartupData = self.schema_unpack() # receive info from the server whether it is a first time connection
+        connection_info: schemas.StartupData = self.schema_unpack_explicit(self.connection) # receive info from the server whether it is a first time connection
         if connection_info.initial: # if the server is receiving its first connection for the session\
             while True:
                 try:
@@ -100,8 +100,9 @@ class CLI(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup, he
                     url = " "
                     pass
                 url_data = schemas.StartupData(url=url)
-                self.json_send(url_data.dict())
-                auth_request: schemas.AuthRequest = self.schema_unpack()
+                self.json_send_explicit(self.connection, url_data.dict())
+                print("URL send")
+                auth_request: schemas.AuthRequest = self.schema_unpack_explicit(self.connection)
                 try:
                     username = str(input("\nUsername: ")).strip()
                     password = getpass("Password: ").strip() 
@@ -109,9 +110,9 @@ class CLI(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup, he
                     username, password = " ", " "
                     pass
                 auth_data = schemas.AuthData(username = username, password = password)
-                self.json_send(auth_data.dict())
+                self.json_send_explicit(self.connection, auth_data.dict())
 
-                verification: schemas.ResponseData | schemas.StartupData = self.schema_unpack() 
+                verification: schemas.ResponseData | schemas.StartupData = self.schema_unpack_explicit(self.connection)
                 if verification.schema_type == 'StartupData': # verification success, program moves forward
                     return verification.username, verification.url
                 else: # verification failed. User has 3 tries, afterwards the program will shut down
@@ -204,13 +205,13 @@ class CLI(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup, he
         handle special form requests sent by the server
         """
         while True:
-            message = self.schema_unpack()
+            message = self.schema_unpack_explicit(self.connection)
             message_type = message.schema_type
             if message_type in self.message_handlers.keys():
                 filled_form = self.message_handlers[message_type](message)
             else:
                 return message
-            self.json_send(filled_form.dict())
+            self.json_send_explicit(self.connection, filled_form.dict())
 
     def environment_cli_response_stream_handler(self, response):
         if response.schema_type == 'ResponseData' and response.exit_status: # if the command was a shutdown or exit, close the program
@@ -231,7 +232,7 @@ class CLI(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup, he
             os._exit(0)
         kwargs = vars(kwargs)
         command = self.command_input_parser(kwargs, exit_=1) # operate with args, send them over
-        self.json_send(command.dict())
+        self.json_send_explicit(self.connection, command.dict())
         response = self.special_forms_ops()
         if response.schema_type == 'ResponseData':
             self.print_response(response.response_message)
@@ -251,7 +252,7 @@ class CLI(SO.SocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup, he
                     continue
                 if not command:
                     continue
-                self.json_send(command.dict())
+                self.json_send_explicit(self.connection, command.dict())
                 response = self.special_forms_ops()
                 self.environment_cli_response_stream_handler(response)
             except KeyboardInterrupt:

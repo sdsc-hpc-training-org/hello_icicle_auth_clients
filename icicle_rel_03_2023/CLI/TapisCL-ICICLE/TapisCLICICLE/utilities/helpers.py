@@ -46,6 +46,7 @@ class DynamicHelpUtility:
         extract @help from the docstring
         """
         docstring_components = func.__doc__
+        print(func.__doc__)
         if docstring_components:
             docstring_components = docstring_components.split("@")
         else:
