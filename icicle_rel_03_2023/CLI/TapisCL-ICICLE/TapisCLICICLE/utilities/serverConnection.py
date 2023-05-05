@@ -11,6 +11,8 @@ class ServerConnection(socketOpts.ServerSocketOpts):
         self.reader = reader
         self.writer = writer
 
-    def close(self):
-        self.reader.close()
+    async def close(self):
+        self.reader.feed_eof()
+        await self.reader.wait_eof()
         self.writer.close()
+        await self.writer.wait_closed()
