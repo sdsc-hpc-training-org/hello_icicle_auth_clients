@@ -1,6 +1,7 @@
 from tapipy.tapis import TapisResult
 import typing
 import os
+import asyncio
 try:
     from ..utilities import helpers
     from ..utilities import decorators
@@ -36,6 +37,9 @@ class tapisObject(helpers.OperationsHelper, decorators.DecoratorSetup, helpers.D
             return result
         except KeyError:
             raise KeyError(f"The command {kwargs['command']} does not exist. See help menu")
+        
+    def run_command(self, coroutine: typing.Coroutine):
+        return asyncio.run(coroutine)
     
     async def help(self, name: typing.Optional[str]):
         """
