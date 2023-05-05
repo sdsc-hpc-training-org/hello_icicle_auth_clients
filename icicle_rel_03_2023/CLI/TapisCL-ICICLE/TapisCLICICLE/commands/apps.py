@@ -24,7 +24,7 @@ class Apps(baseWrappers.tapisObject):
         }
         super().__init__(tapis_instance, username, password, connection=connection, command_map=command_map)
 
-    def create_app(self, file: str, connection=None) -> str: # create a tapis app taking a json descriptor file path
+    async def create_app(self, file: str, connection=None) -> str: # create a tapis app taking a json descriptor file path
         """
         @help: create an app. You must have a properly configured app config file. 
         See a template at https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients/blob/main/icicle_rel_04_2023/CLI/TapisCL-ICICLE/tapis-config-files/app-config.json
@@ -34,7 +34,7 @@ class Apps(baseWrappers.tapisObject):
         url = self.t.apps.createAppVersion(**app_def)
         return f"App created successfully\nID: {app_def['id']}\nVersion: {app_def['version']}\nURL: {url}\n"
 
-    def get_apps(self, connection=None) -> str:
+    async def get_apps(self, connection=None) -> str:
         """
         @help: get all the apps on a system
         """
@@ -42,14 +42,14 @@ class Apps(baseWrappers.tapisObject):
         return str(apps)
 
     @decorators.NeedsConfirmation
-    def delete_app(self, id: str, version: str, connection=None) -> str:
+    async def delete_app(self, id: str, version: str, connection=None) -> str:
         """
         @help: delete the selected app
         """
         return_value = self.t.apps.deleteApp(appId=id, appVersion=version)
         return str(return_value)
 
-    def get_app(self, verbose: bool, id: str, version: str, connection=None)-> None | str: # returns app information with an id and version as arguments
+    async def get_app(self, verbose: bool, id: str, version: str, connection=None)-> None | str: # returns app information with an id and version as arguments
         """
         @help: return selected app information
         """
@@ -58,7 +58,7 @@ class Apps(baseWrappers.tapisObject):
             return str(app)
         return None
 
-    def run_job(self, file: str, connection=None)->str: # run a job using an app. Takes a job descriptor json file path
+    async def run_job(self, file: str, connection=None)->str: # run a job using an app. Takes a job descriptor json file path
         """
         @help: run a job from an app on a system. You must have a properly configured job config file. 
         See a template at https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients/blob/main/icicle_rel_04_2023/CLI/TapisCL-ICICLE/tapis-config-files/job-config.json
@@ -68,14 +68,14 @@ class Apps(baseWrappers.tapisObject):
         job = self.t.jobs.submitJob(**app)
         return str(job.uuid)
 
-    def get_job_status(self, uuid: str, connection=None)->str: # return a job status with its Uuid
+    async def get_job_status(self, uuid: str, connection=None)->str: # return a job status with its Uuid
         """
         @help: get the status of a job
         """
         job_status = self.t.jobs.getJobStatus(jobUuid=uuid)
         return str(job_status)
 
-    def download_job_output(self, uuid: str, file: str, connection=None)->str: # download the output of a job with its Uuid
+    async def download_job_output(self, uuid: str, file: str, connection=None)->str: # download the output of a job with its Uuid
         """
         @help: download a job output from the system 
         """

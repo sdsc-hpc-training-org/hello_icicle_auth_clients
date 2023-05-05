@@ -13,7 +13,7 @@ class PostgresCLI(baseWrappers.TapisQuery):
     @help: integrated CLI to interface with Postgres pods
     """
     @decorators.RequiresExpression
-    def query(self, id: str, expression: str, connection=None) -> str:
+    async def query(self, id: str, expression: str, connection=None) -> str:
         uname, pword = self.get_credentials(id)
         with psycopg2.connect(f"postgresql://{uname}:{pword}@{id}.pods.{self.t.base_url.split('https://')[1]}:443") as conn:
             conn.autocommit = True
@@ -28,7 +28,7 @@ class Neo4jCLI(baseWrappers.TapisQuery):
     @help: integrated CLI to interface with Neo4j pods
     """
     @decorators.RequiresExpression
-    def query(self, id: str, expression: str, connection=None) -> str: # function to submit queries to a Neo4j knowledge graph
+    async def query(self, id: str, expression: str, connection=None) -> str: # function to submit queries to a Neo4j knowledge graph
         uname, pword = self.get_credentials(id)
         graph = Graph(f"bolt+ssc://{id}.pods.{self.t.base_url.split('https://')[1]}:443", auth=(uname, pword), secure=True, verify=True)
 

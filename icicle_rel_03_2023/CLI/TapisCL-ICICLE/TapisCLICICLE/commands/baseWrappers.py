@@ -37,7 +37,7 @@ class tapisObject(helpers.OperationsHelper, decorators.DecoratorSetup, helpers.D
         except KeyError:
             raise KeyError(f"The command {kwargs['command']} does not exist. See help menu")
     
-    def help(self, name: typing.Optional[str]):
+    async def help(self, name: typing.Optional[str]):
         """
         @help: get help information for the command group
         """

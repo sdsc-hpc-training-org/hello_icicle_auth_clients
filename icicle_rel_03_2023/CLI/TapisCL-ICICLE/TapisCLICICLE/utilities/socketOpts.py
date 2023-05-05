@@ -1,5 +1,7 @@
 import json
-import selectors
+import asyncio
+import typing
+import pydantic
 try:
     from . import schemas
 except:
@@ -18,21 +20,10 @@ schema_types: dict = {
     }
 
 
-class SocketOpts:
+class ClientSocketOpts:
     """
-    behind the scenes, low level functions to handle the socket operations of the client-server model
+    synchronous sockets to be used by clients
     """
-    async def json_receive_explicit_async(self, connection, loop):
-        json_data = ""
-        while True:
-            try: 
-                json_data = json_data + await loop.sock_recv(connection, 1024).decode('utf-8') 
-                return json.loads(json_data) 
-            except ValueError: # if json is invalid, keep going
-                continue
-            except BlockingIOError: # this is raised in the event that it tries to receive data when no data available due to non blocking
-                continue
-
     def json_receive_explicit(self, connection):
         json_data = ""
         while True:
@@ -44,26 +35,42 @@ class SocketOpts:
             except BlockingIOError:
                 continue
 
-    async def json_send_explicit_async(self, connection, loop, data):
-        json_data = json.dumps(data)
-        await loop.sock_send(connection, json_data.encode())
-    
     def json_send_explicit(self, connection, data):
         json_data = json.dumps(data)
         connection.send(json_data.encode())
 
-    async def schema_send_explicit_async(self, connection, loop, data):
-        await self.json_send_explicit_async(connection, loop, data)
-
     def schema_send_explicit(self, connection, data):
         self.json_send_explicit(connection, data.dict())
 
-    async def schema_unpack_explicit(self, connection, loop):
-        data = await self.json_receive_explicit_async(connection, loop)
-        schema_type = schema_types[data['schema_type']]
-        return schema_type(**data)
-        
     def schema_unpack_explicit(self, connection):
         data = self.json_receive_explicit(connection)
         schema_type = schema_types[data['schema_type']]
         return schema_type(**data)
+
+
+class ServerSocketOpts:
+    """
+    behind the scenes, low level functions to handle the socket operations asynchronoously on the server
+    """
+    async def __json_receive_explicit_async(self):
+        json_data = ""
+        while True:
+            try: 
+                byte_buffer = await self.reader.read(n=1024)
+                json_data += byte_buffer.decode()
+                return json.loads(json_data) 
+            except ValueError: # if json is invalid, keep going
+                continue
+            except BlockingIOError: # this is raised in the event that it tries to receive data when no data available due to non blocking
+                continue
+
+    async def send(self, data: typing.Type[pydantic.BaseModel]):
+        json_data = json.dumps(data.dict())
+        self.writer.write(json_data.encode())
+        await self.writer.drain()
+
+    async def receive(self):
+        data = await self.__json_receive_explicit_async()
+        schema_type = schema_types[data['schema_type']]
+        return schema_type(**data)
+    

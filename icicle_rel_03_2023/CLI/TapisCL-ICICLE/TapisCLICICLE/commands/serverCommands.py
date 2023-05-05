@@ -66,7 +66,7 @@ class ServerCommands(decorators.DecoratorSetup, helpers.DynamicHelpUtility):
         print(self.help_menu)
 
     @decorators.Auth
-    def tapis_init(self, username: str, password: str, link: str, connection=None) -> tuple[typing.Any, str, str] | None:  # link is the baseURL
+    async def tapis_init(self, username: str, password: str, link: str, connection=None) -> tuple[typing.Any, str, str] | None:  # link is the baseURL
         """
         @help: switch the connected tapis service
         """
@@ -78,7 +78,8 @@ class ServerCommands(decorators.DecoratorSetup, helpers.DynamicHelpUtility):
                     username=username,
                     password=password)
             t.get_tokens()
-        except:
+        except Exception as e:
+            print(e)
             raise exceptions.InvalidCredentialsReceived(function=self.tapis_init, cred_type="Tapis Auth")
 
         self.configure_decorators(self.username, self.password)
@@ -115,20 +116,20 @@ class ServerCommands(decorators.DecoratorSetup, helpers.DynamicHelpUtility):
 
         return f"Successfully initialized tapis service on {self.url}"
       
-    def exit(self, connection=None):
+    async def exit(self, connection=None):
         """
         @help: exit the CLI without shutting down the service
         """
         raise exceptions.Exit
     
-    def shutdown(self, connection=None):
+    async def shutdown(self, connection=None):
         """
         @help: exit the CLI and shutdown the service
         """
         self.logger.info("Shutdown initiated")
         raise exceptions.Shutdown
     
-    def help(self, command: str, connection=None):
+    async def help(self, command: str, connection=None):
         """
         @help: returns help information. To get specific help information for tapis services, you can run <service> -c help. enter -c args to see detailed command usage
         """
@@ -138,7 +139,7 @@ class ServerCommands(decorators.DecoratorSetup, helpers.DynamicHelpUtility):
             return self.help_menu[command]
         return self.help_menu
     
-    def whoami(self, verbose: bool, connection=None) -> str:
+    async def whoami(self, verbose: bool, connection=None) -> str:
         """
         @help: returns the username of the current user
         """
