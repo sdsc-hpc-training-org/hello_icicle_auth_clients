@@ -47,8 +47,7 @@ class Server(helpers.OperationsHelper, serverCommands.ServerCommands, logger.Ser
         self.sock.listen(1)
         self.end_time = time.time() + 300  # start the countdown on the timeout
 
-        self.connections_list = []  # initialize the connection variable
-        self.acceptance_blocker_flag = False
+        self.server = None
 
         self.logger.info('initialization complete')
     
@@ -101,12 +100,12 @@ class Server(helpers.OperationsHelper, serverCommands.ServerCommands, logger.Ser
         print(ip)
         if ip != socket.gethostbyname(socket.gethostname()):
             raise exceptions.UnauthorizedAccessError(ip)
-        self.connections_list.append(connection)
         self.logger.info("Received connection request")
         try:
             await self.handshake(connection)
         except exceptions.InvalidCredentialsReceived:
             logger.warning("invalid credentials entered too many times. Cancelling request")
+            await connection.close()
             return
 
         self.logger.info("connection is running now")
@@ -138,10 +137,6 @@ class Server(helpers.OperationsHelper, serverCommands.ServerCommands, logger.Ser
             return await command()
         else:
             raise exceptions.CommandNotFoundError(command_group)
-        
-    def close_connection(self, connection):
-        self.connections_list.remove(connection)
-        connection.close()
 
     async def receive_and_execute(self, connection):
         """
@@ -161,22 +156,21 @@ class Server(helpers.OperationsHelper, serverCommands.ServerCommands, logger.Ser
                 error_response = schemas.ResponseData(response_message = str(e), exit_status=1)
                 await connection.send(error_response)
                 self.logger.warning(str(e))
-                for connection in self.connections_list:
-                    self.close_connection(connection) 
-                    loop = asyncio.get_event_loop()
-                    loop.stop()
-                    loop.close()
+                self.server.close()
+                loop = asyncio.get_event_loop()
+                loop.stop()
+                loop.close()
                 sys.exit(0)
             except exceptions.Exit as e:
                 self.logger.info("user exit initiated")
                 error_response = schemas.ResponseData(response_message = str(e), exit_status=1)
                 await connection.send(error_response)
-                self.close_connection(connection)
+                await connection.close()
                 return
                 #self.accept()  # wait for CLI to reconnect
             except OSError:
                 self.logger.info("connection was lost, waiting to reconnect")
-                self.close_connection(connection)
+                await connection.close()
             except (exceptions.CommandNotFoundError, exceptions.NoConfirmationError, exceptions.InvalidCredentialsReceived, Exception) as e:
                 error_str = traceback.format_exc()
                 error_response = schemas.ResponseData(response_message = f"{str(e)}")
@@ -184,9 +178,9 @@ class Server(helpers.OperationsHelper, serverCommands.ServerCommands, logger.Ser
                 self.logger.warning(f"{error_str}")
     
     async def main(self):
-        server = await asyncio.start_server(self.accept, sock=self.sock)
-        async with server:
-            await server.serve_forever()
+        self.server = await asyncio.start_server(self.accept, sock=self.sock)
+        async with self.server:
+            await self.server.serve_forever()
 
 
 if __name__ == '__main__':
