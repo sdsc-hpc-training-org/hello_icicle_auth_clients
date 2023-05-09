@@ -6,8 +6,7 @@ except:
 
 
 class Command:
-    def __init__(self, method: Callable, decorator: Union[Auth, NeedsConfirmation, RequiresExpression, RequiresForm, SecureInput]=None):
-        self.method = method
+    def __init__(self, decorator: Union[Auth, NeedsConfirmation, RequiresExpression, RequiresForm, SecureInput]=None):
         self.decorator = decorator
 
     async def __call__(self, **kwargs):

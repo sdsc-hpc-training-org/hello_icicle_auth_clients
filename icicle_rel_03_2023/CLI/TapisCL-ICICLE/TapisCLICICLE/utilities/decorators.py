@@ -164,7 +164,12 @@ class DecoratorSetup:
     def configure_decorators(self, username, password):
         BaseRequirementDecorator.username = username
         BaseRequirementDecorator.password = password
-    
+
+
+class DecoratorUtility:
+
+    def __init__(self, decorator_type: int):
+        
 
 class AnimatedLoading:
     """
