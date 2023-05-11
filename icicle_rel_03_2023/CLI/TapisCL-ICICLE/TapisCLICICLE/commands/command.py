@@ -4,12 +4,12 @@ import re
 import inspect
 from tapipy import tapis
 try:
-    from ..utilities.decorators import Auth, NeedsConfirmation, RequiresExpression, RequiresForm, SecureInput
+    from ..utilities.decorators import BaseRequirementDecorator
     from ..utilities.decorators import exceptions
     from ..utilities.args import Args
     from ..utilities import helpers
 except:
-    import utilities.decorators as decorators
+    from utilities.decorators import BaseRequirementDecorator
     import utilities.exceptions as exceptions
     import utilities.args as Args
     import utilities.helpers as helpers
@@ -17,13 +17,21 @@ except:
 
 class CommandMetaClass(type):
     def __new__(self, cls, name, bases, attrs):
+        self.__check_command_args(name, attrs)
+        self.__check_decorator(attrs)
+        return super().__new__(cls, name, bases, attrs)
+    
+    def __check_command_args(self, name, attrs):
         runner = attrs['run']
         for argument_name in helpers.get_parameters(runner):
             if argument_name not in list(Args.argparser_args.keys()):
                 raise AttributeError(f"The argument {argument_name} in the run() method of the command '{name}' was not defined in the 'args' file")
         if '**kwargs' not in inspect.getfullargspec(runner).args:
             raise AttributeError(f"The run() method of the {name} class must have a **kwargs attribute to ignore misinput")
-        return super().__new__(cls, name, bases, attrs)
+        
+    def __check_decorator(self, attrs):
+        if attrs['decorator'] and not issubclass(attrs['decorator'].__class__, BaseRequirementDecorator):
+            raise AttributeError("The decorator parameter of the command is invalid. Must be set to None or as ")
 
     def help_string_retriever(self):
         try:
