@@ -17,7 +17,7 @@ try:
     from .utilities import helpers
     from .utilities import schemas
     from .utilities import serverConnection
-    from .commands import serverCommands as serverCommands
+    from .commands.servercommands import serverCommands as serverCommands
 except:
     import utilities.exceptions as exceptions
     import utilities.logger as logger
@@ -25,7 +25,7 @@ except:
     import utilities.helpers as helpers
     import utilities.schemas as schemas
     import utilities.serverConnection as serverConnection
-    import commands.serverCommands as serverCommands
+    import commands.servercommands.serverCommands as serverCommands
 
 
 class Server(helpers.OperationsHelper, serverCommands.ServerCommands, logger.ServerLogger):

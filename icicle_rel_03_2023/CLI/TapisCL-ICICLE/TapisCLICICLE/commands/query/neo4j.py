@@ -1,34 +1,19 @@
 from py2neo import Graph
-import psycopg2
 try:
-    from ..utilities import decorators
-    from . import baseWrappers
+    from ...utilities import decorators
+    from .. import baseCommand
 except:
     import utilities.decorators as decorators
-    import commands.baseWrappers as baseWrappers
+    import baseCommand as baseCommand
 
 
-class PostgresCLI(baseWrappers.TapisQuery):
-    """
-    @help: integrated CLI to interface with Postgres pods
-    """
-    @decorators.RequiresExpression
-    async def query(self, id: str, expression: str, connection=None) -> str:
-        uname, pword = self.get_credentials(id)
-        with psycopg2.connect(f"postgresql://{uname}:{pword}@{id}.pods.{self.t.base_url.split('https://')[1]}:443") as conn:
-            conn.autocommit = True
-            with conn.cursor() as cur:
-                cur.execute(query=expression)
-                return_value = cur.fetchall()
-        return str(f'[+][{id}] {return_value}')
 
-
-class Neo4jCLI(baseWrappers.TapisQuery):
+class Neo4jCLI(baseCommand.BaseQuery):
     """
     @help: integrated CLI to interface with Neo4j pods
     """
-    @decorators.RequiresExpression
-    async def query(self, id: str, expression: str, connection=None) -> str: # function to submit queries to a Neo4j knowledge graph
+    decorator=decorators.RequiresExpression
+    async def run(self, id: str, expression: str, *args, **kwargs) -> str: # function to submit queries to a Neo4j knowledge graph
         uname, pword = self.get_credentials(id)
         graph = Graph(f"bolt+ssc://{id}.pods.{self.t.base_url.split('https://')[1]}:443", auth=(uname, pword), secure=True, verify=True)
 

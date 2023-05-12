@@ -6,12 +6,12 @@ import os
 import typing
 
 try:
-    from ..utilities import exceptions
-    from ..utilities import decorators
-    from ..utilities import args
-    from ..utilities import schemas
-    from ..utilities import helpers
-    from commands import apps, files, pods, query, systems
+    from ...utilities import exceptions
+    from ...utilities import decorators
+    from ...utilities import args
+    from ...utilities import schemas
+    from ...utilities import helpers
+    from .. import baseCommand
 except:
     import utilities.helpers as helpers
     import utilities.exceptions as exceptions
@@ -24,9 +24,13 @@ except:
     import commands.pods as pods
     import commands.query as query
     import commands.systems as systems
+    import commands.baseCommand as baseCommand
 
 
 class ServerCommands(decorators.DecoratorSetup, helpers.DynamicHelpUtility):  
+    """
+    DEPRECATED. Working on phasing this whole thing out of existence
+    """
     def __init__(self):
         self.pods = None
         self.systems = None
@@ -65,11 +69,13 @@ class ServerCommands(decorators.DecoratorSetup, helpers.DynamicHelpUtility):
         self.help_menu = dict(help0, **help1)
         print(self.help_menu)
 
-    @decorators.Auth
-    async def tapis_init(self, username: str, password: str, link: str, connection=None) -> tuple[typing.Any, str, str] | None:  # link is the baseURL
-        """
-        @help: switch the connected tapis service
-        """
+class tapis_init(baseCommand.BaseCommand):
+    """
+    @help: switch the connected tapis service
+    @todo: upgrade to federated auth
+    """
+    decorator = decorators.Auth
+    async def run(self, username: str, password: str, link: str, *args, **kwargs) -> tuple[typing.Any, str, str] | None:  # link is the baseURL
         start = time.time()
         self.username = username
         self.password = password
@@ -116,33 +122,41 @@ class ServerCommands(decorators.DecoratorSetup, helpers.DynamicHelpUtility):
 
         return f"Successfully initialized tapis service on {self.url}"
       
-    async def exit(self, connection=None):
-        """
-        @help: exit the CLI without shutting down the service
-        """
+
+class exit(baseCommand.BaseCommand):
+    """
+    @help: exit the CLI without shutting down the service
+    """
+    async def run(self, *args, **kwargs):
         raise exceptions.Exit
     
-    async def shutdown(self, connection=None):
-        """
-        @help: exit the CLI and shutdown the service
-        """
+
+class shutdown(baseCommand.BaseCommand):
+    """
+    @help: exit the CLI and shutdown the service
+    """
+    decorator = decorators.NeedsConfirmation
+    async def run(self, *args, **kwargs):
         self.logger.info("Shutdown initiated")
         raise exceptions.Shutdown
     
-    async def help(self, command: str, connection=None):
-        """
-        @help: returns help information. To get specific help information for tapis services, you can run <service> -c help. enter -c args to see detailed command usage
-        """
-        if command == "args":
-            return args.Args.argparser_args
-        elif command in self.help_menu:
-            return self.help_menu[command]
-        return self.help_menu
+
+
+    # async def help(self, command: str, *args, **kwargs):
+    #     """
+    #     @help: returns help information. To get specific help information for tapis services, you can run <service> -c help. enter -c args to see detailed command usage
+    #     """
+    #     if command == "args":
+    #         return args.Args.argparser_args
+    #     elif command in self.help_menu:
+    #         return self.help_menu[command]
+    #     return self.help_menu
     
-    async def whoami(self, verbose: bool, connection=None) -> str:
-        """
-        @help: returns the username of the current user
-        """
+class whoami(baseCommand.BaseCommand):
+    """
+    @help: returns the username of the current user
+    """
+    async def run(self, verbose: bool, *args, **kwargs) -> str:
         user_info = self.t.authenticator.get_userinfo()
         if verbose:
             return str(user_info)

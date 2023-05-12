@@ -32,7 +32,21 @@ class CommandMetaClass(type):
     def __check_decorator(self, attrs):
         if attrs['decorator'] and not issubclass(attrs['decorator'].__class__, BaseRequirementDecorator):
             raise AttributeError("The decorator parameter of the command is invalid. Must be set to None or as ")
+        
 
+class CommandGroupMetaClass(type):
+    def __new__(self, cls, name, bases, attrs):
+        self.__check_commands_are_class()
+        return super().__new__(cls, name, bases, attrs)
+    
+    def __check_commands_are_class(self, name, attrs):
+        commands = attrs['group_command_map']
+        for command_name, command in commands.items():
+            if type(command) != type:
+                raise AttributeError(f"The command {command_name} was not passed to the {name} as a class, but as an object. Ensure you do not instantiate commands when defining the class")
+
+
+class HelpStringRetriever:
     def help_string_retriever(self):
         try:
             docstring_components = self.__class__.__doc__
@@ -44,7 +58,8 @@ class CommandMetaClass(type):
         except Exception as e:
             raise exceptions.HelpDoesNotExist(self.__class__.__name__)
         
-class BaseCommand(ABC, metaclass=CommandMetaClass):
+
+class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
     decorator = None
     def __init__(self, t: tapis.Tapis):
         self.t = None
@@ -65,7 +80,7 @@ class BaseCommand(ABC, metaclass=CommandMetaClass):
         }
         
     @abstractmethod
-    async def run(self, **kwargs):
+    async def run(self, *args, **kwargs):
         pass
 
     async def __call__(self, **kwargs):
@@ -82,10 +97,13 @@ class BaseQuery(BaseCommand):
         return uname, pword
     
 
-class BaseCommandGroup(ABC, metaclass=CommandMetaClass):
-    def __init__(self, t: tapis.Tapis, username: str, password: str, command_map: dict[str, BaseCommand]):
-        self.command_map = command_map
+class BaseCommandGroup(ABC, HelpStringRetriever, metaclass=CommandGroupMetaClass):
+    aggregate_command_map: dict[str, Type[BaseCommand]] | None = None # static attribute to store all commands
+    group_command_map: dict[str, Type[BaseCommand]] | None = None
+    def __init__(self, t: tapis.Tapis, username: str, password: str):
         self.t = t
+        for command_name, command in self.group_command_map.items():
+            BaseCommandGroup.aggregate_command_map[command_name] = command(self.t)
         self.username = username
         self.password = password
         self.brief_help = self.help_string_retriever()

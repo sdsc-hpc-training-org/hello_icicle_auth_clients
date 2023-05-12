@@ -14,13 +14,13 @@ try:
     from . import schemas
     from . import socketOpts
     from . import exceptions
-    from ..commands import command
+    from ..commands import baseCommand
 except:
     import utilities.helpers as helpers
     import utilities.schemas as schemas
     import utilities.socketOpts as socketOpts
     import utilities.exceptions as exceptions
-    import commands.command as command
+    import commands.baseCommand as baseCommand
 
 
 class self(helpers.OperationsHelper, abc.ABC):
@@ -28,7 +28,7 @@ class self(helpers.OperationsHelper, abc.ABC):
     password: typing.Optional[str] = None
 
     @abc.abstractmethod
-    async def __call__(self, command: typing.Type[command.BaseCommand], connection: socket.socket, **kwargs):
+    async def __call__(self, command: typing.Type[baseCommand.BaseCommand], connection: socket.socket, **kwargs):
         pass
 
 
