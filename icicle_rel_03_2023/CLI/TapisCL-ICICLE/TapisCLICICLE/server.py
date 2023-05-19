@@ -17,24 +17,33 @@ try:
     from .utilities import helpers
     from .utilities import schemas
     from .utilities import serverConnection
-    from .commands.servercommands import serverCommands as serverCommands
-except:
+    from .commands.query import neo4j, postgres
+    from .commands import baseCommand
+    from .commands import commandMap
+except ImportError:
     import utilities.exceptions as exceptions
     import utilities.logger as logger
     import utilities.socketOpts as SO
     import utilities.helpers as helpers
     import utilities.schemas as schemas
     import utilities.serverConnection as serverConnection
-    import commands.servercommands.serverCommands as serverCommands
+    import commands.baseCommand as baseCommand
+    import commands.commandMap as commandMap
 
 
-class Server(helpers.OperationsHelper, serverCommands.ServerCommands, logger.ServerLogger):
+class Server(commandMap.AggregateCommandMap, helpers.OperationsHelper, logger.ServerLogger):
     """
     Receives commands from the client and executes Tapis operations
     """
     def __init__(self, IP: str, PORT: int):
         super().__init__()
         self.initial = True
+
+        self.t = None
+        self.url = None
+        self.access_token = None
+        self.username = None
+        self.password = None
 
         self.__name__ = "Server"
         self.initialize_logger(self.__name__)
@@ -50,6 +59,9 @@ class Server(helpers.OperationsHelper, serverCommands.ServerCommands, logger.Ser
         self.server = None
 
         self.logger.info('initialization complete')
+
+    def change_session(self):
+
     
     async def handshake(self, connection):
         self.logger.info("Handshake starting")
@@ -69,7 +81,8 @@ class Server(helpers.OperationsHelper, serverCommands.ServerCommands, logger.Ser
                 auth_data: schemas.AuthData = await connection.receive()
                 url, username, password = url.url, auth_data.username, auth_data.password
                 try:
-                    await self.tapis_init(link=url, username=username, password=password, connection=connection)
+                    await self.aggregate_command_map['switch_service'](link=url, username=username, password=password, connection=connection)
+                    #await self.run_command(connection, {'link':f"https://{url}", 'username':username, 'password':password})
                 except exceptions.InvalidCredentialsReceived as e:
                     login_failure_data = schemas.ResponseData(response_message = (str(e), attempt))
                     await connection.send(login_failure_data)
@@ -119,24 +132,6 @@ class Server(helpers.OperationsHelper, serverCommands.ServerCommands, logger.Ser
         """
         if time.time() > self.end_time: 
             raise exceptions.TimeoutError
-
-    async def run_command(self, connection, command_data: dict):
-        """
-        process and run command based on received kwargs
-        """
-        command_data['connection'] = connection
-        command_group = command_data['command_group']
-        if command_group in self.command_group_map:
-            command_group = self.command_group_map[command_group]
-            return await command_group(**command_data)
-        elif command_group in self.command_map:
-            command = self.command_map[command_group]
-            command_data = self.filter_kwargs(command, command_data)
-            if command_data:
-                return await command(**command_data)
-            return await command()
-        else:
-            raise exceptions.CommandNotFoundError(command_group)
 
     async def receive_and_execute(self, connection):
         """

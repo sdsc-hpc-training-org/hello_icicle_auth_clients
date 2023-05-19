@@ -2,10 +2,10 @@ from tapipy import tapis
 import pyperclip
 import json
 try:
-    from .. import baseCommand
-    from ...utilities import decorators
+    from . import baseCommand
+    from ..utilities import decorators
 except:
-    import baseCommand
+    import commands.baseCommand as baseCommand
     import utilities.decorators as decorators
 
 
@@ -36,7 +36,7 @@ class delete_app(baseCommand.BaseCommand):
     """
     @help: delete the selected app
     """
-    decorator=decorators.NeedsConfirmation
+    decorator=decorators.NeedsConfirmation()
     async def run(self, id: str, version: str, *args, **kwargs) -> str:
         return_value = self.t.apps.deleteApp(appId=id, appVersion=version)
         return str(return_value)
@@ -54,11 +54,11 @@ class get_app(baseCommand.BaseCommand):
     
 
 class run_job(baseCommand.BaseCommand):
+    """
+    @help: run a job from an app on a system. You must have a properly configured job config file. 
+    See a template at https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients/blob/main/icicle_rel_04_2023/CLI/TapisCL-ICICLE/tapis-config-files/job-config.json
+    """
     async def run(self, file: str, *args, **kwargs)->str: # run a job using an app. Takes a job descriptor json file path
-        """
-        @help: run a job from an app on a system. You must have a properly configured job config file. 
-        See a template at https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients/blob/main/icicle_rel_04_2023/CLI/TapisCL-ICICLE/tapis-config-files/job-config.json
-        """
         with open(file, 'r') as f:
             app = json.loads(f.read())
         job = self.t.jobs.submitJob(**app)
@@ -78,7 +78,7 @@ class download_job_output(baseCommand.BaseCommand):
     """
     @help: download a job output from the system 
     """
-    async def download_job_output(self, uuid: str, file: str, *args, **kwargs)->str: # download the output of a job with its Uuid
+    async def run(self, uuid: str, file: str, *args, **kwargs)->str: # download the output of a job with its Uuid
         jobs_output = self.t.jobs.getJobOutputDownload(jobUuid=uuid, outputPath='tapisjob.out')
         with open(file, 'w') as f:
             f.write(jobs_output)

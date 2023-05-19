@@ -26,11 +26,12 @@ __location__ = os.path.realpath(
 server_path = os.path.join(__location__, 'server.py')
 
 
-class CLI(SO.ClientSocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup, helpers.Formatters):
+class CLI(SO.ClientSocketOpts, helpers.OperationsHelper, decorators.DecoratorSetup, helpers.Formatters, args.Args):
     """
     Receive user input, either direct from bash environment or from the custom interface, then parse these commands and send them to the server to be executed. 
     """
     def __init__(self, IP: str, PORT: int):
+        super().__init__()
 
         self.ip, self.port = IP, PORT
         self.connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
@@ -40,7 +41,7 @@ class CLI(SO.ClientSocketOpts, helpers.OperationsHelper, decorators.DecoratorSet
 
         # set up argparse
         self.parser = argparse.ArgumentParser(description="Command Line Argument Parser", exit_on_error=False, usage=SUPPRESS)
-        self.parser.add_argument('command_group')
+        self.parser.add_argument('command')
 
         self.message_handlers = {
             'FormRequest':self.form_handler,
@@ -48,7 +49,7 @@ class CLI(SO.ClientSocketOpts, helpers.OperationsHelper, decorators.DecoratorSet
             'ConfirmationRequest':self.confirmation_handler,
         }
 
-        for parameters in args.Args.argparser_args.values():
+        for parameters in self.argparser_args.values():
             self.parser.add_argument(*parameters["args"], **parameters["kwargs"])
 
         print(r"If you find any issues, please create a new issue here: https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients/issues")
@@ -95,7 +96,7 @@ class CLI(SO.ClientSocketOpts, helpers.OperationsHelper, decorators.DecoratorSet
         if connection_info.initial: # if the server is receiving its first connection for the session\
             while True:
                 try:
-                    url = str(input("\nEnter the link for the tapis service you are connecting to: ")).strip()
+                    url = str(input("\nEnter the uri for the tapis service you are connecting to: ")).strip()
                 except KeyboardInterrupt:
                     url = " "
                     pass
@@ -161,7 +162,7 @@ class CLI(SO.ClientSocketOpts, helpers.OperationsHelper, decorators.DecoratorSet
         """
         if isinstance(kwargs, list): # check if the command input is from the CLI, or direct input
             kwargs = vars(self.parser.parse_args(kwargs)) 
-        if not kwargs['command_group']:
+        if not kwargs['command']:
             return False
         command = schemas.CommandData(kwargs = kwargs, exit_status = exit_)
         return command

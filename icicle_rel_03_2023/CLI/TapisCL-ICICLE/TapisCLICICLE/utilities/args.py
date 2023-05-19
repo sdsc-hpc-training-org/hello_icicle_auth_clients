@@ -4,10 +4,6 @@ class Args: # should add a way to automatically check for duplicate entries to t
     """
     argparser_args = \
     {
-        "command":{
-            "args":["-c", "--command"],
-            "kwargs":{"action":"store"}
-        },
         "id":{
             "args":["-i", "--id"],
             "kwargs":{"action":"store"}
@@ -55,7 +51,7 @@ class Args: # should add a way to automatically check for duplicate entries to t
     }
 
     @staticmethod
-    def check_duplicates(self):
+    def check_duplicates():
         keys = []
         arguments = []
         for key, value in Args.argparser_args.items():
@@ -67,7 +63,5 @@ class Args: # should add a way to automatically check for duplicate entries to t
             arguments.append(value)
             
 
-
-
 if __name__ != "__main__":
-    Args.check_duplicates()
+    Args.check_duplicates

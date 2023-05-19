@@ -2,10 +2,10 @@ from tapipy import tapis
 import pyperclip
 import json
 try:
-    from .. import baseCommand
-    from ...utilities import decorators
+    from . import baseCommand
+    from ..utilities import decorators
 except:
-    import baseCommand
+    import commands.baseCommand as baseCommand
     import utilities.decorators as decorators
 
 

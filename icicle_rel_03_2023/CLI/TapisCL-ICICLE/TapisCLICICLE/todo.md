@@ -4,3 +4,5 @@ This way the "partial" thing with the decorators could be phased out. This would
 2. command groups are more just for organization of classes now and for help menu. every time command group instantiated it contributes its commands to the overall command list. Good for simplifying command syntax
 
 3. Decorators must be upgraded to support the new design of the commands
+
+4. add a way for the requires expression decorator to also accept direct expression input

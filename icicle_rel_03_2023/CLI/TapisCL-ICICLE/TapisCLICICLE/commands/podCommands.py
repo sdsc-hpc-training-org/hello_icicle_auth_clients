@@ -1,10 +1,10 @@
 from tapipy import tapis
 import pyperclip
 try:
-    from .. import baseCommand
-    from ...utilities import decorators
+    from . import baseCommand
+    from ..utilities import decorators
 except:
-    import baseCommand
+    import commands.baseCommand as baseCommand
     import utilities.decorators as decorators
 
 
@@ -29,7 +29,7 @@ class create_pod(baseCommand.BaseCommand):
     """
     @help: create a new pod on the selected Tapis service
     """
-    decorator = decorators.RequiresForm
+    decorator = decorators.RequiresForm()
     async def run(self, id: str, template: str, verbose: bool, 
                   description: str | None = None, *args, **kwargs) -> str:
         pod_information = self.t.pods.create_pod(pod_id=id, pod_template=template, description=description)
@@ -50,7 +50,7 @@ class restart_pod(baseCommand.BaseCommand):
     """
     @help: initiate a pod restart
     """
-    decorator=decorators.NeedsConfirmation
+    decorator=decorators.NeedsConfirmation()
     async def run(self, id: str, verbose: bool, *args, **kwargs) -> str:
         return_information = self.t.pods.restart_pod(pod_id=id)
         if verbose:
@@ -62,7 +62,7 @@ class stop_pod(baseCommand.BaseCommand):
     """
     @help: stop a pod's operations
     """
-    decorator=decorators.NeedsConfirmation
+    decorator=decorators.NeedsConfirmation()
     async def run(self, id: str, *args, **kwargs):
         return_information = self.t.pods.stop_pod(pod_id=id)
         return return_information
@@ -72,7 +72,7 @@ class delete_pod(baseCommand.BaseCommand):
     """
     @help: delete select pod
     """
-    decorator=decorators.NeedsConfirmation
+    decorator=decorators.NeedsConfirmation()
     async def run(self, id: str, verbose: bool, *args, **kwargs) -> str: 
         return_information = self.t.pods.delete_pod(pod_id=id)
         if verbose:
@@ -93,7 +93,7 @@ class delete_pod_perms(baseCommand.BaseCommand):
     """
     @help: delete the selected pod from the pods service you are connected to
     """
-    decorator=decorators.NeedsConfirmation
+    decorator=decorators.NeedsConfirmation()
     async def run(self, id: str, username: str, *args, **kwargs) -> str: # take away someones perms if they are being malicious, or something
         return_information = self.t.pods.delete_pod_perms(pod_id=id, user=username)
         return str(return_information)
@@ -112,7 +112,7 @@ class copy_pod_password(baseCommand.BaseCommand):
     """
     @help: copy the pod password to the clipboard
     """
-    decorator=decorators.Auth
+    decorator=decorators.Auth()
     async def run(self, id: str, *args, **kwargs) -> str: # copies the pod password to clipboard so that the user can access the pod via the neo4j desktop app. Maybe a security risk? not as bad as printing passwords out!
         password = self.t.pods.get_pod_credentials(pod_id=id).user_password
         pyperclip.copy(password)

@@ -3,10 +3,10 @@ import pyperclip
 import json
 import os
 try:
-    from .. import baseCommand
-    from ...utilities import decorators
+    from . import baseCommand
+    from ..utilities import decorators
 except:
-    import baseCommand
+    import commands.baseCommand as baseCommand
     import utilities.decorators as decorators
 
 
@@ -94,8 +94,8 @@ class system_password_set(baseCommand.BaseCommand):
     """
     @help: set a system password
     """
-    decorator=decorators.SecureInput
-    async def run(self, id: str, password: str, *args, **kwargs) -> str: # set the password for a system
+    decorator=decorators.SecureInput()
+    async def run(self, id: str, password: str=None, *args, **kwargs) -> str: # set the password for a system
         try:
             password_return_value = self.t.systems.createUserCredential(systemId=id, # will put this in a getpass later
                                 userName=self.username,
@@ -109,7 +109,7 @@ class delete_system(baseCommand.BaseCommand):
     """
     @help: delete the selected system
     """
-    decorator=decorators.NeedsConfirmation
+    decorator=decorators.NeedsConfirmation()
     async def run(self, id: str, *args, **kwargs) -> str:
         return_value = self.t.systems.deleteSystem(systemId=id)
         return return_value
