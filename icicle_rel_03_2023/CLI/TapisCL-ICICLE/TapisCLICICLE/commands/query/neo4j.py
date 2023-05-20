@@ -8,7 +8,7 @@ except:
 
 
 
-class Neo4jCLI(baseCommand.BaseQuery):
+class neo4j(baseCommand.BaseQuery):
     """
     @help: integrated CLI to interface with Neo4j pods
     """

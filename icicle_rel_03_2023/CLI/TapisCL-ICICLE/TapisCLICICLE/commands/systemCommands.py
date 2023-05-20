@@ -70,7 +70,7 @@ class create_system(baseCommand.BaseCommand):
         return str(return_value)
     
 
-class system_credential_upload(baseCommand.BaseCommand):
+class set_system_credentials(baseCommand.BaseCommand):
     """
     @help: upload system credentials to a system. Must generate keys first using 'ssh-keygen -m PEM -f id_rsa', and format with, 'awk -v ORS='\\n' '1' <private_key_name>
     file argument must contain the path to the private and public keys respectively, separated by a ','
@@ -90,7 +90,7 @@ class system_credential_upload(baseCommand.BaseCommand):
         return str(cred_return_value)
     
 
-class system_password_set(baseCommand.BaseCommand):
+class set_system_password(baseCommand.BaseCommand):
     """
     @help: set a system password
     """

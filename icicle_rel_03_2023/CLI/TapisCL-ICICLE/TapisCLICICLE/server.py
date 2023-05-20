@@ -9,6 +9,7 @@ import logging
 import typing
 import asyncio
 import traceback
+from utilities.decorators import DecoratorSetup
 
 try:
     from .utilities import exceptions
@@ -31,7 +32,7 @@ except ImportError:
     import commands.commandMap as commandMap
 
 
-class Server(commandMap.AggregateCommandMap, helpers.OperationsHelper, logger.ServerLogger):
+class Server(commandMap.AggregateCommandMap, logger.ServerLogger, DecoratorSetup):
     """
     Receives commands from the client and executes Tapis operations
     """
@@ -60,9 +61,41 @@ class Server(commandMap.AggregateCommandMap, helpers.OperationsHelper, logger.Se
 
         self.logger.info('initialization complete')
 
-    def change_session(self):
+    def switch_session(self, username: str, link: str, *args, **kwargs):
+        start = time.time()
+        self.username = username
+        self.password = kwargs['password']
+        try:
+            t = Tapis(base_url=f"https://{link}",
+                    username=username,
+                    password=kwargs['password'])
+            t.get_tokens()
+        except Exception as e:
+            print(e)
+            raise exceptions.InvalidCredentialsReceived(function=self.tapis_init, cred_type="Tapis Auth")
+        
+        self.t = t
+        self.url = link
+        self.access_token = self.t.access_token
 
-    
+        self.configure_decorators(self.username, self.password)
+        self.update_credentials(t, username, kwargs['password'])
+        # V3 Headers
+        header_dat = {"X-Tapis-token": t.access_token.access_token,
+                      "Content-Type": "application/json"}
+        # create authenticator for tapis systems
+        authenticator = t.access_token
+        # extract the access token from the authenticator
+        
+        if 'win' in sys.platform:
+            os.system(f"set JWT={self.access_token}")
+        else: # unix based
+            os.system(f"export JWT={self.access_token}")
+
+        self.logger.info(f"initiated in {time.time()-start}")
+
+        return f"Successfully initialized tapis service on {self.url}"
+
     async def handshake(self, connection):
         self.logger.info("Handshake starting")
         if self.initial:  # if this is the first time in the session that the cli is connecting
@@ -72,16 +105,16 @@ class Server(commandMap.AggregateCommandMap, helpers.OperationsHelper, logger.Se
             self.logger.info("send the initial status update")
 
             for attempt in range(1, 4):
-                print("waiting on url")
                 url: schemas.StartupData = await connection.receive()
                 self.logger.info("received the link")
                 auth_request = schemas.AuthRequest()
                 self.logger.info("send the auth request")
                 await connection.send(auth_request)
                 auth_data: schemas.AuthData = await connection.receive()
+                self.logger.info("received the creds")
                 url, username, password = url.url, auth_data.username, auth_data.password
                 try:
-                    await self.aggregate_command_map['switch_service'](link=url, username=username, password=password, connection=connection)
+                    await self.aggregate_command_map['switch_service'](link=url, username=username, password=password, connection=connection, server=self, verbose=False)
                     #await self.run_command(connection, {'link':f"https://{url}", 'username':username, 'password':password})
                 except exceptions.InvalidCredentialsReceived as e:
                     login_failure_data = schemas.ResponseData(response_message = (str(e), attempt))
@@ -92,7 +125,6 @@ class Server(commandMap.AggregateCommandMap, helpers.OperationsHelper, logger.Se
                             "Attempted verification too many times. Exiting")
                         raise exceptions.InvalidCredentialsReceived(self.handshake, "tapis auth")
                     continue
-                self.commands_initializer()
                 self.logger.info("Verification success")
                 break
         else:

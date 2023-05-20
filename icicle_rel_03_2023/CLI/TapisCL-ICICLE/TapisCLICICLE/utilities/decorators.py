@@ -21,7 +21,7 @@ except:
     import exceptions
     
 
-class BaseRequirementDecorator(helpers.OperationsHelper, abc.ABC):
+class BaseRequirementDecorator(abc.ABC):
     username: typing.Optional[str] = None
     password: typing.Optional[str] = None
 
@@ -101,9 +101,9 @@ class Auth(BaseRequirementDecorator):
         no_username = False
         if kwargs['connection']:
             connection = kwargs['connection']
-            if command.__class__.__name__ == 'tapis_init' and kwargs['username'] and kwargs['password']:
+            if command.__class__.__name__ == 'switch_service' and kwargs['username'] and kwargs['password']:
                 return await command.run(**kwargs)
-            fields = list(helpers.get_parameters(command))
+            fields = command.keyword_arguments
             if kwargs['username']:
                 no_username = True
                 auth_request = schemas.AuthRequest(requires_username=False)
@@ -132,7 +132,7 @@ class NeedsConfirmation(BaseRequirementDecorator):
     async def __call__(self, command, *args, **kwargs):
         if kwargs['connection']:
             connection = kwargs['connection']
-            confirmation_request = schemas.ConfirmationRequest(message=f"YOU REQUESTED TO {command.__name__}. THIS MIGHT CAUSE DATA LOSS! Please confirm (y/n)")
+            confirmation_request = schemas.ConfirmationRequest(message=f"YOU REQUESTED TO {command.__class__.__name__}. THIS MIGHT CAUSE DATA LOSS! Please confirm (y/n)")
             await connection.send(confirmation_request)
             confirmation_reply: schemas.ResponseData = await connection.receive()
             confirmed = confirmation_reply.response_message

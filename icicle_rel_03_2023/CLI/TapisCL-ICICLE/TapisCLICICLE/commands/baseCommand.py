@@ -100,6 +100,12 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
             "Syntax":self.__argument_help_gen()
         }
         
+    def return_formatter(self, return_value):
+        """
+        placeholder for now
+        """
+        return return_value
+
     @abstractmethod
     async def run(self, *args, **kwargs):
         pass
@@ -108,8 +114,11 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
         if 'help' in list(kwargs.keys()) and kwargs['help']:
             return self.help
         if self.decorator:
-            return await self.decorator(self, **kwargs)
-        return await self(**kwargs)
+            return_value = await self.decorator(self, **kwargs)
+        return_value = await self.run(**kwargs)
+        if not kwargs['verbose']:
+            return self.return_formatter(return_value)
+        return return_value
     
 
 class BaseQuery(BaseCommand):
@@ -126,16 +135,24 @@ class BaseQuery(BaseCommand):
 class CommandMapMetaClass(type):
     def __new__(cls, name, bases, attrs):
         instance = super().__new__(cls, name, bases, attrs)
-        if cls != CommandMapMetaClass:
-            instance.__check_commands_are_class(name, cls)
+        if name not in ('CommandMapMetaClass', 'BaseCommandMap'):
+            instance.__check_commands_are_proper_type(name, attrs)
+            instance.__check_command_name(name, attrs)
         return instance
     
-    def __check_commands_are_class(self, name, cls):
-        commands = cls.command_map
-        if commands:
-            for command_name, command in commands.items():
-                if type(command) != BaseCommand:
-                    raise AttributeError(f"The command {command_name} was not passed to the {name} as a class, but as an object. Ensure you do not instantiate commands when defining the class")
+    def __check_commands_are_proper_type(self, name, attrs):
+        commands = attrs['command_map']
+        if not commands:
+            raise AttributeError(f"The command group {name} has no commands!")
+        for command_name, command in commands.items():
+            if not issubclass(command.__class__, BaseCommand):
+                raise AttributeError(f"The command {command_name} was not passed to the {name} as a class, but as an object. Ensure you do not instantiate commands when defining the class")
+            
+    def __check_command_name(self, name, attrs):
+        commands = attrs['command_map']
+        for command_name, command in commands.items():
+            if command_name != command.__class__.__name__:
+                raise AttributeError(f"The command {command_name} in the command map {name} is a different name from its corresponding command class, {command.__class__.__name__}")
 
 
 class CommandContainer:

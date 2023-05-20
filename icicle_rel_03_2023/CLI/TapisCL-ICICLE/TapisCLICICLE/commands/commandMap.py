@@ -3,19 +3,12 @@ from abc import abstractmethod, ABC
 import re
 import inspect
 from tapipy import tapis
-from commands.query.neo4j import Neo4jCLI
 try:
-    from ..utilities.decorators import BaseRequirementDecorator
-    from ..utilities.decorators import exceptions
-    from ..utilities.args import Args
-    from ..utilities import helpers
+    from ..utilities import exceptions
     from . import baseCommand, serverCommands, fileCommands, podCommands, appCommands, systemCommands
-    from . import query
+    from .query import neo4j, postgres
 except ImportError:
-    from utilities.decorators import BaseRequirementDecorator
     import utilities.exceptions as exceptions
-    import utilities.args as Args
-    import utilities.helpers as helpers
     import commands.baseCommand as baseCommand
     import commands.serverCommands as serverCommands
     import commands.fileCommands as fileCommands
@@ -34,8 +27,8 @@ class Systems(baseCommand.BaseCommandMap):
         'get_systems':systemCommands.get_systems(), # since initialization of commands is separate from __init__, you dont need to specify these as classes anymore
         'get_system_info':systemCommands.get_system_info(),
         'create_system':systemCommands.create_system(),
-        'set_credentials':systemCommands.system_credential_upload(),
-        'set_password':systemCommands.system_password_set(),
+        'set_system_credentials':systemCommands.set_system_credentials(),
+        'set_system_password':systemCommands.set_system_password(),
         'delete_system':systemCommands.delete_system(),
     }
 
@@ -48,7 +41,7 @@ class Server(baseCommand.BaseCommandMap):
         'whoami':serverCommands.whoami(),
         'exit':serverCommands.exit(),
         'shutdown':serverCommands.shutdown(),
-        'switch_service':serverCommands.tapis_init()
+        'switch_service':serverCommands.switch_service()
     }
 
 
@@ -67,7 +60,7 @@ class Pods(baseCommand.BaseCommandMap):
         'delete_pod_perms':podCommands.delete_pod_perms(),
         'get_perms':podCommands.get_perms(),
         'copy_pod_password':podCommands.copy_pod_password(),
-        'get_logs':podCommands.get_pod_logs(),
+        'get_pod_logs':podCommands.get_pod_logs(),
     }
 
 
@@ -90,10 +83,10 @@ class Apps(baseCommand.BaseCommandMap):
         'create_app':appCommands.create_app(),
         'get_apps':appCommands.get_apps(),
         'delete_app':appCommands.delete_app(),
-        'get_app_info':appCommands.get_app(),
-        'run_app':appCommands.run_job(),
-        'get_app_status':appCommands.get_job_status(),
-        'download_app_results':appCommands.download_job_output(),
+        'get_app':appCommands.get_app(),
+        'run_job':appCommands.run_job(),
+        'get_job_status':appCommands.get_job_status(),
+        'download_job_output':appCommands.download_job_output(),
     }
 
 
@@ -102,8 +95,8 @@ class Query(baseCommand.BaseCommandMap):
     @help: run integrated query CLIs
     """
     command_map = {
-        'postgres': postgres.PostgresCLI(),
-        'neo4j': neo4j.Neo4jCLI()
+        'postgres': postgres.postgres(),
+        'neo4j': neo4j.neo4j()
     }
 
 
@@ -134,9 +127,12 @@ class AggregateCommandMap(baseCommand.CommandContainer):
         process and run command based on received kwargs
         """
         command_data['connection'] = connection
+        command_data['server'] = self
+        print(command_data)
         command_name = command_data['command']
         if command_name in list(self.aggregate_command_map.keys()):
             command = self.aggregate_command_map[command_name]
+            command_data.pop('command')
             return await command(**command_data)
         elif command_name in list(self.groups.keys()):
             return self.groups[command_name]()

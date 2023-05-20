@@ -7,7 +7,7 @@ except:
     import commands.baseCommand as baseCommand
 
 
-class PostgresCLI(baseCommand.BaseQuery):
+class postgres(baseCommand.BaseQuery):
     """
     @help: integrated CLI to interface with Postgres pods
     """

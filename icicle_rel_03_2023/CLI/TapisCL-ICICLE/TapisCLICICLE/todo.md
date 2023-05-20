@@ -6,3 +6,7 @@ This way the "partial" thing with the decorators could be phased out. This would
 3. Decorators must be upgraded to support the new design of the commands
 
 4. add a way for the requires expression decorator to also accept direct expression input
+
+5. add way for the client to popup a new window every time it runs
+
+6. ruyn the client startup more naturally, more like you would other commands
