@@ -41,6 +41,7 @@ class Server(baseCommand.BaseCommandMap):
         'whoami':serverCommands.whoami(),
         'exit':serverCommands.exit(),
         'shutdown':serverCommands.shutdown(),
+        "get_args":serverCommands.get_args(),
         'switch_service':serverCommands.switch_service()
     }
 
@@ -102,12 +103,12 @@ class Query(baseCommand.BaseCommandMap):
 
 class AggregateCommandMap(baseCommand.CommandContainer):
     groups = {
-        'systems': Systems(),
-        'server': Server(),
-        'pods': Pods(),
-        'files': Files(),
-        'apps': Apps(),
-        'query': Query(),
+        'Systems': Systems(),
+        'Server': Server(),
+        'Pods': Pods(),
+        'Files': Files(),
+        'Apps': Apps(),
+        'Query': Query(),
     }
     def __init__(self):
         self.help = self.__general_help()

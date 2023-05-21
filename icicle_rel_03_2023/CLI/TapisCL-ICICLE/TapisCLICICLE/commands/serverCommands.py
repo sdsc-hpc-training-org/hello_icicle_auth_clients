@@ -57,3 +57,11 @@ class whoami(baseCommand.BaseCommand):
         if verbose:
             return str(user_info)
         return user_info.username
+    
+
+class get_args(baseCommand.BaseCommand):
+    """
+    @help: get the list of possible arguments 
+    """
+    async def run(self, *args, **kwargs):
+        return args.Args.argparser_args

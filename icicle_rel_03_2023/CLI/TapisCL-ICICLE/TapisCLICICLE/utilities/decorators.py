@@ -101,7 +101,7 @@ class Auth(BaseRequirementDecorator):
         no_username = False
         if kwargs['connection']:
             connection = kwargs['connection']
-            if command.__class__.__name__ == 'switch_service' and kwargs['username'] and kwargs['password']:
+            if command.__class__.__name__ == 'switch_service' and kwargs['username'] and 'password' in list(kwargs.keys()) and kwargs['password']:
                 return await command.run(**kwargs)
             fields = command.keyword_arguments
             if kwargs['username']:

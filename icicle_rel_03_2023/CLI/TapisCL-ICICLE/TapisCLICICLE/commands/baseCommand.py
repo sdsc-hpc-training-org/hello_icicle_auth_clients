@@ -91,6 +91,8 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
         for argument in self.positional_arguments:
             if argument not in EXCLUDED_ARGUMENTS:
                 arguments_str += f" {Args.Args.argparser_args[argument]['args'][0]}/{Args.Args.argparser_args[argument]['args'][1]} <{argument}>"
+        if not arguments_str:
+            arguments_str = "No Arguments"
         return arguments_str
     
     def __help_gen(self):
@@ -162,7 +164,7 @@ class CommandContainer:
 class BaseCommandMap(CommandContainer, HelpStringRetriever, metaclass=CommandMapMetaClass):
     command_map: dict[str, Type[BaseCommand]] = None
     def __init__(self):
-        self.brief_help = self.help_string_retriever()
+        self.brief_help = self.__brief_help_gen()
         self.verbose_help = self.__help_gen()
         for name, command in self.command_map.items():
             self.aggregate_command_map.update({name:command})
@@ -172,6 +174,14 @@ class BaseCommandMap(CommandContainer, HelpStringRetriever, metaclass=CommandMap
         for command in self.command_map.values():
             verbose_help.update({command.__class__.__name__:command.help})
         return verbose_help
+    
+    def __brief_help_gen(self):
+        brief_help = {
+            'group':self.__class__.__name__,
+            'description':self.help_string_retriever(),
+            'instruction':f"enter {self.__class__.__name__} to retrieve list of commands"
+        }
+        return brief_help
     
     def __call__(self):
         return self.verbose_help
