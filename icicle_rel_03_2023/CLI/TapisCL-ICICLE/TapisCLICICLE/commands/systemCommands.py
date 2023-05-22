@@ -20,54 +20,18 @@ class get_systems(baseCommand.BaseCommand):
     @help: Gets and returns the list of systems the current Tapis service and account have access to
     @doc: this is an example of the doc segment of the docstring. not included in help message
     """
-    async def run(self, verbose: bool, *args, **kwargs):
+    async def run(self, *args, **kwargs):
         systems = self.t.systems.getSystems()
-        if systems and verbose:
-            return str(systems)
-        systems = [self.return_formatter(system) for system in systems]
-        systems_string = ''
-        for system in systems:
-            systems_string += system
-        return systems_string
+        return systems
     
 
 class get_system_info(baseCommand.BaseCommand):
     """
     @help: get information on a selected system
     """
-    async def run(self, verbose: bool, id:str, *args, **kwargs): 
+    async def run(self, id:str, *args, **kwargs): 
         system_info = self.t.systems.getSystem(systemId=id)
-        if verbose:
-            return str(system_info)
-        return self.return_formatter(system_info)
-    
-
-class create_system(baseCommand.BaseCommand):
-    """
-    @help: create a system. Must have a properly configured system file.
-    see the template at https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients/blob/main/icicle_rel_04_2023/CLI/TapisCL-ICICLE/tapis-config-files/system-config.json
-    this command will automatically create and upload the ssh keys
-    """
-    def __keygen(self):
-        local_files = os.listdir(__location__)
-        if "id_rsa" not in local_files or "id_rsa.pub" not in local_files:
-            os.system(f'ssh-keygen -q -m PEM -f {__location__}\\id_rsa -N ""')
-            with open(f"{__location__}\\id_rsa", 'r') as f:
-                formatted_key = ""
-                for line in f.readlines()[1:-1]:
-                    formatted_key += line.strip()
-
-            with open(f"{__location__}\\id_rsa", 'w') as f:
-                f.write(formatted_key)
-
-
-    async def run(self, file: str, *args, **kwargs) -> str: # create a tapius system. Takes a path to a json file with all system information, as well as an ID
-        self.__keygen()
-        with open(file, 'r') as f:
-            system = json.loads(f.read())
-        return_value = self.t.systems.createSystem(**system)
-        self.system_credential_upload(id=system['id'], file=f"{__location__}\\id_rsa,{__location__}\\id_rsa.pub")
-        return str(return_value)
+        return system_info
     
 
 class set_system_credentials(baseCommand.BaseCommand):
@@ -88,6 +52,36 @@ class set_system_credentials(baseCommand.BaseCommand):
                             publicKey=public_key)
 
         return str(cred_return_value)
+
+
+class create_system(baseCommand.BaseCommand):
+    """
+    @help: create a system. Must have a properly configured system file.
+    see the template at https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients/blob/main/icicle_rel_04_2023/CLI/TapisCL-ICICLE/tapis-config-files/system-config.json
+    this command will automatically create and upload the ssh keys
+    """
+    set_system_creds = set_system_credentials()
+    def __keygen(self):
+        local_files = os.listdir(__location__)
+        if "id_rsa" not in local_files or "id_rsa.pub" not in local_files:
+            os.system(f'ssh-keygen -q -m PEM -f {__location__}\\id_rsa -N ""')
+            with open(f"{__location__}\\id_rsa", 'r') as f:
+                formatted_key = ""
+                for line in f.readlines()[1:-1]:
+                    formatted_key += line.strip()
+
+            with open(f"{__location__}\\id_rsa", 'w') as f:
+                f.write(formatted_key)
+
+    async def run(self, file: str, *args, **kwargs) -> str: # create a tapius system. Takes a path to a json file with all system information, as well as an ID
+        self.set_system_creds.set_t_and_creds(self.t, self.username, self.password)
+
+        self.__keygen()
+        with open(file, 'r') as f:
+            system = json.loads(f.read())
+        return_value = self.t.systems.createSystem(**system)
+        self.set_system_creds(id=system['id'], file=f"{__location__}\\id_rsa,{__location__}\\id_rsa.pub")
+        return return_value
     
 
 class set_system_password(baseCommand.BaseCommand):

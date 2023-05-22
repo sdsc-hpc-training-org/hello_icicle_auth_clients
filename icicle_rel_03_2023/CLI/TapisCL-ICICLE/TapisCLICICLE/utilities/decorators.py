@@ -38,18 +38,15 @@ class RequiresForm(BaseRequirementDecorator):
     """
     async def __call__(self, command, *args, **kwargs):
         connection = kwargs['connection']
-        if connection:
+        if connection and not kwargs['file']:
             connection = connection
             fields = command.keyword_arguments
-            # for key, value in kwargs.items():
-            #     if value or value == False:
-            #         fields.remove(key)
             if not fields:
                 raise AttributeError(f"The decorated function {command} has no keyword parameters.")
             form_request = schemas.FormRequest(arguments_list=fields)
             await connection.send(form_request)
-            filled_form: schemas.FormResponse = await connection.receive().arguments_list
-            for key, value in filled_form.items():
+            filled_form: schemas.FormResponse = await connection.receive()
+            for key, value in filled_form.arguments_list.items():
                 kwargs[key] = value
 
         return await command.run(**kwargs)

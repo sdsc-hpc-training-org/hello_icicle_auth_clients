@@ -53,11 +53,9 @@ class whoami(baseCommand.BaseCommand):
     """
     @help: returns the username of the current user
     """
-    async def run(self, verbose: bool, *args, **kwargs) -> str:
+    async def run(self, *args, **kwargs) -> str:
         user_info = self.t.authenticator.get_userinfo()
-        if verbose:
-            return str(user_info)
-        return user_info.username
+        return user_info
     
 
 class get_args(baseCommand.BaseCommand):

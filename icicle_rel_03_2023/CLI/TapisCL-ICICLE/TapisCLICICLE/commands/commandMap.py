@@ -5,7 +5,7 @@ import inspect
 from tapipy import tapis
 try:
     from ..utilities import exceptions
-    from . import baseCommand, serverCommands, fileCommands, podCommands, appCommands, systemCommands
+    from . import baseCommand, serverCommands, fileCommands, podCommands, appCommands, systemCommands, dataFormatters
     from .query import neo4j, postgres
 except ImportError:
     import utilities.exceptions as exceptions
@@ -17,12 +17,14 @@ except ImportError:
     import commands.systemCommands as systemCommands
     import commands.query.neo4j as neo4j
     import commands.query.postgres as postgres
+    import commands.dataFormatters as dataFormatters
 
 
 class Systems(baseCommand.BaseCommandMap):
     """
     @help: run operations on Tapis systems
     """
+    data_formatter = dataFormatters.DataFormatters.system_formatter
     command_map = {
         'get_systems':systemCommands.get_systems(), # since initialization of commands is separate from __init__, you dont need to specify these as classes anymore
         'get_system_info':systemCommands.get_system_info(),
@@ -37,6 +39,7 @@ class Server(baseCommand.BaseCommandMap):
     """
     @help: run config operations on the 
     """
+    data_formatter = dataFormatters.DataFormatters.server_formatter
     command_map = {
         'whoami':serverCommands.whoami(),
         'exit':serverCommands.exit(),
@@ -50,6 +53,7 @@ class Pods(baseCommand.BaseCommandMap):
     """
     @help: run operations on tapis pods
     """
+    data_formatter = dataFormatters.DataFormatters.pod_formatter
     command_map = {
         'get_pods':podCommands.get_pods(),
         'create_pod':podCommands.create_pod(),
@@ -80,6 +84,7 @@ class Apps(baseCommand.BaseCommandMap):
     """
     @help: Run operations on tapis apps
     """
+    data_formatter = dataFormatters.DataFormatters.app_formatter
     command_map = {
         'create_app':appCommands.create_app(),
         'get_apps':appCommands.get_apps(),

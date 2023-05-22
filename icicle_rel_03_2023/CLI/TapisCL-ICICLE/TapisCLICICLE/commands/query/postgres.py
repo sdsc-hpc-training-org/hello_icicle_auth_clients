@@ -13,7 +13,7 @@ class postgres(baseCommand.BaseQuery):
     """
     decorator=decorators.RequiresExpression()
     async def run(self, id: str, expression: str=None, *args, **kwargs) -> str:
-        uname, pword = self.get_credentials(id)
+        uname, pword = self.get_pod_credentials(id)
         with psycopg2.connect(f"postgresql://{uname}:{pword}@{id}.pods.{self.t.base_url.split('https://')[1]}:443") as conn:
             conn.autocommit = True
             with conn.cursor() as cur:

@@ -46,11 +46,9 @@ class get_app(baseCommand.BaseCommand):
     """
     @help: return selected app information
     """
-    async def run(self, verbose: bool, id: str, version: str, *args, **kwargs)-> None | str: # returns app information with an id and version as arguments
+    async def run(self, id: str, version: str, *args, **kwargs)-> None | str: # returns app information with an id and version as arguments
         app = self.t.apps.getApp(appId=id, appVersion=version)
-        if verbose:
-            return str(app)
-        return None
+        return app
     
 
 class run_job(baseCommand.BaseCommand):

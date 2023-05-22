@@ -13,7 +13,7 @@ class Formatters:
                     print(("  " * (depth + 1)) + data)
             else: 
                 print(("  " * depth) + f"{key}: {str(value).strip()}")
-        if depth == 1:
+        if depth in (1, 0):
             print("\n")
 
     def print_response(self, response_message):
@@ -26,6 +26,6 @@ class Formatters:
              type(response_message) == tuple or 
              type(response_message) == set):
             for value in response_message:
-                print(value)
+                self.print_response(value)
         else:
             print(response_message)

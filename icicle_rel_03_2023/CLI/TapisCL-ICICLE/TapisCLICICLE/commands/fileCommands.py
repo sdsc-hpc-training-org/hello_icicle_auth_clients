@@ -13,11 +13,8 @@ class list_files(baseCommand.BaseCommand):
     """
     @help: list the files on a system 
     """
-    async def run(self, verbose: bool, id: str, file: str, *args, **kwargs) -> str: # lists files available on a tapis account
+    async def run(self, id: str, file: str, *args, **kwargs) -> str: # lists files available on a tapis account
         file_list = self.t.files.listFiles(systemId=id, path=file)
-        if verbose:
-            return str(file_list)
-        file_list = [self.return_formatter(f) for f in file_list]
         return str(file_list)
     
 

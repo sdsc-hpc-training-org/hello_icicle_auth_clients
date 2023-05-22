@@ -13,28 +13,18 @@ class get_pods(baseCommand.BaseCommand):
     @help: return a list of pods the current tapis instance has access to
     @todo: add feature so that an individual pod id can be passed to access pod specific
     """
-    async def run(self, verbose: bool, *args, **kwargs) -> str: 
+    async def run(self, *args, **kwargs) -> str: 
         pods_list = self.t.pods.get_pods()
-        if verbose:
-            return str(pods_list)
-        pods_list = [self.return_formatter(pod) for pod in pods_list]
-        pods_string = ""
-        
-        for pod in pods_list:
-            pods_string += str(pod)
-        return pods_string
-    
+        return pods_list
 
 class create_pod(baseCommand.BaseCommand):
     """
     @help: create a new pod on the selected Tapis service
     """
     decorator = decorators.RequiresForm()
-    async def run(self, id: str, template: str, verbose: bool, 
+    async def run(self, id: str, template: str, 
                   description: str | None = None, *args, **kwargs) -> str:
         pod_information = self.t.pods.create_pod(pod_id=id, pod_template=template, description=description)
-        if verbose:
-            return str(pod_information)
         return pod_information
     
 
@@ -44,17 +34,15 @@ class start_pod(baseCommand.BaseCommand):
     """
     async def run(self, id: str, *args, **kwargs):
         return_information = self.t.pods.start_pod(pod_id=id)
-        return str(return_information)
+        return return_information
 
 class restart_pod(baseCommand.BaseCommand):
     """
     @help: initiate a pod restart
     """
     decorator=decorators.NeedsConfirmation()
-    async def run(self, id: str, verbose: bool, *args, **kwargs) -> str:
+    async def run(self, id: str, *args, **kwargs) -> str:
         return_information = self.t.pods.restart_pod(pod_id=id)
-        if verbose:
-            return str(return_information)
         return return_information
 
 
@@ -73,10 +61,8 @@ class delete_pod(baseCommand.BaseCommand):
     @help: delete select pod
     """
     decorator=decorators.NeedsConfirmation()
-    async def run(self, id: str, verbose: bool, *args, **kwargs) -> str: 
+    async def run(self, id: str, *args, **kwargs) -> str: 
         return_information = self.t.pods.delete_pod(pod_id=id)
-        if verbose:
-            return str(return_information)
         return return_information
     
 
@@ -86,7 +72,7 @@ class set_pod_perms(baseCommand.BaseCommand):
     """
     async def run(self, id: str, username: str, level: str, *args, **kwargs) -> str: # set pod permissions, given a pod id, user, and permission level
         return_information = self.t.pods.set_pod_permission(pod_id=id, user=username, level=level)
-        return str(return_information)
+        return return_information
 
 
 class delete_pod_perms(baseCommand.BaseCommand):
@@ -96,7 +82,7 @@ class delete_pod_perms(baseCommand.BaseCommand):
     decorator=decorators.NeedsConfirmation()
     async def run(self, id: str, username: str, *args, **kwargs) -> str: # take away someones perms if they are being malicious, or something
         return_information = self.t.pods.delete_pod_perms(pod_id=id, user=username)
-        return str(return_information)
+        return return_information
 
 
 class get_perms(baseCommand.BaseCommand):
@@ -105,7 +91,7 @@ class get_perms(baseCommand.BaseCommand):
     """
     async def run(self, id: str, *args, **kwargs) -> str: # return a list of permissions on a given pod
         return_information = self.t.pods.get_pod_permissions(pod_id=id)
-        return str(return_information)
+        return return_information
 
 
 class copy_pod_password(baseCommand.BaseCommand):
@@ -113,7 +99,7 @@ class copy_pod_password(baseCommand.BaseCommand):
     @help: copy the pod password to the clipboard
     """
     decorator=decorators.Auth()
-    async def run(self, id: str, *args, **kwargs) -> str: # copies the pod password to clipboard so that the user can access the pod via the neo4j desktop app. Maybe a security risk? not as bad as printing passwords out!
+    async def run(self, id: str, username=None, password=None, *args, **kwargs) -> str: # copies the pod password to clipboard so that the user can access the pod via the neo4j desktop app. Maybe a security risk? not as bad as printing passwords out!
         password = self.t.pods.get_pod_credentials(pod_id=id).user_password
         pyperclip.copy(password)
         password = None

@@ -3,7 +3,8 @@ from abc import abstractmethod, ABC
 import re
 import inspect
 import abc
-from tapipy import tapis
+from tapipy.tapis import TapisResult
+from commands.dataFormatters import DataFormatters
 try:
     from ..utilities import decorators
     from ..utilities import exceptions
@@ -73,6 +74,7 @@ class CommandMetaClass(abc.ABCMeta):
 
 class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
     decorator = None
+    return_formatter = None
     def __init__(self):
         self.t = None
         self.username = None
@@ -99,14 +101,8 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
         return {
             "Command":self.__class__.__name__,
             "Description":self.help_string_retriever(),
-            "Syntax":self.__argument_help_gen()
+            "Syntax":f"{self.__class__.__name__} {self.__argument_help_gen()}"
         }
-        
-    def return_formatter(self, return_value):
-        """
-        placeholder for now
-        """
-        return return_value
 
     @abstractmethod
     async def run(self, *args, **kwargs):
@@ -119,8 +115,8 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
             return_value = await self.decorator(self, **kwargs)
         else:
             return_value = await self.run(**kwargs)
-        if not kwargs['verbose']:
-            return self.return_formatter(return_value)
+        if self.return_formatter:
+            return_value = self.return_formatter(return_value, kwargs['verbose'])
         return return_value
     
 
@@ -141,6 +137,7 @@ class CommandMapMetaClass(type):
         if name not in ('CommandMapMetaClass', 'BaseCommandMap'):
             instance.__check_commands_are_proper_type(name, attrs)
             instance.__check_command_name(name, attrs)
+            instance.__check_data_formatter(name, attrs)
         return instance
     
     def __check_commands_are_proper_type(self, name, attrs):
@@ -156,6 +153,10 @@ class CommandMapMetaClass(type):
         for command_name, command in commands.items():
             if command_name != command.__class__.__name__:
                 raise AttributeError(f"The command {command_name} in the command map {name} is a different name from its corresponding command class, {command.__class__.__name__}")
+            
+    def __check_data_formatter(self, name, attrs):
+        if 'data_formatter' not in list(attrs.keys()):
+            print(f"WARNING: The command map {name} has no data formatter. If any commands have non json-serializable return values, command execution will fail! These must be handled by a formatter")
 
 
 class CommandContainer:
@@ -164,10 +165,12 @@ class CommandContainer:
 
 class BaseCommandMap(CommandContainer, HelpStringRetriever, metaclass=CommandMapMetaClass):
     command_map: dict[str, Type[BaseCommand]] = None
+    data_formatter = None
     def __init__(self):
         self.brief_help = self.__brief_help_gen()
         self.verbose_help = self.__help_gen()
         for name, command in self.command_map.items():
+            command.return_formatter = self.data_formatter
             self.aggregate_command_map.update({name:command})
 
     def __help_gen(self):
