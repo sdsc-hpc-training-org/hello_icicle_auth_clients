@@ -64,19 +64,17 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
 
     def switch_session(self, username: str, password, link: str, *args, **kwargs):
         start = time.time()
-        print(username)
-        print(password)
-        self.username = username
-        self.password = password
         try:
             t = Tapis(base_url=f"https://{link}",
                     username=username,
                     password=password)
             t.get_tokens()
         except Exception as e:
-            print(e)
+            self.logger.warning(e)
             raise ValueError(f"Invalid tapis auth credentials")
         
+        self.username = username
+        self.password = password
         self.t = t
         self.url = link
         self.access_token = self.t.access_token
@@ -103,7 +101,6 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
         self.logger.info("Handshake starting")
         if self.initial:  # if this is the first time in the session that the cli is connecting
             startup_data = schemas.StartupData(initial = self.initial)
-            print("sending data")
             await connection.send(startup_data)
             self.logger.info("send the initial status update")
 
@@ -111,19 +108,18 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
                 url: schemas.StartupData = await connection.receive()
                 self.logger.info("received the link")
                 try:
-                    print("doin it again")
                     #await self.run_command(connection, {'command':'switch_service', 'link':url.url, 'verbose':False})
                     await self.aggregate_command_map['switch_service'](link=url.url, connection=connection, server=self, verbose=False)
                     self.logger.info("Verification success")
                     break
-                except exceptions.InvalidCredentialsReceived as e:
+                except ValueError as e:
                     login_failure_data = schemas.ResponseData(response_message = (str(e), attempt))
                     await connection.send(login_failure_data)
                     self.logger.warning(f"Verification failure, {e}")
                     if attempt == 3:  
                         self.logger.error(
                             "Attempted verification too many times. Exiting")
-                        raise exceptions.InvalidCredentialsReceived(self.handshake, "tapis auth")
+                        raise ValueError("auth failure")
                     continue
         else:
             self.configure_decorators(self.username, self.password)
@@ -140,14 +136,13 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
         connection = serverConnection.ServerConnection(reader=reader, writer=writer)
         self.timeout_handler()
         ip, port= writer.transport.get_extra_info('socket').getsockname()
-        print(ip)
         if ip != socket.gethostbyname(socket.gethostname()):
             raise exceptions.UnauthorizedAccessError(ip)
         self.logger.info("Received connection request")
         try:
             await self.handshake(connection)
-        except exceptions.InvalidCredentialsReceived:
-            logger.warning("invalid credentials entered too many times. Cancelling request")
+        except ValueError:
+            self.logger.warning("invalid credentials entered too many times. Cancelling request")
             await connection.close()
             return
 

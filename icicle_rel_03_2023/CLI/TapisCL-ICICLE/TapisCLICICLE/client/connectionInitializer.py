@@ -31,7 +31,8 @@ except:
 
 __location__ = os.path.realpath(
     os.path.join(os.getcwd(), os.path.dirname(__file__)))
-server_path = os.path.join(__location__, 'server.py')
+server_path = os.path.join(__location__, r'..\serverRun.py')
+print(server_path)
 
 
 class ConnectionInitilializer(handlers.Handlers):
@@ -44,7 +45,7 @@ class ConnectionInitilializer(handlers.Handlers):
         else: # unix based
             os.system(f"python {server_path} &")
 
-    @decorators.AnimatedLoading
+    #@decorators.AnimatedLoading
     def connection_initialization(self):
         """
         start the local server through the client
@@ -83,7 +84,6 @@ class ConnectionInitilializer(handlers.Handlers):
                     pass
                 url_data = schemas.StartupData(url=url)
                 self.json_send_explicit(self.connection, url_data.dict())
-                print("URL send")
                 auth_request: schemas.AuthRequest = self.schema_unpack_explicit(self.connection)
                 while True:
                     try:
@@ -92,10 +92,8 @@ class ConnectionInitilializer(handlers.Handlers):
                     except KeyboardInterrupt:
                         pass
                 self.json_send_explicit(self.connection, auth_data.dict())
-                print("sent creds")
 
                 verification: schemas.ResponseData | schemas.StartupData = self.schema_unpack_explicit(self.connection)
-                print(verification)
                 if verification.schema_type == 'StartupData': # verification success, program moves forward
                     return verification.username, verification.url
                 else: # verification failed. User has 3 tries, afterwards the program will shut down

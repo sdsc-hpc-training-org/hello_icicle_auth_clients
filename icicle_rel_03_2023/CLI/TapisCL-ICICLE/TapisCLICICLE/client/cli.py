@@ -34,7 +34,7 @@ except:
 
 __location__ = os.path.realpath(
     os.path.join(os.getcwd(), os.path.dirname(__file__)))
-server_path = os.path.join(__location__, 'server.py')
+server_path = os.path.join(__location__, r'..\server\server.py')
 
 
 class CLI(SO.ClientSocketOpts, decorators.DecoratorSetup, formatters.Formatters, args.Args, parsers.Parsers, connectionInitializer.ConnectionInitilializer):
