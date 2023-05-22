@@ -3,44 +3,31 @@ DECORATORS
 These decorators are used in the tapisObjectWrappers.py file to standardize special functions. Allows for increased code reusability
 """
 import typing
+import enum
 import sys
 import time
+import abc
+import socket
 from functools import update_wrapper, partial
 try:
-    from . import helpers
+    from . import killableThread
     from . import schemas
     from . import socketOpts
     from . import exceptions
 except:
-    import utilities.helpers as helpers
-    import utilities.schemas as schemas
-    import utilities.socketOpts as socketOpts
-    import utilities.exceptions as exceptions
+    import killableThread
+    import schemas
+    import socketOpts
+    import exceptions
+    
 
-
-class BaseRequirementDecorator(helpers.OperationsHelper):
+class BaseRequirementDecorator(abc.ABC):
     username: typing.Optional[str] = None
     password: typing.Optional[str] = None
-    def __init__(self, func: typing.Callable):
-        update_wrapper(self, func)
-        self.function = func
-        self.__code__ = func.__code__
-        self.__doc__ = func.__doc__
-        self.__name__ = func.__name__
-    
-    def __get__(self, obj, objtype): 
-        """Support instance methods."""
-        part = partial(self.__call__, obj)
-        part.__code__ = self.__code__
-        part.__doc__ = self.__doc__
-        part.__name__ = self.__name__
-        return part
-    
-    def __repr__(self):
-        return str(self.function)
-    
-    def __str__(self):
-        return str(self.function)
+
+    @abc.abstractmethod
+    async def __call__(self, command: typing.Type[object], connection: socket.socket, *args, **kwargs):
+        pass
 
 
 class RequiresForm(BaseRequirementDecorator):
@@ -49,22 +36,20 @@ class RequiresForm(BaseRequirementDecorator):
     Takes the parameters list of the function in question, filters out the ones that were not received from the original request message, sends another message 
     to request the unreceived parameters, and receives a message in response from the client to execute the function
     """
-    async def __call__(self, obj, *args, **kwargs):
-        if kwargs['connection']:
-            connection = kwargs['connection']
-            fields = list(helpers.get_parameters(self.function))
-            for key, value in kwargs.items():
-                if value or value == False:
-                    fields.remove(key)
+    async def __call__(self, command, *args, **kwargs):
+        connection = kwargs['connection']
+        if connection and not kwargs['file']:
+            connection = connection
+            fields = command.keyword_arguments
             if not fields:
-                raise AttributeError(f"The decorated function {self.function} has no parameters.")
+                raise AttributeError(f"The decorated function {command} has no keyword parameters.")
             form_request = schemas.FormRequest(arguments_list=fields)
             await connection.send(form_request)
-            filled_form: schemas.FormResponse = await connection.receive().arguments_list
-            for key, value in filled_form.items():
+            filled_form: schemas.FormResponse = await connection.receive()
+            for key, value in filled_form.arguments_list.items():
                 kwargs[key] = value
 
-        return await self.function(obj, **kwargs)
+        return await command.run(**kwargs)
 
 
 class RequiresExpression(BaseRequirementDecorator):
@@ -73,18 +58,18 @@ class RequiresExpression(BaseRequirementDecorator):
     easier to do if you have a blank, multiline environment to write. This will send a request for an expression, if an expression parameter exists in the decorated function.
     The client will open a new interface to type the expression. This is then sent back and fed to the function
     """
-    async def __call__(self, obj, *args, **kwargs):
-        if kwargs['connection']:
-            connection = kwargs['connection']
-            fields = list(helpers.get_parameters(self.function))
-            if 'expression' not in fields:
-                raise AttributeError(f"The function {self.function} does not contain an 'expression' parameter")
+    async def __call__(self, command, *args, **kwargs):
+        connection = kwargs['connection']
+        if connection:
+            connection = connection
+            if 'expression' not in command.keyword_arguments:
+                raise AttributeError(f"The function {command} does not contain an 'expression' keyword parameter")
             form_request = schemas.FormRequest(arguments_list=[])
             await connection.send(form_request)
             filled_form: schemas.FormResponse = await connection.receive()
             kwargs['expression'] = filled_form.arguments_list
 
-        return await self.function(obj, **kwargs)
+        return await command.run(**kwargs)
     
 
 class SecureInput(BaseRequirementDecorator):
@@ -92,18 +77,18 @@ class SecureInput(BaseRequirementDecorator):
     Use this for functions where you need to hide input while typing into the cli. For instance, if you want to add a password to a service, as a user, but you dont actually
     want to authenticate. Checks if the decorated function has a password parameter, then requests secure input of a new password from the client
     """
-    async def __call__(self, obj, *args, **kwargs):
-        if kwargs['connection']:
-            connection = kwargs['connection']
-            fields = list(helpers.get_parameters(self.function))
-            if 'password' in fields:
+    async def __call__(self, command, *args, **kwargs):
+        connection = kwargs['connection']
+        if connection:
+            connection = connection
+            if 'password' in command.keyword_arguments:
                 secure_input_request = schemas.AuthRequest(secure_input=True)
                 await connection.send(secure_input_request)
                 secure_input_data: schemas.AuthData = await connection.receive()
                 kwargs['password'] = secure_input_data.password
-                return await self.function(obj, **kwargs)
-            raise AttributeError(f"The function {self.function} does not contain a 'password' parameter to securely input")
-        return await self.function(obj, **kwargs)
+                return await command.run(**kwargs)
+            raise AttributeError(f"The function {command} does not contain a 'password' parameter to securely input")
+        return await command.run(**kwargs)
 
 
 class Auth(BaseRequirementDecorator):
@@ -111,49 +96,53 @@ class Auth(BaseRequirementDecorator):
     used for secure authentication from the client. Requires that the function has a username and password parameter for credentials. sends request for credentials from 
     the client, and checks those credentials against the stored credentials in the server.
     """
-    async def __call__(self, obj, *args, **kwargs):
-        no_username = False
-        if kwargs['connection']:
-            connection = kwargs['connection']
-            if self.function.__name__ == 'tapis_init' and kwargs['username'] and kwargs['password']:
-                return await self.function(obj, **kwargs)
-            fields = list(helpers.get_parameters(self.function))
-            if kwargs['username']:
-                no_username = True
+    async def __call__(self, command, *args, **kwargs):
+        connection = kwargs['connection']
+        requires_username = True
+        if connection:
+            if 'password' not in command.keyword_arguments:
+                raise AttributeError(f"The command {command.__class__.__name__} does not have a 'password' keyword argument")
+            if 'username' not in command.keyword_arguments:
                 auth_request = schemas.AuthRequest(requires_username=False)
+                requires_username = False
             else:
                 auth_request = schemas.AuthRequest()
             await connection.send(auth_request)
-            auth_data: schemas.AuthData = await connection.receive()
-            if 'username' in fields and 'password' in fields and not no_username:
-                kwargs['username'], kwargs['password'] = auth_data.username, auth_data.password
-                return await self.function(obj, **kwargs)
-            elif 'password' in fields and no_username:
-                kwargs['password'] = auth_data.password
-            username, password = auth_data.username, auth_data.password
-            if username != BaseRequirementDecorator.username:
-                raise exceptions.InvalidCredentialsReceived(self.function, 'username')
-            elif password != BaseRequirementDecorator.password:    
-                raise exceptions.InvalidCredentialsReceived(self.function, 'password')
-
-        return await self.function(obj, **kwargs)
+            auth_data = await connection.receive()
+            if auth_data.password != self.password and self.password:
+                raise ValueError("The provided password does not match the stored password")
+            if ((requires_username and auth_data.username != self.password) or (not requires_username and kwargs['username'] != self.username)) and self.username:
+                raise ValueError("The provided username does not match the stored username")
+            print(kwargs)
+            kwargs['username'], kwargs['password'] = auth_data.username, auth_data.password
+            return await command.run(**kwargs)
+        return await command.run(**kwargs)
 
 
 class NeedsConfirmation(BaseRequirementDecorator):
     """
     add to functions that you want user confirmation to exit. If you accidentally enter a command to delete a pod, this will not let you until you confirm
     """
-    async def __call__(self, obj, *args, **kwargs):
-        if kwargs['connection']:
-            connection = kwargs['connection']
-            confirmation_request = schemas.ConfirmationRequest(message=f"YOU REQUESTED TO {self.function.__name__}. THIS MIGHT CAUSE DATA LOSS! Please confirm (y/n)")
+    async def __call__(self, command, *args, **kwargs):
+        connection = kwargs['connection']
+        if connection:
+            connection = connection
+            confirmation_request = schemas.ConfirmationRequest(message=f"YOU REQUESTED TO {command.__class__.__name__}. THIS MIGHT CAUSE DATA LOSS! Please confirm (y/n)")
             await connection.send(confirmation_request)
             confirmation_reply: schemas.ResponseData = await connection.receive()
             confirmed = confirmation_reply.response_message
             if not confirmed:
-                raise exceptions.NoConfirmationError(self.function)
-        return await self.function(obj, **kwargs)
+                raise exceptions.NoConfirmationError(command)
+        return await command.run(**kwargs)
 
+
+DECORATOR_LIST = [
+    NeedsConfirmation,
+    RequiresForm,
+    RequiresExpression,
+    SecureInput,
+    Auth
+]
     
 class DecoratorSetup:
     """
@@ -161,9 +150,9 @@ class DecoratorSetup:
     YOU WILL NEED TO USE THIS!
     """
     def configure_decorators(self, username, password):
-        BaseRequirementDecorator.username = username
-        BaseRequirementDecorator.password = password
-    
+        self.username = username
+        self.password = password
+
 
 class AnimatedLoading:
     """
@@ -171,7 +160,7 @@ class AnimatedLoading:
     """
     def __init__(self, func: typing.Callable):
         update_wrapper(self, func)
-        self.function = func
+        self.func = func
         self.__code__ = func.__code__
         self.animation_frames = ['|','/','-','\\']
 
@@ -180,26 +169,25 @@ class AnimatedLoading:
         return partial(self.__call__, obj)
 
     def __repr__(self):
-        return self.function
+        return self.func
     
     def __str__(self):
-        return str(self.function)
+        return str(self.func)
     
     def animation(self):
         while True:
             for frame in self.animation_frames:
-                sys.stdout.write(f'\rloading ' + frame)
-                sys.stdout.flush()
+                print(f"loading {frame}", end='', flush=True)
                 time.sleep(0.5)
     
     def __call__(self, obj, *args, **kwargs):
-        if not BaseRequirementDecorator.username:
-            animation_thread = helpers.KillableThread(target=self.animation)
-            animation_thread.start()
-            result = self.function(obj, *args, **kwargs)
-            sys.stdout.flush()
-            animation_thread.kill()
-            sys.stdout.flush()
-        else:
-            result = self.function(obj, *args, **kwargs)
+        animation_thread = killableThread.KillableThread(target=self.animation)
+        animation_thread.start()
+        result = self.func(obj, *args, **kwargs)
+        animation_thread.kill()
+        print("", end='', flush=True)
         return result
+    
+
+if __name__ == "__main__":
+    print(issubclass(RequiresExpression, BaseRequirementDecorator))

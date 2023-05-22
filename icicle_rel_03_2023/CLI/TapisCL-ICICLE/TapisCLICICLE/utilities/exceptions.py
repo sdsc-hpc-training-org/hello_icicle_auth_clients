@@ -39,7 +39,7 @@ class NoConfirmationError(Exception):
     raise error when no confirmation is given for a function that needs confirmation to continue
     """
     def __init__(self, function: typing.Callable):
-        super().__init__(f"Confirmation was not given to the function {function.__name__}")
+        super().__init__(f"Confirmation was not given to the function {function.__class__.__name__}")
 
 
 class InvalidCredentialsReceived(Exception):
@@ -47,7 +47,7 @@ class InvalidCredentialsReceived(Exception):
     raise error when the provided credentials fail
     """
     def __init__(self, function: typing.Callable, cred_type: str):
-        super().__init__(f"The {cred_type} provided for the command {function.__name__} was invalid")
+        super().__init__(f"The {cred_type} provided for the command {function.__class__.__name__} was invalid")
 
 
 class HelpDoesNotExist(AttributeError):

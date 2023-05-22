@@ -1,7 +1,7 @@
 try:
-    from . import socketOpts
+    from ..utilities import socketOpts
 except:
-    import socketOpts
+    import utilities.socketOpts as socketOpts
 
 class ServerConnection(socketOpts.ServerSocketOpts):
     """

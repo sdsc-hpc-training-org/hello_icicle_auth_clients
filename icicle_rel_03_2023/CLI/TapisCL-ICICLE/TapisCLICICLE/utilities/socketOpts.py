@@ -5,7 +5,7 @@ import pydantic
 try:
     from . import schemas
 except:
-    import utilities.schemas as schemas
+    import schemas
 
 
 schema_types: dict = {
