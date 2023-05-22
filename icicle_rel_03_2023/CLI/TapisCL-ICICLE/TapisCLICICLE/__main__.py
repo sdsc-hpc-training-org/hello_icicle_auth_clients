@@ -1,4 +1,4 @@
-from TapisCLICICLE.cli import CLI
+from TapisCLICICLE.client.cli import CLI
 import socket
 
 
