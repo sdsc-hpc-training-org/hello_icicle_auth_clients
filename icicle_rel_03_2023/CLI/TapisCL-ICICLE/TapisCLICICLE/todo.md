@@ -10,3 +10,11 @@ This way the "partial" thing with the decorators could be phased out. This would
 5. add way for the client to popup a new window every time it runs
 
 6. ruyn the client startup more naturally, more like you would other commands
+
+7. Make the client run on a state system to allow more graceful interface with the server. THis would mean you could have a state for accessing systems, for accessing files, submitting queries etc
+
+8. what if there is a command that requires secure input and a form? how can commands handle several decorators
+
+9. Standardize the library, to make it redistributable for other project
+
+10. reorganize classes to have server and CLI in separate files
