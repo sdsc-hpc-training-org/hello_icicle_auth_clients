@@ -8,7 +8,7 @@ import typing
 try:
     from ..utilities import exceptions
     from ..utilities import decorators
-    from ..utilities import args
+    from ..utilities import args as Args
     from ..utilities import schemas
     from ..utilities import helpers
     from . import baseCommand
@@ -16,7 +16,7 @@ except:
     import utilities.helpers as helpers
     import utilities.exceptions as exceptions
     import utilities.decorators as decorators
-    import utilities.args as args
+    import utilities.args as Args
     import utilities.decorators as decorators
     import utilities.schemas as schemas
     import commands.baseCommand as baseCommand
@@ -64,4 +64,4 @@ class get_args(baseCommand.BaseCommand):
     @help: get the list of possible arguments 
     """
     async def run(self, *args, **kwargs):
-        return args.Args.argparser_args
+        return Args.Args.argparser_args
