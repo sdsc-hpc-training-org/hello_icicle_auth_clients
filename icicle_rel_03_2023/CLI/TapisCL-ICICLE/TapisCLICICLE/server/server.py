@@ -9,30 +9,31 @@ import logging
 import typing
 import asyncio
 import traceback
-from utilities.decorators import DecoratorSetup
 
 try:
-    from .utilities import exceptions
-    from .utilities import logger
-    from .utilities import socketOpts as SO
-    from .utilities import helpers
-    from .utilities import schemas
-    from .utilities import serverConnection
-    from .commands.query import neo4j, postgres
-    from .commands import baseCommand
-    from .commands import commandMap
+    from ..utilities import exceptions
+    from ..utilities import logger
+    from ..utilities import socketOpts as SO
+    from ..utilities import killableThread
+    from ..utilities import schemas
+    from . import serverConnection
+    from ..commands.query import neo4j, postgres
+    from ..commands import baseCommand
+    from ..commands import commandMap
+    from ..utilities import decorators
 except ImportError:
+    import utilities.decorators as decorators
     import utilities.exceptions as exceptions
     import utilities.logger as logger
     import utilities.socketOpts as SO
-    import utilities.helpers as helpers
+    import utilities.killableThread as killableThread
     import utilities.schemas as schemas
-    import utilities.serverConnection as serverConnection
+    import server.serverConnection as serverConnection
     import commands.baseCommand as baseCommand
     import commands.commandMap as commandMap
 
 
-class Server(commandMap.AggregateCommandMap, logger.ServerLogger, DecoratorSetup):
+class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.DecoratorSetup):
     """
     Receives commands from the client and executes Tapis operations
     """
@@ -61,25 +62,27 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, DecoratorSetup
 
         self.logger.info('initialization complete')
 
-    def switch_session(self, username: str, link: str, *args, **kwargs):
+    def switch_session(self, username: str, password, link: str, *args, **kwargs):
         start = time.time()
+        print(username)
+        print(password)
         self.username = username
-        self.password = kwargs['password']
+        self.password = password
         try:
             t = Tapis(base_url=f"https://{link}",
                     username=username,
-                    password=kwargs['password'])
+                    password=password)
             t.get_tokens()
         except Exception as e:
             print(e)
-            raise exceptions.InvalidCredentialsReceived(function=self.tapis_init, cred_type="Tapis Auth")
+            raise ValueError(f"Invalid tapis auth credentials")
         
         self.t = t
         self.url = link
         self.access_token = self.t.access_token
 
         self.configure_decorators(self.username, self.password)
-        self.update_credentials(t, username, kwargs['password'])
+        self.update_credentials(t, username, password)
         # V3 Headers
         header_dat = {"X-Tapis-token": t.access_token.access_token,
                       "Content-Type": "application/json"}
@@ -107,15 +110,12 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, DecoratorSetup
             for attempt in range(1, 4):
                 url: schemas.StartupData = await connection.receive()
                 self.logger.info("received the link")
-                auth_request = schemas.AuthRequest()
-                self.logger.info("send the auth request")
-                await connection.send(auth_request)
-                auth_data: schemas.AuthData = await connection.receive()
-                self.logger.info("received the creds")
-                url, username, password = url.url, auth_data.username, auth_data.password
                 try:
-                    await self.aggregate_command_map['switch_service'](link=url, username=username, password=password, connection=connection, server=self, verbose=False)
-                    #await self.run_command(connection, {'link':f"https://{url}", 'username':username, 'password':password})
+                    print("doin it again")
+                    #await self.run_command(connection, {'command':'switch_service', 'link':url.url, 'verbose':False})
+                    await self.aggregate_command_map['switch_service'](link=url.url, connection=connection, server=self, verbose=False)
+                    self.logger.info("Verification success")
+                    break
                 except exceptions.InvalidCredentialsReceived as e:
                     login_failure_data = schemas.ResponseData(response_message = (str(e), attempt))
                     await connection.send(login_failure_data)
@@ -125,8 +125,6 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, DecoratorSetup
                             "Attempted verification too many times. Exiting")
                         raise exceptions.InvalidCredentialsReceived(self.handshake, "tapis auth")
                     continue
-                self.logger.info("Verification success")
-                break
         else:
             self.configure_decorators(self.username, self.password)
         self.initial = False

@@ -8,12 +8,12 @@ try:
     from ..utilities import decorators
     from ..utilities import exceptions
     from ..utilities.args import Args
-    from ..utilities import helpers
+    from ..utilities import killableThread
 except:
     import utilities.decorators as decorators
     import utilities.exceptions as exceptions
     import utilities.args as Args
-    import utilities.helpers as helpers
+    import utilities.killableThread as killableThread
 
 
 EXCLUDED_ARGUMENTS = ('self', 'args', 'kwargs')
@@ -117,7 +117,8 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
             return self.help
         if self.decorator:
             return_value = await self.decorator(self, **kwargs)
-        return_value = await self.run(**kwargs)
+        else:
+            return_value = await self.run(**kwargs)
         if not kwargs['verbose']:
             return self.return_formatter(return_value)
         return return_value

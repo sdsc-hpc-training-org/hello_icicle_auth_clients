@@ -10,12 +10,12 @@ import abc
 import socket
 from functools import update_wrapper, partial
 try:
-    from . import helpers
+    from . import killableThread
     from . import schemas
     from . import socketOpts
     from . import exceptions
 except:
-    import helpers
+    import killableThread
     import schemas
     import socketOpts
     import exceptions
@@ -112,10 +112,12 @@ class Auth(BaseRequirementDecorator):
                 auth_request = schemas.AuthRequest()
             await connection.send(auth_request)
             auth_data = await connection.receive()
-            if auth_data.password != self.password:
+            if auth_data.password != self.password and self.password:
                 raise ValueError("The provided password does not match the stored password")
-            if (requires_username and auth_data.username != self.password) or (not requires_username and kwargs['username'] != self.username):
+            if ((requires_username and auth_data.username != self.password) or (not requires_username and kwargs['username'] != self.username)) and self.username:
                 raise ValueError("The provided username does not match the stored username")
+            print(kwargs)
+            kwargs['username'], kwargs['password'] = auth_data.username, auth_data.password
             return await command.run(**kwargs)
         return await command.run(**kwargs)
 
@@ -182,7 +184,7 @@ class AnimatedLoading:
                 time.sleep(0.5)
     
     def __call__(self, obj, *args, **kwargs):
-        animation_thread = helpers.KillableThread(target=self.animation)
+        animation_thread = killableThread.KillableThread(target=self.animation)
         animation_thread.start()
         result = self.func(obj, *args, **kwargs)
         animation_thread.kill()
