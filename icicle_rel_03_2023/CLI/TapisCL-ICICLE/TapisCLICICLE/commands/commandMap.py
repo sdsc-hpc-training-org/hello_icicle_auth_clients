@@ -129,7 +129,7 @@ class AggregateCommandMap(baseCommand.CommandContainer):
         """
         command_data['connection'] = connection
         command_data['server'] = self
-        print(command_data)
+        print(f"FROM RUN COMMAND {command_data}")
         command_name = command_data['command']
         if command_name in list(self.aggregate_command_map.keys()):
             command = self.aggregate_command_map[command_name]

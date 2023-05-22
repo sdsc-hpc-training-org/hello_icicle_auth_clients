@@ -18,3 +18,5 @@ This way the "partial" thing with the decorators could be phased out. This would
 9. Standardize the library, to make it redistributable for other project
 
 10. reorganize classes to have server and CLI in separate files
+
+11. make schemas more intuitive, so that the schema type isnt explicitly states, maybe make ti copy the class name?

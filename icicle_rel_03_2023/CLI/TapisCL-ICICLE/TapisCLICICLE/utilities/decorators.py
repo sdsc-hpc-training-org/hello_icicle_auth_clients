@@ -37,10 +37,10 @@ class RequiresForm(BaseRequirementDecorator):
     to request the unreceived parameters, and receives a message in response from the client to execute the function
     """
     async def __call__(self, command, *args, **kwargs):
-        if kwargs['connection']:
-            connection = kwargs['connection']
-            fields = command.positional_arguments
-            fields.remove('kwargs')
+        connection = kwargs['connection']
+        if connection:
+            connection = connection
+            fields = command.keyword_arguments
             # for key, value in kwargs.items():
             #     if value or value == False:
             #         fields.remove(key)
@@ -62,8 +62,9 @@ class RequiresExpression(BaseRequirementDecorator):
     The client will open a new interface to type the expression. This is then sent back and fed to the function
     """
     async def __call__(self, command, *args, **kwargs):
-        if kwargs['connection']:
-            connection = kwargs['connection']
+        connection = kwargs['connection']
+        if connection:
+            connection = connection
             if 'expression' not in command.keyword_arguments:
                 raise AttributeError(f"The function {command} does not contain an 'expression' keyword parameter")
             form_request = schemas.FormRequest(arguments_list=[])
@@ -80,8 +81,9 @@ class SecureInput(BaseRequirementDecorator):
     want to authenticate. Checks if the decorated function has a password parameter, then requests secure input of a new password from the client
     """
     async def __call__(self, command, *args, **kwargs):
-        if kwargs['connection']:
-            connection = kwargs['connection']
+        connection = kwargs['connection']
+        if connection:
+            connection = connection
             if 'password' in command.keyword_arguments:
                 secure_input_request = schemas.AuthRequest(secure_input=True)
                 await connection.send(secure_input_request)
@@ -98,30 +100,23 @@ class Auth(BaseRequirementDecorator):
     the client, and checks those credentials against the stored credentials in the server.
     """
     async def __call__(self, command, *args, **kwargs):
-        no_username = False
-        if kwargs['connection']:
-            connection = kwargs['connection']
-            if command.__class__.__name__ == 'switch_service' and kwargs['username'] and 'password' in list(kwargs.keys()) and kwargs['password']:
-                return await command.run(**kwargs)
-            fields = command.keyword_arguments
-            if kwargs['username']:
-                no_username = True
+        connection = kwargs['connection']
+        requires_username = True
+        if connection:
+            if 'password' not in command.keyword_arguments:
+                raise AttributeError(f"The command {command.__class__.__name__} does not have a 'password' keyword argument")
+            if 'username' not in command.keyword_arguments:
                 auth_request = schemas.AuthRequest(requires_username=False)
+                requires_username = False
             else:
                 auth_request = schemas.AuthRequest()
             await connection.send(auth_request)
-            auth_data: schemas.AuthData = await connection.receive()
-            if 'username' in fields and 'password' in fields and not no_username:
-                kwargs['username'], kwargs['password'] = auth_data.username, auth_data.password
-                return await command.run(**kwargs)
-            elif 'password' in fields and no_username:
-                kwargs['password'] = auth_data.password
-            username, password = auth_data.username, auth_data.password
-            if username != self.username:
-                raise exceptions.InvalidCredentialsReceived(command, 'username')
-            elif password != self.password:    
-                raise exceptions.InvalidCredentialsReceived(command, 'password')
-
+            auth_data = await connection.receive()
+            if auth_data.password != self.password:
+                raise ValueError("The provided password does not match the stored password")
+            if (requires_username and auth_data.username != self.password) or (not requires_username and kwargs['username'] != self.username):
+                raise ValueError("The provided username does not match the stored username")
+            return await command.run(**kwargs)
         return await command.run(**kwargs)
 
 
@@ -130,8 +125,9 @@ class NeedsConfirmation(BaseRequirementDecorator):
     add to functions that you want user confirmation to exit. If you accidentally enter a command to delete a pod, this will not let you until you confirm
     """
     async def __call__(self, command, *args, **kwargs):
-        if kwargs['connection']:
-            connection = kwargs['connection']
+        connection = kwargs['connection']
+        if connection:
+            connection = connection
             confirmation_request = schemas.ConfirmationRequest(message=f"YOU REQUESTED TO {command.__class__.__name__}. THIS MIGHT CAUSE DATA LOSS! Please confirm (y/n)")
             await connection.send(confirmation_request)
             confirmation_reply: schemas.ResponseData = await connection.receive()
