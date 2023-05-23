@@ -1,13 +1,9 @@
-from tapipy import tapis
-import pyperclip
 import json
 import os
-try:
-    from . import baseCommand
-    from ..utilities import decorators
-except:
-    import commands.baseCommand as baseCommand
-    import utilities.decorators as decorators
+
+
+if __name__ != "__main__":
+    from . import baseCommand, decorators
 
 
 __location__ = os.path.realpath(

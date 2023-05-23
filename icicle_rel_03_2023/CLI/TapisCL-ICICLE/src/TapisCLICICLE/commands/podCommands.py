@@ -1,11 +1,8 @@
-from tapipy import tapis
 import pyperclip
-try:
-    from . import baseCommand
-    from ..utilities import decorators
-except:
-    import commands.baseCommand as baseCommand
-    import utilities.decorators as decorators
+
+
+if __name__ != "__main__":
+    from . import baseCommand, decorators
 
 
 class get_pods(baseCommand.BaseCommand):

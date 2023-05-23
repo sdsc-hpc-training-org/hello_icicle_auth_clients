@@ -3,6 +3,7 @@ SCHEMAS
 These are standardized JSON serializable data formats to make socket operations on the localhost client-server smoother.
 '''
 from typing import Any, Optional
+
 from pydantic import BaseModel
 
 
