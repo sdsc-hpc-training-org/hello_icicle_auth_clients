@@ -1,0 +1,29 @@
+# pyproject.toml
+
+[build-system]
+requires      = ["setuptools>=61.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "TapisFederatedAuthClientAPI"
+version = "0.0.1"
+description = "Lightweight API to retrieve authenticator clients for Tapis tenants"
+readme = "README.md"
+authors = [{ name = "Michael Ray", email = "m.ray37990@gmail.com" }]
+license = { file = "LICENSE" }
+classifiers = [
+    "License :: OSI Approved :: GNU General Public License (GPL)",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+]
+keywords = ["Tapis", "CLI", "Agave", "HPC", "Tapis Pods", "TACC"]
+dependencies = [
+    "requests"
+]
+requires-python = ">=3.9"
+
+[project.optional-dependencies]
+dev = []
+
+[project.urls]
+Homepage = "https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients/tree/main/icicle_rel_03_2023/FederatedAuth"
