@@ -1,37 +1,34 @@
 import sys
-from getpass import getpass
 import time
-import re
-from tapipy.tapis import Tapis
 import socket
 import os
-import logging
-import typing
 import asyncio
 import traceback
 
-try:
-    from ..utilities import exceptions
-    from ..utilities import logger
-    from ..utilities import socketOpts as SO
-    from ..utilities import killableThread
-    from ..utilities import schemas
-    from . import serverConnection
-    from ..commands.query import neo4j, postgres
-    from ..commands import baseCommand
-    from ..commands import commandMap
-    from ..commands import decorators
-except ImportError:
-    import commands.decorators as decorators
-    import utilities.exceptions as exceptions
-    import utilities.logger as logger
-    import utilities.socketOpts as SO
-    import utilities.killableThread as killableThread
-    import utilities.schemas as schemas
-    import server.serverConnection as serverConnection
-    import commands.baseCommand as baseCommand
+from tapipy.tapis import Tapis
+
+if __name__ != "__main__":
+    from commands import commandMap, decorators
+    from utilities import logger, exceptions
+    from socketopts import schemas, socketOpts
+else:
     import commands.commandMap as commandMap
 
+
+class ServerConnection(socketOpts.ServerSocketOpts):
+    """
+    connection object to wrap around async reader and writer to make work easier
+    """
+    def __init__(self, reader, writer):
+        self.reader = reader
+        self.writer = writer
+
+    async def close(self):
+        self.reader.feed_eof()
+        await self.reader.wait_eof()
+        self.writer.close()
+        await self.writer.wait_closed()
+        
 
 class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.DecoratorSetup):
     """
@@ -133,7 +130,7 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
         """
         accept connection request and initialize communication with the client
         """  
-        connection = serverConnection.ServerConnection(reader=reader, writer=writer)
+        connection = ServerConnection(reader=reader, writer=writer)
         self.timeout_handler()
         ip, port= writer.transport.get_extra_info('socket').getsockname()
         if ip != socket.gethostbyname(socket.gethostname()):
@@ -199,8 +196,12 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
     
     async def main(self):
         self.server = await asyncio.start_server(self.accept, sock=self.sock)
-        async with self.server:
-            await self.server.serve_forever()
+        try:
+            async with self.server:
+                await self.server.serve_forever()
+        except KeyboardInterrupt:
+            self.server.close()
+            sys.exit(0)
 
 
 if __name__ == '__main__':

@@ -1,11 +1,13 @@
 import json
-import asyncio
 import typing
+
 import pydantic
+
+
 try:
-    from . import schemas
+    from socketopts import schemas
 except:
-    import schemas
+    from . import schemas
 
 
 schema_types: dict = {

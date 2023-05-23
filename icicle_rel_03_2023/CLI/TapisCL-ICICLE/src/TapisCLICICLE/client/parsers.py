@@ -1,10 +1,5 @@
-from argparse import SUPPRESS
-from getpass import getpass
-import os
-try:
-    from ..utilities import schemas
-except:
-    import utilities.schemas as schemas
+if __name__ != "__main__":
+    from ..socketopts import schemas
 
 
 class Parsers:

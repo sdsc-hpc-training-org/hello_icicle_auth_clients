@@ -1,12 +1,5 @@
-from tapipy import tapis
-import pyperclip
-import json
-try:
+if __name__ != "__main__":
     from . import baseCommand
-    from . import decorators
-except:
-    import commands.baseCommand as baseCommand
-    import commands.decorators as decorators
 
 
 class list_files(baseCommand.BaseCommand):

@@ -1,10 +1,8 @@
 import psycopg2
-try:
-    from .. import decorators
-    from .. import baseCommand
-except:
-    import commands.decorators as decorators
-    import commands.baseCommand as baseCommand
+
+
+if __name__ != "__main__":
+    from .. import baseCommand, decorators
 
 
 class postgres(baseCommand.BaseQuery):

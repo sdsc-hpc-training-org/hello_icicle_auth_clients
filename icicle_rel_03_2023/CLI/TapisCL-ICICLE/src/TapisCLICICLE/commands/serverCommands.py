@@ -1,25 +1,10 @@
-import sys
-import time
-import re
-from tapipy.tapis import Tapis
-import os
 import typing
 
-try:
-    from ..utilities import exceptions
-    from . import decorators
-    from ..utilities import args as Args
-    from ..utilities import schemas
-    from ..utilities import killableThread
-    from . import baseCommand
-except:
-    import utilities.killableThread as killableThread
-    import utilities.exceptions as exceptions
-    import commands.decorators as decorators
-    import utilities.args as Args
-    import commands.decorators as decorators
-    import utilities.schemas as schemas
-    import commands.baseCommand as baseCommand
+
+if __name__ != "__main__":
+    from . import args as Args
+    from . import baseCommand, decorators
+    from utilities import exceptions
 
 
 class switch_service(baseCommand.BaseCommand):
@@ -48,6 +33,7 @@ class shutdown(baseCommand.BaseCommand):
     decorator = decorators.NeedsConfirmation()
     async def run(self, *args, **kwargs):
         raise exceptions.Shutdown
+    
     
 class whoami(baseCommand.BaseCommand):
     """

@@ -1,23 +1,7 @@
-from typing import Callable, Optional, Union, Type
-from abc import abstractmethod, ABC
-import re
-import inspect
-from tapipy import tapis
-try:
-    from ..utilities import exceptions
-    from . import baseCommand, serverCommands, fileCommands, podCommands, appCommands, systemCommands, dataFormatters
-    from .query import neo4j, postgres
-except ImportError:
-    import utilities.exceptions as exceptions
-    import commands.baseCommand as baseCommand
-    import commands.serverCommands as serverCommands
-    import commands.fileCommands as fileCommands
-    import commands.podCommands as podCommands
-    import commands.appCommands as appCommands
-    import commands.systemCommands as systemCommands
-    import commands.query.neo4j as neo4j
-    import commands.query.postgres as postgres
-    import commands.dataFormatters as dataFormatters
+if __name__ != "__main__":
+    from . import systemCommands, serverCommands, appCommands, podCommands, fileCommands, dataFormatters, baseCommand
+    from .query import postgres, neo4j
+    from utilities import exceptions
 
 
 class Systems(baseCommand.BaseCommandMap):
@@ -39,7 +23,7 @@ class Server(baseCommand.BaseCommandMap):
     """
     @help: run config operations on the 
     """
-    data_formatter = dataFormatters.DataFormatters.server_formatter
+    #data_formatter = dataFormatters.DataFormatters.server_formatter
     command_map = {
         'whoami':serverCommands.whoami(),
         'exit':serverCommands.exit(),

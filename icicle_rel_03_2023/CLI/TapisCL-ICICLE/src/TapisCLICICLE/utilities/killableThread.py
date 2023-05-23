@@ -2,10 +2,8 @@
 HELPERS
 Aggregation of helper functions and classes
 """
-import typing
 import sys
 import threading
-import re
 
 
 class KillableThread(threading.Thread):

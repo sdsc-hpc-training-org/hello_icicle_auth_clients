@@ -3,23 +3,18 @@ DECORATORS
 These decorators are used in the tapisObjectWrappers.py file to standardize special functions. Allows for increased code reusability
 """
 import typing
-import enum
-import sys
 import time
 import abc
 import socket
 from functools import update_wrapper, partial
+
 try:
-    from ..utilities import killableThread
-    from ..utilities import schemas
-    from ..utilities import socketOpts
-    from ..utilities import exceptions
+    from socketopts import schemas
+    from utilities import exceptions, killableThread
 except:
-    import killableThread
-    import schemas
-    import socketOpts
-    import exceptions
-    
+    from ..socketopts import schemas
+    from ..utilities import exceptions, killableThread
+
 
 class BaseRequirementDecorator(abc.ABC):
     username: typing.Optional[str] = None
