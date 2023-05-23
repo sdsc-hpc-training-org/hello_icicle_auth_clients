@@ -3,10 +3,10 @@ import pyperclip
 import json
 try:
     from . import baseCommand
-    from ..utilities import decorators
+    from . import decorators
 except:
     import commands.baseCommand as baseCommand
-    import utilities.decorators as decorators
+    import commands.decorators as decorators
 
 
 class list_files(baseCommand.BaseCommand):

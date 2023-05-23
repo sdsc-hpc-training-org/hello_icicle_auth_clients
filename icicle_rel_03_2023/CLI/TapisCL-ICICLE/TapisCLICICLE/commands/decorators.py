@@ -10,10 +10,10 @@ import abc
 import socket
 from functools import update_wrapper, partial
 try:
-    from . import killableThread
-    from . import schemas
-    from . import socketOpts
-    from . import exceptions
+    from ..utilities import killableThread
+    from ..utilities import schemas
+    from ..utilities import socketOpts
+    from ..utilities import exceptions
 except:
     import killableThread
     import schemas

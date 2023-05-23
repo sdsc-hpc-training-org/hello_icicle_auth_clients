@@ -6,12 +6,6 @@ import typing
 import sys
 import threading
 import re
-try:
-    from . import exceptions
-    from . import args
-except:
-    import exceptions as exceptions
-    import args as args
 
 
 class KillableThread(threading.Thread):

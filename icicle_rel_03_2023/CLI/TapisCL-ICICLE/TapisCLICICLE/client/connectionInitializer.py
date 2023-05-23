@@ -1,4 +1,3 @@
-import client.handlers
 import socket
 import argparse
 from argparse import SUPPRESS
@@ -11,28 +10,27 @@ try:
     from ..utilities import schemas
     from ..utilities import socketOpts as SO
     from ..utilities import killableThread
-    from ..utilities import decorators
+    from ..commands import decorators
     from ..utilities import args
     from ..utilities import logger
     from . import formatters
     from . import handlers
     from . import parsers
 except:
-    import utilities.schemas as schemas
-    import utilities.socketOpts as SO
+    import socketopts.schemas as schemas
+    import socketopts.socketOpts as SO
     import utilities.killableThread as killableThread
-    import utilities.decorators as decorators
+    import commands.decorators as decorators
     import utilities.args as args
     import utilities.logger as logger
-    import client.formatters as formatters
-    import client.handlers as handlers
-    import client.parsers as parsers
+    import formatters as formatters
+    import handlers as handlers
+    import parsers as parsers
 
 
 __location__ = os.path.realpath(
     os.path.join(os.getcwd(), os.path.dirname(__file__)))
 server_path = os.path.join(__location__, r'..\serverRun.py')
-print(server_path)
 
 
 class ConnectionInitilializer(handlers.Handlers):

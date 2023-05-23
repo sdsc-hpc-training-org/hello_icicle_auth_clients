@@ -7,34 +7,24 @@ import pyfiglet
 from getpass import getpass
 import os
 import time
-from client.handlers import Handlers
-try:
-    from ..utilities import schemas
-    from ..utilities import socketOpts as SO
-    from ..utilities import killableThread
-    from ..utilities import decorators
-    from ..utilities import args
-    from ..utilities import logger
-    from . import formatters
-    from . import handlers
-    from . import parsers
-    from . import connectionInitializer
-except:
-    import utilities.schemas as schemas
-    import utilities.socketOpts as SO
-    import utilities.killableThread as killableThread
-    import utilities.decorators as decorators
-    import utilities.args as args
-    import utilities.logger as logger
-    import client.formatters as formatters
-    import client.handlers as handlers
-    import client.parsers as parsers
-    import client.connectionInitializer as connectionInitializer
+project_root = os.path.dirname(os.path.abspath(f"{__file__}\.."))
+print(project_root)
+sys.path.append(project_root)
+
+
+import TapisCLICICLE.utilities.schemas as schemas
+import TapisCLICICLE.utilities.socketOpts as SO
+import TapisCLICICLE.utilities.decorators as decorators
+import TapisCLICICLE.utilities.args as args
+import formatters
+import handlers
+import parsers
+import connectionInitializer
 
 
 __location__ = os.path.realpath(
     os.path.join(os.getcwd(), os.path.dirname(__file__)))
-server_path = os.path.join(__location__, r'..\server\server.py')
+server_path = os.path.join(__location__, r'..\serverRun.py')
 
 
 class CLI(SO.ClientSocketOpts, decorators.DecoratorSetup, formatters.Formatters, args.Args, parsers.Parsers, connectionInitializer.ConnectionInitilializer):

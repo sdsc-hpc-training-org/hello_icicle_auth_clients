@@ -6,12 +6,12 @@ import abc
 from tapipy.tapis import TapisResult
 from commands.dataFormatters import DataFormatters
 try:
-    from ..utilities import decorators
+    from . import decorators
     from ..utilities import exceptions
     from ..utilities.args import Args
     from ..utilities import killableThread
 except:
-    import utilities.decorators as decorators
+    import commands.decorators as decorators
     import utilities.exceptions as exceptions
     import utilities.args as Args
     import utilities.killableThread as killableThread

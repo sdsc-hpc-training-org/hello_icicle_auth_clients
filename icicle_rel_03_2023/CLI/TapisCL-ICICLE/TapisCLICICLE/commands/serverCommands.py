@@ -7,7 +7,7 @@ import typing
 
 try:
     from ..utilities import exceptions
-    from ..utilities import decorators
+    from . import decorators
     from ..utilities import args as Args
     from ..utilities import schemas
     from ..utilities import killableThread
@@ -15,9 +15,9 @@ try:
 except:
     import utilities.killableThread as killableThread
     import utilities.exceptions as exceptions
-    import utilities.decorators as decorators
+    import commands.decorators as decorators
     import utilities.args as Args
-    import utilities.decorators as decorators
+    import commands.decorators as decorators
     import utilities.schemas as schemas
     import commands.baseCommand as baseCommand
 

@@ -1,9 +1,9 @@
 import psycopg2
 try:
-    from ...utilities import decorators
+    from .. import decorators
     from .. import baseCommand
 except:
-    import utilities.decorators as decorators
+    import commands.decorators as decorators
     import commands.baseCommand as baseCommand
 
 

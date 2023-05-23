@@ -20,9 +20,9 @@ try:
     from ..commands.query import neo4j, postgres
     from ..commands import baseCommand
     from ..commands import commandMap
-    from ..utilities import decorators
+    from ..commands import decorators
 except ImportError:
-    import utilities.decorators as decorators
+    import commands.decorators as decorators
     import utilities.exceptions as exceptions
     import utilities.logger as logger
     import utilities.socketOpts as SO

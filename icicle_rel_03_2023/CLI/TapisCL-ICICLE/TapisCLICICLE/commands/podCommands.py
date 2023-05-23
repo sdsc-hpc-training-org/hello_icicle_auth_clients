@@ -2,10 +2,10 @@ from tapipy import tapis
 import pyperclip
 try:
     from . import baseCommand
-    from ..utilities import decorators
+    from . import decorators
 except:
     import commands.baseCommand as baseCommand
-    import utilities.decorators as decorators
+    import commands.decorators as decorators
 
 
 class get_pods(baseCommand.BaseCommand):
