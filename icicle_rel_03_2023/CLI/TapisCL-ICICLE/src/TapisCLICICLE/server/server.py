@@ -11,6 +11,7 @@ if __name__ != "__main__":
     from commands import commandMap, decorators
     from utilities import logger, exceptions
     from socketopts import schemas, socketOpts
+    from server import auth
 else:
     import commands.commandMap as commandMap
 
@@ -30,7 +31,7 @@ class ServerConnection(socketOpts.ServerSocketOpts):
         await self.writer.wait_closed()
         
 
-class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.DecoratorSetup):
+class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.DecoratorSetup, auth.Auth):
     """
     Receives commands from the client and executes Tapis operations
     """
@@ -58,41 +59,6 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
         self.server = None
 
         self.logger.info('initialization complete')
-
-    def switch_session(self, username: str, password, link: str, *args, **kwargs):
-        start = time.time()
-        try:
-            t = Tapis(base_url=f"https://{link}",
-                    username=username,
-                    password=password)
-            t.get_tokens()
-        except Exception as e:
-            self.logger.warning(e)
-            raise ValueError(f"Invalid tapis auth credentials")
-        
-        self.username = username
-        self.password = password
-        self.t = t
-        self.url = link
-        self.access_token = self.t.access_token
-
-        self.configure_decorators(self.username, self.password)
-        self.update_credentials(t, username, password)
-        # V3 Headers
-        header_dat = {"X-Tapis-token": t.access_token.access_token,
-                      "Content-Type": "application/json"}
-        # create authenticator for tapis systems
-        authenticator = t.access_token
-        # extract the access token from the authenticator
-        
-        if 'win' in sys.platform:
-            os.system(f"set JWT={self.access_token}")
-        else: # unix based
-            os.system(f"export JWT={self.access_token}")
-
-        self.logger.info(f"initiated in {time.time()-start}")
-
-        return f"Successfully initialized tapis service on {self.url}"
 
     async def handshake(self, connection):
         self.logger.info("Handshake starting")
