@@ -31,10 +31,11 @@ class ServerConnection(socketOpts.ServerSocketOpts):
         await self.writer.wait_closed()
         
 
-class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.DecoratorSetup, auth.Auth):
+class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.DecoratorSetup, auth.ServerSideAuth):
     """
     Receives commands from the client and executes Tapis operations
     """
+    SESSION_TIME = 600
     def __init__(self, IP: str, PORT: int):
         super().__init__()
         self.initial = True
@@ -54,7 +55,7 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.bind((self.ip, self.port))
         self.sock.listen(1)
-        self.end_time = time.time() + 300  # start the countdown on the timeout
+        self.end_time = time.time() + self.SESSION_TIME # start the countdown on the timeout
 
         self.server = None
 

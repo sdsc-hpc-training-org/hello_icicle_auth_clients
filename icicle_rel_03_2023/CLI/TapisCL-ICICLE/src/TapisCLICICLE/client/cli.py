@@ -12,6 +12,7 @@ if __name__ != "__main__":
     from ..socketopts import socketOpts, schemas
     from ..commands import decorators, args
     from ..utilities import killableThread
+    from ..server import auth
 
 
 __location__ = os.path.realpath(
@@ -19,7 +20,28 @@ __location__ = os.path.realpath(
 server_path = os.path.join(__location__, r'..\serverRun.py')
 
 
-class CLI(socketOpts.ClientSocketOpts, decorators.DecoratorSetup, formatters.Formatters, args.Args, parsers.Parsers, handlers.Handlers):
+class ClientSideConnection(socketOpts.ClientSocketOpts, handlers.Handlers):
+    def __init__(self, connection):
+        self.connection = connection
+
+    # def receive(self):
+    #     """
+    #     receives and returns data sent by the server. If the server is requesting a form
+    #     """
+    #     data = self.recv()
+    #     if data.schema_type in ("FormRequest", "AuthRequest"):
+    #         self.send(self.form_handler(data.request_content))
+    #         return self.receive()
+    #     elif data.schema_type == "ConfirmationRequest":
+    #         self.send(self.confirmation_handler())
+    #         return self.receive()
+    #     return data
+    
+    def close(self):
+        self.connection.close()
+
+
+class CLI(auth.AuthClientSide, socketOpts.ClientSocketOpts, decorators.DecoratorSetup, formatters.Formatters, args.Args, parsers.Parsers, handlers.Handlers):
     """
     Receive user input, either direct from bash environment or from the custom interface, then parse these commands and send them to the server to be executed. 
     """
@@ -68,6 +90,7 @@ class CLI(socketOpts.ClientSocketOpts, decorators.DecoratorSetup, formatters.For
                 os._exit(0)
             try:
                 self.connection.connect((self.ip, self.port)) 
+                self.connection = ClientSideConnection(self.connection)
                 if startup_flag:
                     startup.kill()
                 break
@@ -84,34 +107,9 @@ class CLI(socketOpts.ClientSocketOpts, decorators.DecoratorSetup, formatters.For
         """
         self.connection_initialization() 
         #self.connection.connect((self.ip, self.port)) # enable me for debugging. Requires manual server start
-        connection_info: schemas.StartupData = self.schema_unpack_explicit(self.connection) # receive info from the server whether it is a first time connection
+        connection_info: schemas.StartupData = self.connection.receive() # receive info from the server whether it is a first time connection
         if connection_info.initial: # if the server is receiving its first connection for the session\
-            while True:
-                try:
-                    url = str(input("\nEnter the uri for the tapis service you are connecting to: ")).strip()
-                except KeyboardInterrupt:
-                    url = " "
-                    pass
-                url_data = schemas.StartupData(url=url)
-                self.json_send_explicit(self.connection, url_data.dict())
-                auth_request: schemas.AuthRequest = self.schema_unpack_explicit(self.connection)
-                while True:
-                    try:
-                        auth_data = self.auth_handler(auth_request)
-                        break
-                    except KeyboardInterrupt:
-                        pass
-                self.json_send_explicit(self.connection, auth_data.dict())
-
-                verification: schemas.ResponseData | schemas.StartupData = self.schema_unpack_explicit(self.connection)
-                if verification.schema_type == 'StartupData': # verification success, program moves forward
-                    return verification.username, verification.url
-                else: # verification failed. User has 3 tries, afterwards the program will shut down
-                    print(f"[-] verification failure, attempt # {verification.response_message[1]}")
-                    if verification.response_message[1] == 3:
-                        sys.exit(0)
-                    continue
-
+            self.auth()
         return connection_info.username, connection_info.url # return the username and url
     
     def special_forms_ops(self):
@@ -119,13 +117,13 @@ class CLI(socketOpts.ClientSocketOpts, decorators.DecoratorSetup, formatters.For
         handle special form requests sent by the server
         """
         while True:
-            message = self.schema_unpack_explicit(self.connection)
+            message = self.connection.receive()
             message_type = message.schema_type
             if message_type in self.message_handlers.keys():
                 filled_form = self.message_handlers[message_type](message)
             else:
                 return message
-            self.json_send_explicit(self.connection, filled_form.dict())
+            self.connection.send(filled_form)
 
     def terminal_cli(self):
         self.username, self.url = self.connect()
@@ -136,7 +134,7 @@ class CLI(socketOpts.ClientSocketOpts, decorators.DecoratorSetup, formatters.For
             os._exit(0)
         kwargs = vars(kwargs)
         command = self.command_input_parser(kwargs, exit_=1) # operate with args, send them over
-        self.json_send_explicit(self.connection, command.dict())
+        self.connection.send(command)
         response = self.special_forms_ops()
         if response.schema_type == 'ResponseData':
             self.print_response(response.response_message)
@@ -161,7 +159,7 @@ class CLI(socketOpts.ClientSocketOpts, decorators.DecoratorSetup, formatters.For
                     continue
                 if not command:
                     continue
-                self.json_send_explicit(self.connection, command.dict())
+                self.connection.send(command)
                 response = self.special_forms_ops()
                 self.environment_cli_response_stream_handler(response)
             except KeyboardInterrupt:

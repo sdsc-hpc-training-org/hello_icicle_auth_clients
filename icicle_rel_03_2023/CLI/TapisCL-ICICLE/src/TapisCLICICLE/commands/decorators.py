@@ -45,26 +45,6 @@ class RequiresForm(BaseRequirementDecorator):
                 kwargs[key] = value
 
         return await command.run(**kwargs)
-
-
-class RequiresExpression(BaseRequirementDecorator):
-    """
-    This is for when you have something like a Neo4j or postgres interface to add to the tapisObjectWrappers file. Writing a Neo4j query directly in a command is cumbersome, its much
-    easier to do if you have a blank, multiline environment to write. This will send a request for an expression, if an expression parameter exists in the decorated function.
-    The client will open a new interface to type the expression. This is then sent back and fed to the function
-    """
-    async def __call__(self, command, *args, **kwargs):
-        connection = kwargs['connection']
-        if connection:
-            connection = connection
-            if 'expression' not in command.keyword_arguments:
-                raise AttributeError(f"The function {command} does not contain an 'expression' keyword parameter")
-            form_request = schemas.FormRequest(arguments_list=[])
-            await connection.send(form_request)
-            filled_form: schemas.FormResponse = await connection.receive()
-            kwargs['expression'] = filled_form.arguments_list
-
-        return await command.run(**kwargs)
     
 
 class SecureInput(BaseRequirementDecorator):
@@ -134,7 +114,6 @@ class NeedsConfirmation(BaseRequirementDecorator):
 DECORATOR_LIST = [
     NeedsConfirmation,
     RequiresForm,
-    RequiresExpression,
     SecureInput,
     Auth
 ]
@@ -182,7 +161,3 @@ class AnimatedLoading:
         animation_thread.kill()
         print("", end='', flush=True)
         return result
-    
-
-if __name__ == "__main__":
-    print(issubclass(RequiresExpression, BaseRequirementDecorator))

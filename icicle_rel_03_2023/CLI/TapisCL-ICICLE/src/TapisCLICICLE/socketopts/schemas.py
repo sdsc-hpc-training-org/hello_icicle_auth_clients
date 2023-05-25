@@ -2,31 +2,35 @@
 SCHEMAS
 These are standardized JSON serializable data formats to make socket operations on the localhost client-server smoother.
 '''
-from typing import Any, Optional
+from typing import Any, Optional, Literal
 
 from pydantic import BaseModel
 
 
-class CommandData(BaseModel):
+class BaseSchema(BaseModel):
+    schema_type: str
+    request_content: dict
+    error: str
+
+
+class CommandData(BaseSchema):
     """
     Command execution request sent from the client to the server to execute a specified command
     """
     schema_type: str = 'CommandData'
     kwargs: Optional[dict]
-    expression: Optional[str] 
-    exit_status: int = 0
 
 
-class AuthData(BaseModel):
+class PasswordAuthData(BaseSchema):
     """
     Sends credentials from the client to the server for auth to Tapis services
     """
-    schema_type: str = 'AuthData'
+    schema_type: str = 'PasswordAuthData'
     username: Optional[str]
     password: Optional[str]
 
 
-class StartupData(BaseModel):
+class StartupData(BaseSchema):
     """
     used only during connection inintialization between the client and server to transmit startup data
     """
@@ -36,7 +40,7 @@ class StartupData(BaseModel):
     url: Optional[str]
 
 
-class ResponseData(BaseModel):
+class ResponseData(BaseSchema):
     """
     data from the server to the client with return data from commands, as well as errors
     """
@@ -47,15 +51,15 @@ class ResponseData(BaseModel):
     active_username: str | None = None
 
 
-class FormRequest(BaseModel):
+class FormRequest(BaseSchema):
     """
     Request seperate input for some command parameters. If the arguments_list is empty, this will be interpreted as an expression request for something like neo4j
     """
     schema_type: str = 'FormRequest'
-    arguments_list: list
+    request_content: dict
 
 
-class FormResponse(BaseModel):
+class FormResponse(BaseSchema):
     """
     respond to a form request with proper data
     """
@@ -63,18 +67,19 @@ class FormResponse(BaseModel):
     arguments_list: dict | str
 
 
-class AuthRequest(BaseModel):
+class AuthRequest(BaseSchema):
     """
     Request auth credentials from the client
     """
     schema_type: str = 'AuthRequest'
-    requires_username: bool = True
-    secure_input: bool = False
+    auth_request_type: Literal["password", "device_code", "federated", "success"]
+    message: Optional[dict]
+    request_content: Optional[dict]
 
 
-class ConfirmationRequest(BaseModel):
+class ConfirmationRequest(BaseSchema):
     """
     ask the client for confirmation to carry out an action
     """
     schema_type: str = 'ConfirmationRequest'
-    message: str
+    request_content: dict

@@ -10,7 +10,12 @@ class Args: # should add a way to automatically check for duplicate entries to t
         },
         "template":{
             "args":["-t", "--template"],
-            "kwargs":{"action":"store"}
+            "kwargs":{
+                "action":"store",
+                "choices":[
+                    "neo4j",
+                    "postgres"
+                ]}
         },
         "username":{
             "args":["-u", "--username"],
@@ -39,6 +44,17 @@ class Args: # should add a way to automatically check for duplicate entries to t
         "link":{
             "args":["-l", "--link"],
             "kwargs":{"action":"store"}
+        },
+        "auth":{
+            "args":["-a, --auth"],
+            "kwargs":{
+                "action":"store",
+                "choices":[
+                    "password", 
+                    "device_code", 
+                    "federated"
+                    ]
+                }
         },
         "verbose":{
             "args":["-v", "--verbose"],

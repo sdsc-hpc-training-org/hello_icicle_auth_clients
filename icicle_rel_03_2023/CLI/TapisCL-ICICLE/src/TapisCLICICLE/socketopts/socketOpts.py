@@ -26,7 +26,7 @@ class ClientSocketOpts:
     """
     synchronous sockets to be used by clients
     """
-    def json_receive_explicit(self, connection):
+    def __json_receive_explicit(self, connection):
         json_data = ""
         while True:
             try: 
@@ -37,15 +37,15 @@ class ClientSocketOpts:
             except BlockingIOError:
                 continue
 
-    def json_send_explicit(self, connection, data):
+    def __json_send_explicit(self, connection, data):
         json_data = json.dumps(data)
         connection.send(json_data.encode())
 
-    def schema_send_explicit(self, connection, data):
-        self.json_send_explicit(connection, data.dict())
+    def send(self, data):
+        self.__json_send_explicit(self.connection, data.dict())
 
-    def schema_unpack_explicit(self, connection):
-        data = self.json_receive_explicit(connection)
+    def recveive(self):
+        data = self.__json_receive_explicit(self.connection)
         schema_type = schema_types[data['schema_type']]
         return schema_type(**data)
 

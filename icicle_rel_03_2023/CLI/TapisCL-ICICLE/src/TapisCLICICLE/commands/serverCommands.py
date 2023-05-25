@@ -1,5 +1,7 @@
 import typing
 
+from tapipy.tapis import Tapis
+
 
 if __name__ != "__main__":
     from . import args as Args
@@ -12,9 +14,13 @@ class switch_service(baseCommand.BaseCommand):
     @help: switch the connected tapis service
     @todo: upgrade to federated auth
     """
-    decorator = decorators.Auth()
-    async def run(self, link: str, username: str=None, password=None, *args, **kwargs) -> tuple[typing.Any, str, str] | None:  # link is the baseURL
-        results = kwargs['server'].switch_session(username, password, link)
+    async def run(self, link: str, auth: str, password=None, *args, **kwargs):  # link is the baseURL
+        if auth == "password":
+            results = kwargs['server'].password_grant(kwargs['connection'], password, link)
+        elif auth == "device_code":
+            results = kwargs['server'].device_code_grant()
+        elif auth == "federated":
+            results = kwargs['server'].federated_grant()
         return results
       
 
