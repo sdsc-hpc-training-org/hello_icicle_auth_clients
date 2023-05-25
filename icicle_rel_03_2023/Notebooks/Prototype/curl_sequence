@@ -3,3 +3,6 @@ curl -H "Content-type: application/json" -d '{"client_id": "some_id", "client_ke
 curl -H "Content-type: application/json" -d '{"client_id": "the_id_from_step_1"}' https://smartfoods.develop.tapis.io/v3/oauth2/device/code
 
 curl -u "the_client_id:the_client_key" https://smartfoods.develop.tapis.io/v3/oauth2/tokens -H "content-type: application/json" -d '{"grant_type": "device_code", "device_code": "the_device_coe"}'
+
+id GGDGGpnYYD1KZ
+key GGDGG2dopYxWo
