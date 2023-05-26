@@ -6,8 +6,10 @@ import pydantic
 
 try:
     from socketopts import schemas
+    from utilities import logger
 except:
     from . import schemas
+    from ..utilities import logger
 
 
 schema_types: dict = {
@@ -21,7 +23,23 @@ schema_types: dict = {
     }
 
 
-class ClientSocketOpts:
+class BaseSocketOpts(logger.ConnectionLogger):
+    """
+    behind the scenes, low level functions to handle the socket operations asynchronoously on the server
+    """
+    def __init__(self, name, debug=False):
+        self.initialize_logger(f"{name} LOGGER")
+        self.debug_state = debug
+
+    def debug(self, operation: typing.Literal["SENDING", "RECEIVED", "WAITING"], message):
+        if self.debug_state:
+            self.logger.info(f"""{operation}: {message.schema_type}
+                                 MESSAGE CONTENT:{message.request_content}
+                                 MESSAGE: {message.message}
+                                 ERROR: {message.error}""")
+
+
+class ClientSocketOpts(BaseSocketOpts):
     """
     synchronous sockets to be used by clients
     """
@@ -41,15 +59,18 @@ class ClientSocketOpts:
         connection.send(json_data.encode())
 
     def send(self, data):
+        self.debug('SENDING', data)
         self.__json_send_explicit(self.connection, data.dict())
 
     def receive(self):
+        self.debug("WAITING", "Awaiting message receive")
         data = self.__json_receive_explicit(self.connection)
         schema_type = schema_types[data['schema_type']]
+        self.debug('RECEIVED', schema_type(**data))
         return schema_type(**data)
 
 
-class ServerSocketOpts:
+class ServerSocketOpts(BaseSocketOpts):
     """
     behind the scenes, low level functions to handle the socket operations asynchronoously on the server
     """
@@ -66,12 +87,15 @@ class ServerSocketOpts:
                 continue
 
     async def send(self, data: typing.Type[pydantic.BaseModel]):
+        self.debug('SENDING', data)
         json_data = json.dumps(data.dict())
         self.writer.write(json_data.encode())
         await self.writer.drain()
 
     async def receive(self):
+        self.debug("WAITING", "Awaiting message receive")
         data = await self.__json_receive_explicit_async()
         schema_type = schema_types[data['schema_type']]
+        self.debug('RECEIVED', schema_type(**data))
         return schema_type(**data)
     

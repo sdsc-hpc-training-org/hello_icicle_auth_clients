@@ -67,7 +67,7 @@ class AuthRequest(BaseSchema):
     Request auth credentials from the client
     """
     schema_type: str = 'AuthRequest'
-    auth_request_type: Literal["password", "device_code", "federated", "success"]
+    auth_request_type: Literal["password", "device_code", "federated", "requested", "success"]
 
 
 class ConfirmationRequest(BaseSchema):

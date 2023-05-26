@@ -20,7 +20,9 @@ class ServerConnection(socketOpts.ServerSocketOpts):
     """
     connection object to wrap around async reader and writer to make work easier
     """
-    def __init__(self, reader, writer):
+    def __init__(self, name, reader, writer, debug=False):
+        super().__init__(name, debug=debug)
+        self.name = name
         self.reader = reader
         self.writer = writer
 
@@ -58,35 +60,19 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
         self.end_time = time.time() + self.SESSION_TIME # start the countdown on the timeout
 
         self.server = None
+        self.num_connections = 0
 
         self.logger.info('initialization complete')
 
     async def handshake(self, connection):
         self.logger.info("Handshake starting")
-        if self.initial:  # if this is the first time in the session that the cli is connecting
-            startup_data = schemas.StartupData(initial = self.initial)
-            await connection.send(startup_data)
-            self.logger.info("send the initial status update")
-
-            for attempt in range(1, 4):
-                url: schemas.StartupData = await connection.receive()
-                self.logger.info("received the link")
-                try:
-                    #await self.run_command(connection, {'command':'switch_service', 'link':url.url, 'verbose':False})
-                    await self.aggregate_command_map['switch_service'](link=url.url, connection=connection, server=self, verbose=False)
-                    self.logger.info("Verification success")
-                    break
-                except ValueError as e:
-                    login_failure_data = schemas.ResponseData(response_message = (str(e), attempt))
-                    await connection.send(login_failure_data)
-                    self.logger.warning(f"Verification failure, {e}")
-                    if attempt == 3:  
-                        self.logger.error(
-                            "Attempted verification too many times. Exiting")
-                        raise ValueError("auth failure")
-                    continue
-        else:
-            self.configure_decorators(self.username, self.password)
+        try:
+            if self.initial:  # if this is the first time in the session that the cli is connecting
+                startup_data = schemas.StartupData(initial = self.initial)
+                await connection.send(startup_data)
+                await self.auth_startup(connection)
+        except Exception as e:
+            raise Exception("Auth Failure")
         self.initial = False
         startup_result = schemas.StartupData(initial = self.initial, username = self.username, url = self.url)
         self.logger.info("Connection success")
@@ -97,7 +83,8 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
         """
         accept connection request and initialize communication with the client
         """  
-        connection = ServerConnection(reader=reader, writer=writer)
+        self.num_connections += 1
+        connection = ServerConnection(f"CON-{self.num_connections}", reader=reader, writer=writer, debug=True)
         self.timeout_handler()
         ip, port= writer.transport.get_extra_info('socket').getsockname()
         if ip != socket.gethostbyname(socket.gethostname()):

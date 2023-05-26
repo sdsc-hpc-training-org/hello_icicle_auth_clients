@@ -12,36 +12,23 @@ if __name__ != "__main__":
     from ..socketopts import socketOpts, schemas
     from ..commands import decorators, args
     from ..utilities import killableThread
-    from ..server import auth
 
 
 __location__ = os.path.realpath(
     os.path.join(os.getcwd(), os.path.dirname(f"{__file__}")))
 server_path = os.path.join(__location__, r'..\serverRun.py')
-
+    
 
 class ClientSideConnection(socketOpts.ClientSocketOpts, handlers.Handlers):
-    def __init__(self, connection):
+    def __init__(self, connection, debug=False):
+        super().__init__(__name__, debug=debug)
         self.connection = connection
-
-    # def receive(self):
-    #     """
-    #     receives and returns data sent by the server. If the server is requesting a form
-    #     """
-    #     data = self.recv()
-    #     if data.schema_type in ("FormRequest", "AuthRequest"):
-    #         self.send(self.form_handler(data.request_content))
-    #         return self.receive()
-    #     elif data.schema_type == "ConfirmationRequest":
-    #         self.send(self.confirmation_handler())
-    #         return self.receive()
-    #     return data
     
     def close(self):
         self.connection.close()
 
 
-class CLI(auth.AuthClientSide, socketOpts.ClientSocketOpts, decorators.DecoratorSetup, args.Args, parsers.Parsers, handlers.Handlers):
+class CLI(socketOpts.ClientSocketOpts, decorators.DecoratorSetup, args.Args, parsers.Parsers, handlers.Handlers):
     """
     Receive user input, either direct from bash environment or from the custom interface, then parse these commands and send them to the server to be executed. 
     """
@@ -51,24 +38,14 @@ class CLI(auth.AuthClientSide, socketOpts.ClientSocketOpts, decorators.Decorator
         self.ip, self.port = IP, PORT
         self.connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
 
-        # sets up connection with the server
-        self.username = None
-        self.password = None
-
         # set up argparse
         self.parser = argparse.ArgumentParser(description="Command Line Argument Parser", exit_on_error=False, usage=argparse.SUPPRESS, conflict_handler='resolve')
         self.parser.add_argument('command')
 
-        self.message_handlers = {
-            'FormRequest':self.form_handler,
-            'AuthRequest':self.auth_handler,
-            'ConfirmationRequest':self.confirmation_handler,
-        }
-
         for parameters in self.argparser_args.values():
             self.parser.add_argument(*parameters["args"], **parameters["kwargs"])
 
-        self.auth()
+        self.username, self.password = self.connect()
 
     def initialize_server(self): 
         """
@@ -92,7 +69,7 @@ class CLI(auth.AuthClientSide, socketOpts.ClientSocketOpts, decorators.Decorator
                 os._exit(0)
             try:
                 self.connection.connect((self.ip, self.port)) 
-                self.connection = ClientSideConnection(self.connection)
+                self.connection = ClientSideConnection(self.connection, debug=True)
                 if startup_flag:
                     startup.kill()
                 break
@@ -103,6 +80,21 @@ class CLI(auth.AuthClientSide, socketOpts.ClientSocketOpts, decorators.Decorator
                     startup_flag = True # set the flag to true so the thread runs only once
                     continue
 
+    def auth(self):
+        while True:
+            server_auth_request: schemas.AuthRequest = self.connection.receive()
+            if not server_auth_request.message and not server_auth_request.request_content:
+                self.print_response(server_auth_request.error)
+                sys.exit(0)
+            elif server_auth_request.auth_request_type == "success":
+                self.print_response(server_auth_request.message)
+                return server_auth_request.message['username'], server_auth_request.message['password']
+            form_response = self.universal_message_handler(server_auth_request)
+            if not form_response:
+                break
+            client_response_request = schemas.AuthRequest(auth_request_type=server_auth_request.auth_request_type, request_content=form_response)
+            self.connection.send(client_response_request)
+        
     def connect(self):
         """
         connect to the local server
@@ -111,21 +103,22 @@ class CLI(auth.AuthClientSide, socketOpts.ClientSocketOpts, decorators.Decorator
         #self.connection.connect((self.ip, self.port)) # enable me for debugging. Requires manual server start
         connection_info: schemas.StartupData = self.connection.receive() # receive info from the server whether it is a first time connection
         if connection_info.initial: # if the server is receiving its first connection for the session\
-            self.auth()
-        self.username, self.url = username, url # return the username and url
-    
-    def special_forms_ops(self):
-        """
-        handle special form requests sent by the server
-        """
+            username, url = self.auth()
+        else:
+            username, url = connection_info.username, connection_info.url
+        return username, url # return the username and url
+
+    def interface(self, kwargs):
+        if not kwargs['command']:
+            return
+        command_request = schemas.CommandData(request_content=kwargs)
+        self.connection.send(command_request)
         while True:
-            message = self.connection.receive()
-            message_type = message.schema_type
-            if message_type in self.message_handlers.keys():
-                filled_form = self.message_handlers[message_type](message)
-            else:
-                return message
-            self.connection.send(filled_form)
+            command_response = self.connection.receive()
+            handled_response = self.universal_message_handler(command_response)
+            if not handled_response:
+                break
+            self.connection.send(handled_response)
 
     def terminal_cli(self):
         try:
@@ -134,11 +127,7 @@ class CLI(auth.AuthClientSide, socketOpts.ClientSocketOpts, decorators.Decorator
             print("Invalid Arguments")
             os._exit(0)
         kwargs = vars(kwargs)
-        command = schemas.CommandData(request_content=kwargs) # operate with args, send them over
-        self.connection.send(command)
-        
-        if response.schema_type == 'ResponseData':
-            self.print_response(response.response_message)
+        self.interface(kwargs)
         os._exit(0)
 
     def cli_window(self):
@@ -152,16 +141,7 @@ class CLI(auth.AuthClientSide, socketOpts.ClientSocketOpts, decorators.Decorator
             try:
                 time.sleep(0.01)
                 kwargs: dict = str(input(f"[{self.username}@{self.url}] ")).split(' ')
-                if not kwargs['command']:
-                    continue
-                command_request = schemas.CommandData(request_content=kwargs)
-                self.connection.send(command_request)
-                while True:
-                    command_response = self.connection.receive()
-                    handled_response = self.universal_message_handler(command_response)
-                    if not handled_response:
-                        break
-                    self.connection.send(handled_response)
+                self.interface(kwargs)
             except KeyboardInterrupt:
                 continue
 
