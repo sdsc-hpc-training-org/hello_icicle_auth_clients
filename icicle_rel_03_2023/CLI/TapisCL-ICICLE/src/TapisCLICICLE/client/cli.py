@@ -8,7 +8,7 @@ import time
 import pyfiglet
 
 if __name__ != "__main__":
-    from . import formatters, parsers, handlers
+    from . import parsers, handlers
     from ..socketopts import socketOpts, schemas
     from ..commands import decorators, args
     from ..utilities import killableThread
@@ -41,7 +41,7 @@ class ClientSideConnection(socketOpts.ClientSocketOpts, handlers.Handlers):
         self.connection.close()
 
 
-class CLI(auth.AuthClientSide, socketOpts.ClientSocketOpts, decorators.DecoratorSetup, formatters.Formatters, args.Args, parsers.Parsers, handlers.Handlers):
+class CLI(auth.AuthClientSide, socketOpts.ClientSocketOpts, decorators.DecoratorSetup, args.Args, parsers.Parsers, handlers.Handlers):
     """
     Receive user input, either direct from bash environment or from the custom interface, then parse these commands and send them to the server to be executed. 
     """
@@ -67,6 +67,8 @@ class CLI(auth.AuthClientSide, socketOpts.ClientSocketOpts, decorators.Decorator
 
         for parameters in self.argparser_args.values():
             self.parser.add_argument(*parameters["args"], **parameters["kwargs"])
+
+        self.auth()
 
     def initialize_server(self): 
         """
@@ -110,7 +112,7 @@ class CLI(auth.AuthClientSide, socketOpts.ClientSocketOpts, decorators.Decorator
         connection_info: schemas.StartupData = self.connection.receive() # receive info from the server whether it is a first time connection
         if connection_info.initial: # if the server is receiving its first connection for the session\
             self.auth()
-        return connection_info.username, connection_info.url # return the username and url
+        self.username, self.url = username, url # return the username and url
     
     def special_forms_ops(self):
         """
@@ -126,54 +128,47 @@ class CLI(auth.AuthClientSide, socketOpts.ClientSocketOpts, decorators.Decorator
             self.connection.send(filled_form)
 
     def terminal_cli(self):
-        self.username, self.url = self.connect()
         try:
             kwargs = self.parser.parse_args()
         except:
             print("Invalid Arguments")
             os._exit(0)
         kwargs = vars(kwargs)
-        command = self.command_input_parser(kwargs, exit_=1) # operate with args, send them over
+        command = schemas.CommandData(request_content=kwargs) # operate with args, send them over
         self.connection.send(command)
-        response = self.special_forms_ops()
+        
         if response.schema_type == 'ResponseData':
             self.print_response(response.response_message)
         os._exit(0)
 
-    def environment_cli(self):
-        self.username, self.url = self.connect()
+    def cli_window(self):
         title = pyfiglet.figlet_format("-----------\nTapisCLICICLE\n-----------", font="slant") # print the title when CLI is accessed
         print(title)
         print(r"""If you find any issues, please create a new issue here: https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients/issues
                 Enter 'exit' to exit the client
                 Enter 'shutdown' to shut down the client and server
                 Enter 'Help' to show command options""")
-        
-        while True: # open the CLI if no arguments provided on startup
+        while True:
             try:
                 time.sleep(0.01)
-                kwargs = self.process_command(str(input(f"[{self.username}@{self.url}] "))) # ask for and process user input
-                try:
-                    command = self.command_input_parser(kwargs) # run operations
-                except:
+                kwargs: dict = str(input(f"[{self.username}@{self.url}] ")).split(' ')
+                if not kwargs['command']:
                     continue
-                if not command:
-                    continue
-                self.connection.send(command)
-                response = self.special_forms_ops()
-                self.environment_cli_response_stream_handler(response)
+                command_request = schemas.CommandData(request_content=kwargs)
+                self.connection.send(command_request)
+                while True:
+                    command_response = self.connection.receive()
+                    handled_response = self.universal_message_handler(command_response)
+                    if not handled_response:
+                        break
+                    self.connection.send(handled_response)
             except KeyboardInterrupt:
-                pass # keyboard interrupts mess with the server, dont do it! it wont work anyway, hahahaha
-            except WindowsError: # if connection error with the server (there wont be any connection errors)
-                print("[-] Connection was dropped. Exiting")
-                os._exit(0)
-            except Exception as e: # if something else happens
-                print(e)
+                continue
 
     def main(self):
         if len(sys.argv) > 1: # checks if any command line arguments were provided. Does not open CLI
             self.terminal_cli()
-        self.environment_cli()
+        self.cli_window()
 
 
 if __name__ == "__main__":

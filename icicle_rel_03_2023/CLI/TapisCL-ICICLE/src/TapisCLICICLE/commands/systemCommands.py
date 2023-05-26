@@ -84,7 +84,7 @@ class set_system_password(baseCommand.BaseCommand):
     """
     @help: set a system password
     """
-    decorator=decorators.SecureInput()
+    decorator=decorators.RequiresForm()
     async def run(self, id: str, password: str=None, *args, **kwargs) -> str: # set the password for a system
         try:
             password_return_value = self.t.systems.createUserCredential(systemId=id, # will put this in a getpass later

@@ -12,7 +12,6 @@ except:
 
 schema_types: dict = {
         'CommandData':schemas.CommandData,
-        'AuthData':schemas.AuthData,
         'StartupData':schemas.StartupData,
         'ResponseData':schemas.ResponseData,
         'FormRequest':schemas.FormRequest,
@@ -44,7 +43,7 @@ class ClientSocketOpts:
     def send(self, data):
         self.__json_send_explicit(self.connection, data.dict())
 
-    def recveive(self):
+    def receive(self):
         data = self.__json_receive_explicit(self.connection)
         schema_type = schema_types[data['schema_type']]
         return schema_type(**data)

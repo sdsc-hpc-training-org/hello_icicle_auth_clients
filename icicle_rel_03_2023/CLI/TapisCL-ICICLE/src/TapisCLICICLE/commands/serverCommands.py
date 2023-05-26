@@ -14,13 +14,13 @@ class switch_service(baseCommand.BaseCommand):
     @help: switch the connected tapis service
     @todo: upgrade to federated auth
     """
-    async def run(self, link: str, auth: str, password=None, *args, **kwargs):  # link is the baseURL
+    async def run(self, link: str, auth: str, *args, **kwargs):  # link is the baseURL
         if auth == "password":
-            results = kwargs['server'].password_grant(kwargs['connection'], password, link)
+            results = kwargs['server'].password_grant(link, kwargs['connection'])
         elif auth == "device_code":
-            results = kwargs['server'].device_code_grant()
+            results = kwargs['server'].device_code_grant(link, kwargs['connection'])
         elif auth == "federated":
-            results = kwargs['server'].federated_grant()
+            results = kwargs['server'].federated_grant(link, kwargs['connection'])
         return results
       
 

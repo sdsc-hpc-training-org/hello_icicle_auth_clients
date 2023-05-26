@@ -36,33 +36,17 @@ class RequiresForm(BaseRequirementDecorator):
         if connection and not kwargs['file']:
             connection = connection
             fields = command.keyword_arguments
+            fields = {field:None for field in fields}
             if not fields:
                 raise AttributeError(f"The decorated function {command} has no keyword parameters.")
-            form_request = schemas.FormRequest(arguments_list=fields)
+            form_request = schemas.FormRequest(request_content=fields,
+                                               message={"message":"The command requests that you enter responses for the following fields:",
+                                                        "fields":fields})
             await connection.send(form_request)
             filled_form: schemas.FormResponse = await connection.receive()
-            for key, value in filled_form.arguments_list.items():
+            for key, value in filled_form.request_content.items():
                 kwargs[key] = value
 
-        return await command.run(**kwargs)
-    
-
-class SecureInput(BaseRequirementDecorator):
-    """
-    Use this for functions where you need to hide input while typing into the cli. For instance, if you want to add a password to a service, as a user, but you dont actually
-    want to authenticate. Checks if the decorated function has a password parameter, then requests secure input of a new password from the client
-    """
-    async def __call__(self, command, *args, **kwargs):
-        connection = kwargs['connection']
-        if connection:
-            connection = connection
-            if 'password' in command.keyword_arguments:
-                secure_input_request = schemas.AuthRequest(secure_input=True)
-                await connection.send(secure_input_request)
-                secure_input_data: schemas.AuthData = await connection.receive()
-                kwargs['password'] = secure_input_data.password
-                return await command.run(**kwargs)
-            raise AttributeError(f"The function {command} does not contain a 'password' parameter to securely input")
         return await command.run(**kwargs)
 
 
@@ -114,7 +98,6 @@ class NeedsConfirmation(BaseRequirementDecorator):
 DECORATOR_LIST = [
     NeedsConfirmation,
     RequiresForm,
-    SecureInput,
     Auth
 ]
     
