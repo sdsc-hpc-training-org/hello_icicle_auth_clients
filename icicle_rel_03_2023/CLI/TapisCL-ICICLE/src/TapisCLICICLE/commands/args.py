@@ -46,7 +46,7 @@ class Args: # should add a way to automatically check for duplicate entries to t
             "kwargs":{"action":"store"}
         },
         "auth":{
-            "args":["-a", "-auth"],
+            "args":["-a", "--auth"],
             "kwargs":{
                 "action":"store",
                 "choices":[

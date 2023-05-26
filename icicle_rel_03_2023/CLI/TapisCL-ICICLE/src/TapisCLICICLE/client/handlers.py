@@ -10,31 +10,23 @@ class Formatters:
     """
     Format received dictionaries in the client code
     """
-    def __recursive_dict_print(self, input_data: dict, depth: int=0):
-        for key, value in input_data.items():
-            if isinstance(value, dict):
-                print(("  " * depth) + f"{key}:")
-                self.recursive_dict_print(value, depth=depth + 1)
-            elif isinstance(value, (list, tuple, set)):
-                print(("  " * depth) + f"{key}:")
-                for data in value:
-                    print(("  " * (depth + 1)) + data)
-            else: 
-                print(("  " * depth) + f"{key}: {str(value).strip()}")
-        if depth in (0,):
+    def print_response(self, input_data, depth: int=0):
+        if isinstance(input_data, (list, set, tuple)):
+            for data in input_data:
+                if isinstance(data, (list, dict, set, tuple)):
+                    print("\n")
+                self.print_response(data, depth=depth+1)
+        elif isinstance(input_data, dict):
+            for name, data in input_data.items():
+                if isinstance(data, (int, str)):
+                    print(("  " * depth) + f"{name}: {data}")
+                    continue
+                print(("  " * depth) + f"{name}: ")
+                self.print_response(data, depth=depth+1)
+        elif isinstance(input_data, (int, str)):
+            print(input_data)
+        if depth == 0:
             print("\n")
-
-    def print_response(self, response_message):
-        """
-        format response messages from the server
-        """
-        if type(response_message) == dict:
-            self.__recursive_dict_print(response_message)
-        elif type(response_message) in (set, tuple, list):
-            for value in response_message:
-                self.print_response(value)
-        else:
-            print(response_message)
 
 
 class Handlers(Formatters):

@@ -86,7 +86,7 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
             if argument not in EXCLUDED_ARGUMENTS:
                 arguments_str += f" {Args.Args.argparser_args[argument]['args'][0]}/{Args.Args.argparser_args[argument]['args'][1]} <{argument}>"
         if not arguments_str:
-            arguments_str = "No Arguments"
+            arguments_str = "<No Arguments>"
         return arguments_str
     
     def __help_gen(self):

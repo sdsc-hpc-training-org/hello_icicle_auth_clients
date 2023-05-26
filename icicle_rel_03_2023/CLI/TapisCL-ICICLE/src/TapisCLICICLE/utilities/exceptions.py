@@ -64,3 +64,11 @@ class UnauthorizedAccessError(Exception):
     """
     def __init__(self, ip):
         super().__init__(f"DANGER! UNAUTHORIZED IP {ip} TRIED TO CONNECT TO THE SERVER. SOMEONE IS TRYING TO PIGGYBACK ON THE TAPIS APPLICATION, AND ATTEMPTING TO STEAL YOUR DATA.")
+
+
+class ClientSideError(ConnectionError):
+    """
+    raise error when problem is on client side
+    """
+    def __init__(self, error_message):
+        super().__init__(f"CLIENT SIDE ERROR: {error_message}")

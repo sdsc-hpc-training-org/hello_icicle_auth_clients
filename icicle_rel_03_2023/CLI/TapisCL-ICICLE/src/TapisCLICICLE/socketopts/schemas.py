@@ -45,6 +45,9 @@ class ResponseData(BaseSchema):
     data from the server to the client with return data from commands, as well as errors
     """
     schema_type: str = 'ResponseData'
+    url: str
+    active_username: str
+    exit_status = 0
     
 
 

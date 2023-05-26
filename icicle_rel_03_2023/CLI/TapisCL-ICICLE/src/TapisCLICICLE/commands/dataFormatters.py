@@ -1,3 +1,5 @@
+import json
+
 from tapipy.tapis import TapisResult
 
 
@@ -48,29 +50,38 @@ class DataFormatters:
     
     @staticmethod
     def pod_formatter(self, return_data, verbose):
-        if not verbose:
+        if return_data:
             return_data = DataFormatters.json_serializer(return_data)
-            return DataFormatters.base_formatter(self, return_data, desired_data=DataFormatters.pod_data)
-        return str(return_data)
+            if not verbose:
+                return DataFormatters.base_formatter(self, return_data, desired_data=DataFormatters.pod_data)
+            return return_data
+        return "No data found"
     
     @staticmethod
     def system_formatter(self, return_data, verbose):
-        if not verbose:
+        if return_data:
             return_data = DataFormatters.json_serializer(return_data)
-            return DataFormatters.base_formatter(self, return_data, desired_data=DataFormatters.system_data)
-        return str(return_data)
+            if not verbose:
+                return DataFormatters.base_formatter(self, return_data, desired_data=DataFormatters.system_data)
+            return return_data
+        return "No data found"
     
     @staticmethod
     def app_formatter(self, return_data, verbose):
-        if not verbose:
+        if return_data:
             return_data = DataFormatters.json_serializer(return_data)
-            return DataFormatters.base_formatter(self, return_data, desired_data=DataFormatters.app_data)
-        return str(return_data)
+            if not verbose:
+                return DataFormatters.base_formatter(self, return_data, desired_data=DataFormatters.app_data)
+            return return_data
+        return "No data found"
     
     @staticmethod
     def server_formatter(self, return_data, verbose):
-        if not verbose:
-            return_data = DataFormatters.json_serializer(return_data)
-            return DataFormatters.base_formatter(self, return_data, desired_data=DataFormatters.server_data)
-        return str(return_data)
+        if return_data:
+            try:
+                json.dumps(return_data)
+                return return_data
+            except:
+                return str(return_data)
+        return "No data found"
     

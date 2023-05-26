@@ -62,17 +62,18 @@ class Auth(BaseRequirementDecorator):
             if 'password' not in command.keyword_arguments:
                 raise AttributeError(f"The command {command.__class__.__name__} does not have a 'password' keyword argument")
             if 'username' not in command.keyword_arguments:
-                auth_request = schemas.AuthRequest(requires_username=False)
+                auth_request = schemas.FormRequest(request_content={"password":None},
+                                                   message={"message":"Password is required to continue. If you logged in using TACC password login, use that. Otherwise use the session password"})
                 requires_username = False
             else:
-                auth_request = schemas.AuthRequest()
+                auth_request = schemas.FormRequest(request_content={"password":None, "username":None},
+                                                   message={"message":"Password is required to continue. If you logged in using TACC password login, use that. Otherwise use the session password\nYour username was returned during initial login"})
             await connection.send(auth_request)
             auth_data = await connection.receive()
-            if auth_data.password != self.password and self.password:
+            if auth_data.request_content['password'] != self.password and self.password:
                 raise ValueError("The provided password does not match the stored password")
-            if ((requires_username and auth_data.username != self.password) or (not requires_username and kwargs['username'] != self.username)) and self.username:
+            if ((requires_username and auth_data.request_content['password'] != self.password) or (not requires_username and kwargs['username'] != self.username)) and self.username:
                 raise ValueError("The provided username does not match the stored username")
-            print(kwargs)
             kwargs['username'], kwargs['password'] = auth_data.username, auth_data.password
             return await command.run(**kwargs)
         return await command.run(**kwargs)
@@ -86,10 +87,11 @@ class NeedsConfirmation(BaseRequirementDecorator):
         connection = kwargs['connection']
         if connection:
             connection = connection
-            confirmation_request = schemas.ConfirmationRequest(message=f"YOU REQUESTED TO {command.__class__.__name__}. THIS MIGHT CAUSE DATA LOSS! Please confirm (y/n)")
+            confirmation_request = schemas.FormRequest(message={"message":f"YOU REQUESTED TO {command.__class__.__name__.upper()}. THIS MIGHT CAUSE DATA LOSS! Please confirm (y/n)"},
+                                                       request_content={"confirmation":None})
             await connection.send(confirmation_request)
-            confirmation_reply: schemas.ResponseData = await connection.receive()
-            confirmed = confirmation_reply.response_message
+            confirmation_reply: schemas.FormResponse = await connection.receive()
+            confirmed = confirmation_reply.request_content['confirmation']
             if not confirmed:
                 raise exceptions.NoConfirmationError(command)
         return await command.run(**kwargs)

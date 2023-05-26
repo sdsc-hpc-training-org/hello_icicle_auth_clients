@@ -8,11 +8,20 @@ if __name__ != "__main__":
 class get_pods(baseCommand.BaseCommand):
     """
     @help: return a list of pods the current tapis instance has access to
-    @todo: add feature so that an individual pod id can be passed to access pod specific
     """
     async def run(self, *args, **kwargs) -> str: 
         pods_list = self.t.pods.get_pods()
         return pods_list
+
+
+class get_pod(baseCommand.BaseCommand):
+    """
+    @help: return a specific pod based on ID
+    """
+    async def run(self, id: str, *args, **kwargs) -> str: 
+        pod_data = self.t.pods.get_pod(pod_id="id")
+        return pod_data
+
 
 class create_pod(baseCommand.BaseCommand):
     """

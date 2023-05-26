@@ -6,10 +6,10 @@ import pydantic
 
 try:
     from socketopts import schemas
-    from utilities import logger
+    from utilities import logger, exceptions
 except:
     from . import schemas
-    from ..utilities import logger
+    from ..utilities import logger, exceptions
 
 
 schema_types: dict = {
@@ -31,12 +31,15 @@ class BaseSocketOpts(logger.ConnectionLogger):
         self.initialize_logger(f"{name} LOGGER")
         self.debug_state = debug
 
-    def debug(self, operation: typing.Literal["SENDING", "RECEIVED", "WAITING"], message):
+    def debug(self, operation: typing.Literal["SENDING", "RECEIVED", "WAITING"], message: str | typing.Type[schemas.BaseSchema]):
         if self.debug_state:
-            self.logger.info(f"""{operation}: {message.schema_type}
-                                 MESSAGE CONTENT:{message.request_content}
-                                 MESSAGE: {message.message}
-                                 ERROR: {message.error}""")
+            if not isinstance(message, str):
+                self.logger.info(f"""{operation}: {message.schema_type}
+                                    MESSAGE CONTENT:{message.request_content}
+                                    MESSAGE: {message.message}
+                                    ERROR: {message.error}""")
+            else:
+                self.logger.info(message)
 
 
 class ClientSocketOpts(BaseSocketOpts):
@@ -96,6 +99,9 @@ class ServerSocketOpts(BaseSocketOpts):
         self.debug("WAITING", "Awaiting message receive")
         data = await self.__json_receive_explicit_async()
         schema_type = schema_types[data['schema_type']]
-        self.debug('RECEIVED', schema_type(**data))
-        return schema_type(**data)
+        formatted_data = schema_type(**data)
+        self.debug('RECEIVED', formatted_data)
+        if formatted_data.error:
+            raise exceptions.ClientSideError(formatted_data.error)
+        return formatted_data
     

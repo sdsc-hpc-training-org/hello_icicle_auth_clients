@@ -27,8 +27,7 @@ class ServerConnection(socketOpts.ServerSocketOpts):
         self.writer = writer
 
     async def close(self):
-        self.reader.feed_eof()
-        await self.reader.wait_eof()
+        await self.reader.feed_eof()
         self.writer.close()
         await self.writer.wait_closed()
         
@@ -37,7 +36,7 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
     """
     Receives commands from the client and executes Tapis operations
     """
-    SESSION_TIME = 600
+    SESSION_TIME = 1200
     def __init__(self, IP: str, PORT: int):
         super().__init__()
         self.initial = True
@@ -71,13 +70,13 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
                 startup_data = schemas.StartupData(initial = self.initial)
                 await connection.send(startup_data)
                 await self.auth_startup(connection)
+            else:
+                startup_result = schemas.StartupData(initial = self.initial, username = self.username, url = self.url)
+                await connection.send(startup_result)
+            self.initial = False
+            self.logger.info("Final connection data sent")
         except Exception as e:
             raise Exception("Auth Failure")
-        self.initial = False
-        startup_result = schemas.StartupData(initial = self.initial, username = self.username, url = self.url)
-        self.logger.info("Connection success")
-        await connection.send(startup_result)
-        self.logger.info("Final connection data sent")
 
     async def accept(self, reader, writer):
         """
@@ -117,14 +116,17 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
             try:
                 message = await connection.receive()
                 self.timeout_handler()  
-                kwargs, exit_status = message.kwargs, message.exit_status
+                kwargs = message.request_content
                 result = await self.run_command(connection, kwargs)
-                response = schemas.ResponseData(response_message = result, url = self.url, active_username = self.username)
+                response = schemas.ResponseData(message={"message":result}, url=self.url, active_username=self.username)
                 self.end_time = time.time() + 300 
                 await connection.send(response)
                 self.logger.info(message.schema_type)
+            except exceptions.ClientSideError as e:
+                self.logger.warning(e)
+                continue
             except (exceptions.TimeoutError, exceptions.Shutdown) as e:
-                error_response = schemas.ResponseData(response_message = str(e), exit_status=1)
+                error_response = schemas.ResponseData(error=str(e), exit_status=1, url=self.url, active_username=self.username)
                 await connection.send(error_response)
                 self.logger.warning(str(e))
                 self.server.close()
@@ -134,7 +136,7 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
                 sys.exit(0)
             except exceptions.Exit as e:
                 self.logger.info("user exit initiated")
-                error_response = schemas.ResponseData(response_message = str(e), exit_status=1)
+                error_response = schemas.ResponseData(error=str(e), exit_status=1, url=self.url, active_username=self.username)
                 await connection.send(error_response)
                 await connection.close()
                 return
@@ -144,7 +146,7 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
                 await connection.close()
             except (exceptions.CommandNotFoundError, exceptions.NoConfirmationError, exceptions.InvalidCredentialsReceived, Exception) as e:
                 error_str = traceback.format_exc()
-                error_response = schemas.ResponseData(response_message = f"{str(e)}")
+                error_response = schemas.ResponseData(error=str(e), url=self.url, active_username=self.username)
                 await connection.send(error_response)
                 self.logger.warning(f"{error_str}")
     

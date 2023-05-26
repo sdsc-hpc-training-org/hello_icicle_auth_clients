@@ -4,6 +4,7 @@ import argparse
 import sys
 import os
 import time
+import traceback
 
 import pyfiglet
 
@@ -21,14 +22,14 @@ server_path = os.path.join(__location__, r'..\serverRun.py')
 
 class ClientSideConnection(socketOpts.ClientSocketOpts, handlers.Handlers):
     def __init__(self, connection, debug=False):
-        super().__init__(__name__, debug=debug)
+        super().__init__("client", debug=debug)
         self.connection = connection
     
     def close(self):
         self.connection.close()
 
 
-class CLI(socketOpts.ClientSocketOpts, decorators.DecoratorSetup, args.Args, parsers.Parsers, handlers.Handlers):
+class CLI(decorators.DecoratorSetup, args.Args, parsers.Parsers, handlers.Handlers):
     """
     Receive user input, either direct from bash environment or from the custom interface, then parse these commands and send them to the server to be executed. 
     """
@@ -45,7 +46,7 @@ class CLI(socketOpts.ClientSocketOpts, decorators.DecoratorSetup, args.Args, par
         for parameters in self.argparser_args.values():
             self.parser.add_argument(*parameters["args"], **parameters["kwargs"])
 
-        self.username, self.password = self.connect()
+        self.username, self.url = self.connect()
 
     def initialize_server(self): 
         """
@@ -69,7 +70,7 @@ class CLI(socketOpts.ClientSocketOpts, decorators.DecoratorSetup, args.Args, par
                 os._exit(0)
             try:
                 self.connection.connect((self.ip, self.port)) 
-                self.connection = ClientSideConnection(self.connection, debug=True)
+                self.connection = ClientSideConnection(self.connection, debug=False)
                 if startup_flag:
                     startup.kill()
                 break
@@ -88,7 +89,7 @@ class CLI(socketOpts.ClientSocketOpts, decorators.DecoratorSetup, args.Args, par
                 sys.exit(0)
             elif server_auth_request.auth_request_type == "success":
                 self.print_response(server_auth_request.message)
-                return server_auth_request.message['username'], server_auth_request.message['password']
+                return server_auth_request.message['username'], server_auth_request.message['url']
             form_response = self.universal_message_handler(server_auth_request)
             if not form_response:
                 break
@@ -115,9 +116,15 @@ class CLI(socketOpts.ClientSocketOpts, decorators.DecoratorSetup, args.Args, par
         self.connection.send(command_request)
         while True:
             command_response = self.connection.receive()
+            if isinstance(command_response, schemas.ResponseData):
+                self.url, self.username = command_response.url, command_response.active_username
+                if command_response.exit_status:
+                    print("Exit initiated")
+                    os._exit(0)
             handled_response = self.universal_message_handler(command_response)
             if not handled_response:
                 break
+            handled_response = schemas.FormResponse(request_content=handled_response)
             self.connection.send(handled_response)
 
     def terminal_cli(self):
@@ -140,10 +147,20 @@ class CLI(socketOpts.ClientSocketOpts, decorators.DecoratorSetup, args.Args, par
         while True:
             try:
                 time.sleep(0.01)
-                kwargs: dict = str(input(f"[{self.username}@{self.url}] ")).split(' ')
+                kwargs: dict = vars(self.parser.parse_args(str(input(f"[{self.username}@{self.url}] ")).split(" ")))
                 self.interface(kwargs)
             except KeyboardInterrupt:
                 continue
+            except ConnectionAbortedError:
+                print("Server shutdown, exiting")
+                os._exit(0)
+            except Exception as e:
+                error_str = traceback.format_exc()
+                print(error_str)
+                error_message = schemas.CommandData(error=str(e))
+                self.connection.send(error_message)
+
+            
 
     def main(self):
         if len(sys.argv) > 1: # checks if any command line arguments were provided. Does not open CLI

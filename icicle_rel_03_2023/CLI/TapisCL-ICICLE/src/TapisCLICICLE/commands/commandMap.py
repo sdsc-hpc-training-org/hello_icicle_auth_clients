@@ -23,7 +23,7 @@ class Server(baseCommand.BaseCommandMap):
     """
     @help: run config operations on the 
     """
-    #data_formatter = dataFormatters.DataFormatters.server_formatter
+    data_formatter = dataFormatters.DataFormatters.server_formatter
     command_map = {
         'whoami':serverCommands.whoami(),
         'exit':serverCommands.exit(),
@@ -40,6 +40,7 @@ class Pods(baseCommand.BaseCommandMap):
     data_formatter = dataFormatters.DataFormatters.pod_formatter
     command_map = {
         'get_pods':podCommands.get_pods(),
+        'get_pod':podCommands.get_pod(),
         'create_pod':podCommands.create_pod(),
         'start_pod':podCommands.start_pod(),
         'restart_pod':podCommands.restart_pod(),
