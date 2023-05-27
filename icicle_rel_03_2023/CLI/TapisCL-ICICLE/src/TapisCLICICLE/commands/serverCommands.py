@@ -56,3 +56,11 @@ class get_args(baseCommand.BaseCommand):
     """
     async def run(self, *args, **kwargs):
         return Args.Args.argparser_args
+    
+
+class whereami(baseCommand.BaseCommand):
+    """
+    @help: get the URI of current tapis tenant
+    """
+    async def run(self, *args, **kwargs):
+        return kwargs['server'].url

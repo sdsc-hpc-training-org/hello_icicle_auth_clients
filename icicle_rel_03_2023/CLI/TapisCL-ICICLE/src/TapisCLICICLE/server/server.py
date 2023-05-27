@@ -65,18 +65,15 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
 
     async def handshake(self, connection):
         self.logger.info("Handshake starting")
-        try:
-            if self.initial:  # if this is the first time in the session that the cli is connecting
-                startup_data = schemas.StartupData(initial = self.initial)
-                await connection.send(startup_data)
-                await self.auth_startup(connection)
-            else:
-                startup_result = schemas.StartupData(initial = self.initial, username = self.username, url = self.url)
-                await connection.send(startup_result)
-            self.initial = False
-            self.logger.info("Final connection data sent")
-        except Exception as e:
-            raise Exception("Auth Failure")
+        if self.initial:  # if this is the first time in the session that the cli is connecting
+            startup_data = schemas.StartupData(initial = self.initial)
+            await connection.send(startup_data)
+            await self.auth_startup(connection)
+        else:
+            startup_result = schemas.StartupData(initial = self.initial, username = self.username, url = self.url)
+            await connection.send(startup_result)
+        self.initial = False
+        self.logger.info("Final connection data sent")
 
     async def accept(self, reader, writer):
         """
@@ -99,7 +96,6 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
         self.logger.info("connection is running now")
         loop = asyncio.get_event_loop()
         await loop.create_task(self.receive_and_execute(connection))
-
 
     def timeout_handler(self):  
         """

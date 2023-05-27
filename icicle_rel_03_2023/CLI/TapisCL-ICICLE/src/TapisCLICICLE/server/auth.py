@@ -83,17 +83,16 @@ class ServerSideAuth:
         self.username = self.t.authenticator.get_userinfo().username
         self.url = link
         self.access_token = self.t.access_token
+
+        self.configure_decorators(self.username, self.password)
+        self.update_credentials(t, self.username, self.password)
+
         self.logger.info(f"initiated in {time.time()-start}")
 
         return f"Successfully initialized tapis service on {self.url}"
 
     async def federated_grant(self, link, connection):
         start = time.time()
-        try:
-            t = Tapis(base_url=f"https://{link}")
-        except Exception as e:
-            self.logger.warning(e)
-            raise ValueError(f"Invalid uri")
         auth_link = rf"https://{link}/v3/oauth2/webapp"
         payload = schemas.AuthRequest(auth_request_type='federated',
                                       message={
@@ -104,15 +103,19 @@ class ServerSideAuth:
                                           "user_code":None
                                           })
         await connection.send(payload)
-        response_code = await connection.receive()
-        token = t.authenticator.create_token(grant_type="authorization_code", code=response_code.user_code)
+        response_code_message: schemas.AuthRequest = await connection.receive()
         self.t = Tapis(
             base_url=f"https://{link}",
-            access_token = token
+            access_token = response_code_message.request_content['user_code'].strip()
             )
+        print(self.t)
         self.username = self.t.authenticator.get_userinfo().username
         self.url = link
         self.access_token = self.t.access_token
+
+        self.configure_decorators(self.username, self.password)
+        self.update_credentials(self.t, self.username, self.password)
+
         self.logger.info(f"initiated in {time.time()-start}")
 
         return f"Successfully initialized tapis service on {self.url}"
@@ -139,12 +142,19 @@ class ServerSideAuth:
                     break
                 session_password_request.error = "The password provided was too short, the password must be at least 6 characters!!!"
         
-        if auth_type == "federated":
-            await self.federated_grant(link, connection)
-        elif auth_type == "device_code":
-            await self.device_code_grant(link, connection)
-        else:
-            await self.password_grant(link, connection)
+        while True:
+            try:
+                if auth_type == "federated":
+                    await self.federated_grant(link, connection)
+                elif auth_type == "device_code":
+                    await self.device_code_grant(link, connection)
+                else:
+                    await self.password_grant(link, connection)
+                break
+            except ValueError:
+                raise ValueError
+            except Exception as e:
+                continue
         success_message = schemas.AuthRequest(auth_request_type="success", message={
             "message":f"Successfully authenticated with {auth_type} authentication",
             "username":self.username,

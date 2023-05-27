@@ -26,6 +26,7 @@ class Server(baseCommand.BaseCommandMap):
     data_formatter = dataFormatters.DataFormatters.server_formatter
     command_map = {
         'whoami':serverCommands.whoami(),
+        'whereami':serverCommands.whereami(),
         'exit':serverCommands.exit(),
         'shutdown':serverCommands.shutdown(),
         "get_args":serverCommands.get_args(),

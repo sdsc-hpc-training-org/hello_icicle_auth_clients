@@ -70,7 +70,7 @@ class CLI(decorators.DecoratorSetup, args.Args, parsers.Parsers, handlers.Handle
                 os._exit(0)
             try:
                 self.connection.connect((self.ip, self.port)) 
-                self.connection = ClientSideConnection(self.connection, debug=False)
+                self.connection = ClientSideConnection(self.connection, debug=True)
                 if startup_flag:
                     startup.kill()
                 break
@@ -151,7 +151,7 @@ class CLI(decorators.DecoratorSetup, args.Args, parsers.Parsers, handlers.Handle
                 self.interface(kwargs)
             except KeyboardInterrupt:
                 continue
-            except ConnectionAbortedError:
+            except (ConnectionAbortedError, ConnectionResetError):
                 print("Server shutdown, exiting")
                 os._exit(0)
             except Exception as e:
