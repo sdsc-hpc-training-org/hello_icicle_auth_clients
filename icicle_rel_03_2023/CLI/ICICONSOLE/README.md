@@ -14,6 +14,10 @@ Requires Python 3.10 or higher. You can clone this repository and manually insta
 pip install ICICONSOLE
 ```
 
+```shell
+python -m ICICONSOLE
+```
+
 **OR**
 
 ```shell 
