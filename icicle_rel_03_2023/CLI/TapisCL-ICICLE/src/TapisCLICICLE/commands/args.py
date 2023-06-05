@@ -33,6 +33,14 @@ class Args: # should add a way to automatically check for duplicate entries to t
             "args":["-F", "--file"],
             "kwargs":{"action":"store"}
         },
+        "destination_file":{
+            "args":["-dF", "--destination_file"],
+            "kwargs":{"action":"store"}
+        },
+        "source_file":{
+            "args":["-sF", "--source_file"],
+            "kwargs":{"action":"store"}
+        },
         "name":{
             "args":["-n", "--name"],
             "kwargs":{"action":"store"}

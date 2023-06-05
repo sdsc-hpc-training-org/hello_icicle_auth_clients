@@ -117,7 +117,10 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
                 self.timeout_handler()  
                 kwargs = message.request_content
                 result = await self.run_command(connection, kwargs)
-                response = schemas.ResponseData(message={"message":result}, url=self.url, active_username=self.username)
+                if self.current_system:
+                    response = schemas.ResponseData(message={"message":result}, url=self.url, active_username=self.username, pwd=self.pwd, system=self.current_system)
+                else:
+                    response = schemas.ResponseData(message={"message":result}, url=self.url, active_username=self.username)
                 self.end_time = time.time() + self.SESSION_TIME 
                 await connection.send(response)
                 self.logger.info(message.schema_type)

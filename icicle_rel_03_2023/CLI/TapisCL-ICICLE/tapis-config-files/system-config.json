@@ -1,8 +1,8 @@
 {
-    "id": "<username, like stampede2.<username>>",
-    "description": "<description>",
-    "systemType": "<linux, for instance>",
-    "host": "<host URL, like stampede2.tacc.utexas.edu>",
+    "id": "VERYGOODSYSTEM3",
+    "description": "This is the best system",
+    "systemType": "LINUX",
+    "host": "stampede2.tacc.utexas.edu",
     "defaultAuthnMethod": "PKI_KEYS",
     "effectiveUserId": "${apiUserId}",
     "port": 22,
@@ -11,8 +11,8 @@
     "jobRuntimes": [ { "runtimeType": "SINGULARITY" } ],
     "jobWorkingDir": "HOST_EVAL($WORK2)",
     "canRunBatch": true,
-    "batchScheduler": "<scheduler, like SLURM>",
-    "batchSchedulerProfile": "<profile, like tacc>",
+    "batchScheduler": "SLURM",
+    "batchSchedulerProfile": "tacc",
     "batchDefaultLogicalQueue": "tapisNormal",
     "batchLogicalQueues": [
         {

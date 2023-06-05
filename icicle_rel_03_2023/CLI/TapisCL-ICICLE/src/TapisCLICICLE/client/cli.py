@@ -48,6 +48,9 @@ class CLI(decorators.DecoratorSetup, args.Args, parsers.Parsers, handlers.Handle
 
         self.username, self.url = self.connect()
 
+        self.pwd = ""
+        self.current_system = ""
+
     def initialize_server(self): 
         """
         detect client operating system. The local server intitialization is different between unix and windows based systems
@@ -147,7 +150,7 @@ class CLI(decorators.DecoratorSetup, args.Args, parsers.Parsers, handlers.Handle
         while True:
             try:
                 time.sleep(0.01)
-                kwargs: dict = vars(self.parser.parse_args(str(input(f"[{self.username}@{self.url}] ")).split(" ")))
+                kwargs: dict = vars(self.parser.parse_args(str(input(f"[{self.username}@{self.url}][{self.current_system}]{self.pwd} ")).split(" ")))
                 self.interface(kwargs)
             except KeyboardInterrupt:
                 continue

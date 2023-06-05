@@ -71,6 +71,8 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
         self.t = None
         self.username = None
         self.password = None
+        self.server = None
+        self.command_opt = None
         self.keyword_arguments = get_kwargs(self.run)
         self.positional_arguments = get_args(self.run)
         self.help = self.__help_gen()
@@ -102,6 +104,8 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
         pass
 
     async def __call__(self, **kwargs):
+        if self.command_opt:
+            kwargs = self.command_opt(kwargs)
         if 'help' in list(kwargs.keys()) and kwargs['help']:
             return self.help
         if self.decorator:
@@ -131,6 +135,7 @@ class CommandMapMetaClass(type):
             instance.__check_commands_are_proper_type(name, attrs)
             instance.__check_command_name(name, attrs)
             instance.__check_data_formatter(name, attrs)
+            instance.__special_command_opts(name, attrs)
         return instance
     
     def __check_commands_are_proper_type(self, name, attrs):
@@ -151,6 +156,11 @@ class CommandMapMetaClass(type):
         if 'data_formatter' not in list(attrs.keys()):
             print(f"WARNING: The command map {name} has no data formatter. If any commands have non json-serializable return values, command execution will fail! These must be handled by a formatter")
 
+    def __special_command_opts(self, name, attrs):
+        if 'command_opt' in list(attrs.keys()):
+            for command_name, command in attrs['command_map']:
+                command.command_opt = attrs['command_opt']
+
 
 class CommandContainer:
     aggregate_command_map: dict[str, Type[BaseCommand]] = dict()
@@ -159,6 +169,7 @@ class CommandContainer:
 class BaseCommandMap(CommandContainer, HelpStringRetriever, metaclass=CommandMapMetaClass):
     command_map: dict[str, Type[BaseCommand]] = None
     data_formatter = None
+    command_opt = None
     def __init__(self):
         self.brief_help = self.__brief_help_gen()
         self.verbose_help = self.__help_gen()

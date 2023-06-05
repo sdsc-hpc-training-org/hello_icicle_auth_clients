@@ -12,6 +12,8 @@ class BaseSchema(BaseModel):
     request_content: dict = dict()
     message: dict = dict()
     error: str = str()
+    system: str = str()
+    pwd: str = str()
 
 
 class CommandData(BaseSchema):

@@ -94,13 +94,29 @@ class create_system(baseCommand.BaseCommand):
         return_value = self.t.systems.createSystem(**system)
 
         self.server.pwd = system['rootDir']
-        self.server.current_system = 
+        self.server.current_system = system['id']
     
         if self.server.auth_type == "password":
             self.__password_auth(system['id'])
         else:
             self.__keygen()
         return return_value
+    
+
+class system(baseCommand.BaseCommand):
+    """
+    @help: set the system to run operations on by default. Running this will put you "in" the system so that you dont have to specify system ID for each command
+    """
+    async def run(self, id, *args, **kwargs):
+        system_info = self.t.systems.getSystem(systemId=id)
+        self.server.current_system = id
+        self.server.pwd = "/"
+
+
+class exit_system(baseCommand.BaseCommand):
+    async def run(self, *args, **kwargs):
+        self.server.current_system = None
+        self.server.pwd = None
     
 
 class set_system_password(baseCommand.BaseCommand):

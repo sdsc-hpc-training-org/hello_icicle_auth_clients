@@ -4,15 +4,30 @@ if __name__ != "__main__":
     from utilities import exceptions
 
 
+def CHECK_EXPLICIT_SYSTEM(self, kwargs):
+    if not kwargs['id']:
+        kwargs['id'] = kwargs['server'].current_system
+    return kwargs
+
+def CHECK_PWD(self, kwargs):
+    kwargs = CHECK_EXPLICIT_SYSTEM(self, kwargs)
+    if kwargs['server'].pwd not in kwargs['file']:
+        file = kwargs['server'].pwd + kwargs['file']
+        kwargs['file'] = fileCommands.simplify_path(file)
+    return kwargs
+
 class Systems(baseCommand.BaseCommandMap):
     """
     @help: run operations on Tapis systems
     """
+    command_opt = CHECK_EXPLICIT_SYSTEM
     data_formatter = dataFormatters.DataFormatters.system_formatter
     command_map = {
         'get_systems':systemCommands.get_systems(), # since initialization of commands is separate from __init__, you dont need to specify these as classes anymore
         'get_system_info':systemCommands.get_system_info(),
         'create_system':systemCommands.create_system(),
+        'system':systemCommands.system(),
+        'exit_system':systemCommands.exit_system(),
         'set_system_credentials':systemCommands.set_system_credentials(),
         'set_system_password':systemCommands.set_system_password(),
         'delete_system':systemCommands.delete_system(),
@@ -59,8 +74,12 @@ class Files(baseCommand.BaseCommandMap):
     """
     @help: run operations on tapis files
     """
+    command_opt = CHECK_PWD
     command_map = {
-        'list_files':fileCommands.list_files(),
+        'ls':fileCommands.ls(),
+        'cd':fileCommands.cd(),
+        'showme':fileCommands.showme(),
+        'cat':fileCommands.cat(),
         'upload':fileCommands.upload(),
         'download':fileCommands.download(),
     }
@@ -119,7 +138,7 @@ class AggregateCommandMap(baseCommand.CommandContainer):
         process and run command based on received kwargs
         """
         command_data['connection'] = connection
-        print(f"FROM RUN COMMAND {command_data}")
+        command_data['server'] = self
         command_name = command_data['command']
         if command_name in list(self.aggregate_command_map.keys()):
             command = self.aggregate_command_map[command_name]
