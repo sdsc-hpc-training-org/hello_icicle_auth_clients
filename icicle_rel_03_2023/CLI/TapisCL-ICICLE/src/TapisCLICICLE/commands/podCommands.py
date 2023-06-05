@@ -1,4 +1,5 @@
 import pyperclip
+from tapipy.tapis import errors as TapisErrors
 
 
 if __name__ != "__main__":
@@ -30,7 +31,11 @@ class create_pod(baseCommand.BaseCommand):
     decorator = decorators.RequiresForm()
     async def run(self, id: str, template: str, 
                   description: str | None = None, *args, **kwargs) -> str:
-        pod_information = self.t.pods.create_pod(pod_id=id, pod_template=template, description=description)
+        try:
+            print("TRYING TO DO THE SHIT")
+            pod_information = self.t.pods.create_pod(pod_id=id, pod_template=f"template/{template}", description=description)
+        except TapisErrors.BadRequestError as e:
+            pod_information = self.t.pods.create_pod(pod_id=id, pod_template=f"custom-{self.username}/{template}", description=description)
         return pod_information
     
 

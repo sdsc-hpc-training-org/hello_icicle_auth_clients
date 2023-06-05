@@ -1,3 +1,10 @@
+"""
+Requirements:
+Add a way to set a default system to be accessed. You must be able to override this by explicitly specifying system id in command
+add intuitive file access and manipulation using this default system. 
+"""
+
+
 import json
 import os
 
@@ -56,7 +63,12 @@ class create_system(baseCommand.BaseCommand):
     see the template at https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients/blob/main/icicle_rel_04_2023/CLI/TapisCL-ICICLE/tapis-config-files/system-config.json
     this command will automatically create and upload the ssh keys
     """
-    set_system_creds = set_system_credentials()
+    auth_methods = {
+        "password":"PASSWORD",
+        "federated":"TOKEN",
+        "device_code":"TOKEN",
+        "default":"PKI_KEYS"
+    }
     def __keygen(self):
         local_files = os.listdir(__location__)
         if "id_rsa" not in local_files or "id_rsa.pub" not in local_files:
@@ -69,14 +81,25 @@ class create_system(baseCommand.BaseCommand):
             with open(f"{__location__}\\id_rsa", 'w') as f:
                 f.write(formatted_key)
 
-    async def run(self, file: str, *args, **kwargs) -> str: # create a tapius system. Takes a path to a json file with all system information, as well as an ID
-        self.set_system_creds.set_t_and_creds(self.t, self.username, self.password)
+    def __password_auth(self, id):
+        cred_return_value = self.t.systems.createUserCredential(systemId=id,
+                            userName=self.username,
+                            password=self.password)
+        return cred_return_value
 
-        self.__keygen()
+    async def run(self, file: str, *args, **kwargs) -> str: # create a tapius system. Takes a path to a json file with all system information, as well as an ID
         with open(file, 'r') as f:
             system = json.loads(f.read())
+        system["defaultAuthnMethod"] = self.auth_methods[self.server.auth_type]
         return_value = self.t.systems.createSystem(**system)
-        self.set_system_creds(id=system['id'], file=f"{__location__}\\id_rsa,{__location__}\\id_rsa.pub")
+
+        self.server.pwd = system['rootDir']
+        self.server.current_system = 
+    
+        if self.server.auth_type == "password":
+            self.__password_auth(system['id'])
+        else:
+            self.__keygen()
         return return_value
     
 

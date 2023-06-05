@@ -75,10 +75,11 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
         self.positional_arguments = get_args(self.run)
         self.help = self.__help_gen()
 
-    def set_t_and_creds(self, t, username, password):
+    def set_t_and_creds(self, t, username, password, server):
         self.t = t
         self.username = username
         self.password = password
+        self.server = server
     
     def __argument_help_gen(self):
         arguments_str = ""

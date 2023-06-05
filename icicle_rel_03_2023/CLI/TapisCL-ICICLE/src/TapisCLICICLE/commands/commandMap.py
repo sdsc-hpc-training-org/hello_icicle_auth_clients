@@ -112,14 +112,13 @@ class AggregateCommandMap(baseCommand.CommandContainer):
 
     def update_credentials(self, t, username, password):
         for command_name, command in self.aggregate_command_map.items():
-            command.set_t_and_creds(t, username, password)
+            command.set_t_and_creds(t, username, password, self)
 
     async def run_command(self, connection, command_data: dict):
         """
         process and run command based on received kwargs
         """
         command_data['connection'] = connection
-        command_data['server'] = self
         print(f"FROM RUN COMMAND {command_data}")
         command_name = command_data['command']
         if command_name in list(self.aggregate_command_map.keys()):

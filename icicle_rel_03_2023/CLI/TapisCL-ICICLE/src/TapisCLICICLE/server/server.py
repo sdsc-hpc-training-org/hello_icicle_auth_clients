@@ -46,6 +46,9 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
         self.access_token = None
         self.username = None
         self.password = None
+        self.auth_type = None
+        self.current_system = None
+        self.pwd = None
 
         self.__name__ = "Server"
         self.initialize_logger(self.__name__)
@@ -115,7 +118,7 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
                 kwargs = message.request_content
                 result = await self.run_command(connection, kwargs)
                 response = schemas.ResponseData(message={"message":result}, url=self.url, active_username=self.username)
-                self.end_time = time.time() + 300 
+                self.end_time = time.time() + self.SESSION_TIME 
                 await connection.send(response)
                 self.logger.info(message.schema_type)
             except exceptions.ClientSideError as e:

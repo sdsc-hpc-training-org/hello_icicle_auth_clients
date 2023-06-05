@@ -5,6 +5,7 @@ import json
 
 
 from tapipy.tapis import Tapis
+from tapipy import tapis
 from federatedTenantAuthAPI.get import get_client_code
 import requests
 
@@ -48,7 +49,7 @@ class ServerSideAuth:
                     return
 
                 username_password_request.error = f"Authentication failure, attempt {attempt} of 3"
-                connection.send(username_password_request)
+                await connection.send(username_password_request)
 
         self.username = username
         self.password = password
@@ -125,10 +126,17 @@ class ServerSideAuth:
                                                         auth_request_type="requested",
                                                         message={"message":"Enter the URI of the Tapis tenant you wish to connect to, then select your auth type from the options below",
                                                                  "options":args.Args.argparser_args['auth']['kwargs']['choices']})
-        await connection.send(session_auth_type_request)
-        session_auth_type_response: schemas.FormResponse = await connection.receive()
-        auth_type = session_auth_type_response.request_content['auth_type']
-        link = session_auth_type_response.request_content['uri']
+        while True:
+            try:
+                await connection.send(session_auth_type_request)
+                session_auth_type_response: schemas.FormResponse = await connection.receive()
+                auth_type = session_auth_type_response.request_content['auth_type']
+                self.auth_type = auth_type
+                link = session_auth_type_response.request_content['uri']
+                Tapis(f"https://{link}")
+                break
+            except tapis.errors.BaseTapyException:
+                session_auth_type_request.error = "Invalid tenant URI received, try again"
 
         if auth_type != "password":
             session_password_request = schemas.AuthRequest(auth_request_type=auth_type, request_content={"password":None},

@@ -15,12 +15,13 @@ class switch_service(baseCommand.BaseCommand):
     @todo: upgrade to federated auth
     """
     async def run(self, link: str, auth: str, *args, **kwargs):  # link is the baseURL
+        self.server.auth_type = auth
         if auth == "password":
-            results = await kwargs['server'].password_grant(link, kwargs['connection'])
+            results = await self.server.password_grant(link, kwargs['connection'])
         elif auth == "device_code":
-            results = await kwargs['server'].device_code_grant(link, kwargs['connection'])
+            results = await self.server.device_code_grant(link, kwargs['connection'])
         elif auth == "federated":
-            results = await kwargs['server'].federated_grant(link, kwargs['connection'])
+            results = await self.server.federated_grant(link, kwargs['connection'])
         return results
       
 
