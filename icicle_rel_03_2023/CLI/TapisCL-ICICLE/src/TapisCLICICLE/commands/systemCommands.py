@@ -111,12 +111,17 @@ class system(baseCommand.BaseCommand):
         system_info = self.t.systems.getSystem(systemId=id)
         self.server.current_system = id
         self.server.pwd = "/"
+        return f"successfully entered the system {self.server.current_system}"
 
 
 class exit_system(baseCommand.BaseCommand):
+    """
+    @help: exit the default system
+    """
     async def run(self, *args, **kwargs):
-        self.server.current_system = None
-        self.server.pwd = None
+        self.server.current_system = ''
+        self.server.pwd = ''
+        return "successfully exited system"
     
 
 class set_system_password(baseCommand.BaseCommand):

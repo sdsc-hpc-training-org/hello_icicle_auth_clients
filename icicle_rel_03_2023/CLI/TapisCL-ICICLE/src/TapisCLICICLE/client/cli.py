@@ -42,6 +42,7 @@ class CLI(decorators.DecoratorSetup, args.Args, parsers.Parsers, handlers.Handle
         # set up argparse
         self.parser = argparse.ArgumentParser(description="Command Line Argument Parser", exit_on_error=False, usage=argparse.SUPPRESS, conflict_handler='resolve')
         self.parser.add_argument('command')
+        self.parser.error = self.parser_error
 
         for parameters in self.argparser_args.values():
             self.parser.add_argument(*parameters["args"], **parameters["kwargs"])
@@ -50,6 +51,9 @@ class CLI(decorators.DecoratorSetup, args.Args, parsers.Parsers, handlers.Handle
 
         self.pwd = ""
         self.current_system = ""
+
+    def parser_error(self, args):
+        print(f"Ignoring unrecognized arguments: {args}")
 
     def initialize_server(self): 
         """
@@ -121,6 +125,7 @@ class CLI(decorators.DecoratorSetup, args.Args, parsers.Parsers, handlers.Handle
             command_response = self.connection.receive()
             if isinstance(command_response, schemas.ResponseData):
                 self.url, self.username = command_response.url, command_response.active_username
+                self.pwd, self.current_system = command_response.pwd, command_response.system
                 if command_response.exit_status:
                     print("Exit initiated")
                     os._exit(0)
@@ -157,13 +162,13 @@ class CLI(decorators.DecoratorSetup, args.Args, parsers.Parsers, handlers.Handle
             except (ConnectionAbortedError, ConnectionResetError):
                 print("Server shutdown, exiting")
                 os._exit(0)
+            except (TypeError, argparse.ArgumentError, argparse.ArgumentTypeError):
+                print("Invalid command")
             except Exception as e:
                 error_str = traceback.format_exc()
                 print(error_str)
                 error_message = schemas.CommandData(error=str(e))
                 self.connection.send(error_message)
-
-            
 
     def main(self):
         if len(sys.argv) > 1: # checks if any command line arguments were provided. Does not open CLI

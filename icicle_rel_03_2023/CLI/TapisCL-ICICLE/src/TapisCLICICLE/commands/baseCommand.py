@@ -1,6 +1,7 @@
 import re
 import inspect
 import abc
+import ast
 from typing import Type
 from abc import abstractmethod, ABC
 
@@ -59,20 +60,23 @@ class CommandMetaClass(abc.ABCMeta):
         if 'kwargs' not in args or 'args' not in args:
             raise AttributeError(f"The run() method of the {name} class must have a **kwargs and *args attribute to ignore misinput")
         
-    def __check_decorator(self,name, attrs):
+    def __check_decorator(self, name, attrs):
         if 'decorator' in list(attrs.keys()) and type(attrs['decorator']) not in decorators.DECORATOR_LIST:
-            raise AttributeError(f"The decorator parameter of the command {name} is invalid. Must be set to None or to a decorator type. Currently is {type(attrs['decorator'])}")
-
+            raise TypeError(f"The decorator parameter of the command {name} is invalid. Must be set to None or to a decorator type. Currently is {type(attrs['decorator'])}")
+        
+    def __check_command_opt(self, name, attrs):
+        if 'command_opt' in list(attrs.keys()) and type((attrs['command_opt'])) != list:
+            raise TypeError(f"The command opt attribute of the command {name} must be a list!")
 
 class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
     decorator = None
     return_formatter = None
+    command_opt = None
     def __init__(self):
         self.t = None
         self.username = None
         self.password = None
         self.server = None
-        self.command_opt = None
         self.keyword_arguments = get_kwargs(self.run)
         self.positional_arguments = get_args(self.run)
         self.help = self.__help_gen()
@@ -105,7 +109,8 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
 
     async def __call__(self, **kwargs):
         if self.command_opt:
-            kwargs = self.command_opt(kwargs)
+            for opt in self.command_opt:
+                kwargs = opt(kwargs)
         if 'help' in list(kwargs.keys()) and kwargs['help']:
             return self.help
         if self.decorator:
@@ -158,8 +163,13 @@ class CommandMapMetaClass(type):
 
     def __special_command_opts(self, name, attrs):
         if 'command_opt' in list(attrs.keys()):
-            for command_name, command in attrs['command_map']:
-                command.command_opt = attrs['command_opt']
+            if type(attrs['command_opt']) != list:
+                raise TypeError(f"The command_opt attribute for the command group {name} must be a list!")
+            for command_name, command in attrs['command_map'].items():
+                if not command.command_opt:
+                    command.command_opt = attrs['command_opt']
+                    continue
+                command.command_opt += attrs['command_opt']
 
 
 class CommandContainer:

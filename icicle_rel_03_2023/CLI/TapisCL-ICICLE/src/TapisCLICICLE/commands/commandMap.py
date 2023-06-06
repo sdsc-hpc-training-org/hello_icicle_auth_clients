@@ -4,14 +4,16 @@ if __name__ != "__main__":
     from utilities import exceptions
 
 
-def CHECK_EXPLICIT_SYSTEM(self, kwargs):
+def CHECK_EXPLICIT_SYSTEM(kwargs):
     if not kwargs['id']:
         kwargs['id'] = kwargs['server'].current_system
     return kwargs
 
-def CHECK_PWD(self, kwargs):
-    kwargs = CHECK_EXPLICIT_SYSTEM(self, kwargs)
-    if kwargs['server'].pwd not in kwargs['file']:
+def CHECK_PWD(kwargs):
+    kwargs = CHECK_EXPLICIT_SYSTEM(kwargs)
+    if not kwargs['file']:
+        kwargs['file'] = ''
+    if not kwargs['file'] or kwargs['server'].pwd not in kwargs['file']:
         file = kwargs['server'].pwd + kwargs['file']
         kwargs['file'] = fileCommands.simplify_path(file)
     return kwargs
@@ -20,7 +22,7 @@ class Systems(baseCommand.BaseCommandMap):
     """
     @help: run operations on Tapis systems
     """
-    command_opt = CHECK_EXPLICIT_SYSTEM
+    command_opt = [CHECK_EXPLICIT_SYSTEM]
     data_formatter = dataFormatters.DataFormatters.system_formatter
     command_map = {
         'get_systems':systemCommands.get_systems(), # since initialization of commands is separate from __init__, you dont need to specify these as classes anymore
@@ -74,12 +76,22 @@ class Files(baseCommand.BaseCommandMap):
     """
     @help: run operations on tapis files
     """
-    command_opt = CHECK_PWD
+    command_opt = [CHECK_EXPLICIT_SYSTEM]
     command_map = {
         'ls':fileCommands.ls(),
         'cd':fileCommands.cd(),
         'showme':fileCommands.showme(),
         'cat':fileCommands.cat(),
+        'mkdir':fileCommands.mkdir(),
+        'mv':fileCommands.mv(),
+        'cp':fileCommands.cp(),
+        'rm':fileCommands.rm(),
+        'get_recent_transfers':fileCommands.get_recent_transfers(),
+        'create_postit':fileCommands.create_postit(),
+        'list_postits':fileCommands.list_postits(),
+        'get_postit':fileCommands.get_postit(),
+        'delete_postit':fileCommands.delete_postit(),
+        'redeem_postit':fileCommands.redeem_postit(),
         'upload':fileCommands.upload(),
         'download':fileCommands.download(),
     }
