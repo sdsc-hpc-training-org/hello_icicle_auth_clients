@@ -14,7 +14,7 @@ class CHECK_PWD:
                 raise AttributeError(f"The argument {arg} is not in the args file!")
         self.dir_simplify_args = dir_simplify_args
 
-    def __go_back_checker(self, index, path_list):
+    def __go_back_checker(self, index: int, path_list: list):
         back_count = 0
         for element in path_list[index:]:
             if element != "..":
@@ -22,7 +22,7 @@ class CHECK_PWD:
             back_count += 1
         return back_count
 
-    def __simplify_path(self, path):
+    def __simplify_path(self, path: list):
         index = 0
         length = len(path)
         try:
@@ -37,17 +37,26 @@ class CHECK_PWD:
                         path.pop(index-back_count)
                     continue
                 index += 1
-        except:
+        except IndexError:
+            pass
+        finally:
             path = "/".join(path)
+            if not path:
+                path = "/"
         return path
+    
+    def __relative_to_absolute(self, absolute_path: str, relative_path: str):
+        if not relative_path:
+            return absolute_path
+        elif absolute_path[-1] == "/":
+            return f"{absolute_path}{relative_path}"
+        return f"{absolute_path}/{relative_path}"
 
     def __call__(self, kwargs):
-        for arg in self.dir_simplify_args:
-            if not kwargs[arg]:
-                kwargs[arg] = ''
-            if not kwargs[arg] or kwargs['server'].pwd not in kwargs[arg]:
-                file = kwargs['server'].pwd + kwargs[arg]
-                kwargs[arg] = self.__simplify_path(file)
+        for file_argument_name in self.dir_simplify_args:
+            if not kwargs[file_argument_name] or kwargs['connection'].pwd not in kwargs[file_argument_name]:
+                file = self.__relative_to_absolute(kwargs['connection'].pwd, kwargs[file_argument_name])
+                kwargs[file_argument_name] = self.__simplify_path(file.split("/"))
         return kwargs
     
 
@@ -55,7 +64,7 @@ class ls(baseCommand.BaseCommand):
     """
     @help: list the files on a system 
     """
-    command_opt = [CHECK_PWD(('file'))]
+    command_opt = [CHECK_PWD(('file',))]
     async def run(self, id: str, file: str, *args, **kwargs) -> str: # lists files available on a tapis account
         file_list = self.t.files.listFiles(systemId=id, path=file)
         file_list_truncated = []
@@ -68,18 +77,18 @@ class cd(baseCommand.BaseCommand):
     """
     @help: change the directory
     """
-    command_opt = [CHECK_PWD(('file'))]
+    command_opt = [CHECK_PWD(('file',))]
     async def run(self, id: str, file: str, *args, **kwargs):
         self.t.files.listFiles(systemId=id, path=file)
-        self.server.pwd = file
-        return self.server.pwd
+        kwargs['connection'].pwd = file
+        return kwargs['connection'].pwd
 
 
 class showme(baseCommand.BaseCommand):
     """
     @help: display file metadata
     """
-    command_opt = [CHECK_PWD(('file'))]
+    command_opt = [CHECK_PWD(('file',))]
     async def run(self, id: str, file: str, *args, **kwargs):
         return_data = str(self.t.files.getStatInfo(systemId=id, path=file))
         return return_data
@@ -89,7 +98,7 @@ class cat(baseCommand.BaseCommand):
     """
     @help: display small files directly to the terminal
     """
-    command_opt = [CHECK_PWD(('file'))]
+    command_opt = [CHECK_PWD(('file',))]
     async def run(self, id: str, file: str, *args, **kwargs):
         size = self.t.files.getStatInfo(systemId=id, path=file).size
         if size <= 4000:
@@ -104,7 +113,7 @@ class mkdir(baseCommand.BaseCommand):
     """
     @help: create a new directory at the selected path
     """
-    command_opt = [CHECK_PWD(('file'))]
+    command_opt = [CHECK_PWD(('file',))]
     async def run(self, id: str, file: str, *args, **kwargs):
         self.t.files.mkdir(systemId=id, path=file)
         return f"Successfully created file at {file}"
@@ -134,8 +143,8 @@ class rm(baseCommand.BaseCommand):
     """
     @help: delete a selected file
     """
-    decorator=decorators.NeedsConfirmation
-    command_opt = [CHECK_PWD(('file'))]
+    decorator=decorators.NeedsConfirmation()
+    command_opt = [CHECK_PWD(('file',))]
     async def run(self, id: str, file: str, *args, **kwargs):
         self.t.delete(systemId=id, path=file)
         return f"file {file} successfully deleted"
@@ -154,8 +163,8 @@ class create_postit(baseCommand.BaseCommand):
     """
     @help: create a postit to easily share file with other users
     """
-    decorator=decorators.RequiresForm
-    command_opt = [CHECK_PWD(('file'))]
+    decorator=decorators.RequiresForm()
+    command_opt = [CHECK_PWD(('file',))]
     async def run(self, id: str, file: str, allowed_uses=1, expiration_time=2592000, *args, **kwargs):
         self.t.files.createPostIt(systemId=id, path=file, allowedUses=allowed_uses, validSeconds=expiration_time)
         return f"created a postit for the file {file}"
@@ -165,7 +174,7 @@ class list_postits(baseCommand.BaseCommand):
     """
     @help: list all postits
     """
-    decorator=decorators.RequiresForm
+    decorator=decorators.RequiresForm()
     async def run(self, OWNED_or_ALL="ALL", *args, **kwargs):
         postit_list = str(self.t.files.listPostIts(listType=OWNED_or_ALL))
         return postit_list
@@ -205,9 +214,10 @@ class upload(baseCommand.BaseCommand):
     @todo: make it so that this doesnt need to take both source and destination files, but have it so it retrieves the current file location on the tapis system
     and sets that file location to be the upload point. Do the same for downloads but in reverse
     """
+    command_opt = [CHECK_PWD(('destination_file',))]
     async def run(self, source_file, destination_file, id: str, *args, **kwargs) -> str: # upload a file from local to remote using tapis. Takes source and destination paths
         if not destination_file:
-            destination_file = self.server.pwd
+            destination_file = kwargs['connection'].pwd
         self.t.upload(system_id=id,
                 source_file_path=source_file,
                 dest_file_path=destination_file)
@@ -219,9 +229,10 @@ class download(baseCommand.BaseCommand):
     @help: download a file from the system
     the source and destination files must both be in the file argument, respectively, separated by a comma
     """
+    command_opt = [CHECK_PWD(('source_file',))]
     async def run(self, source_file: str, destination_file: str, id: str, *args, **kwargs) -> str: # download a remote file using tapis, operates basically the same as upload
         if not source_file:
-            source_file = self.server.pwd
+            source_file = kwargs['connection'].pwd
         file_info = self.t.files.getContents(systemId=id,
                             path=source_file)
         file_info = file_info.decode('utf-8')

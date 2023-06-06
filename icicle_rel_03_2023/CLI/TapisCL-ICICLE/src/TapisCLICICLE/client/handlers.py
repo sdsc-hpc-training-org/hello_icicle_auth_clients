@@ -62,7 +62,7 @@ class Handlers(Formatters):
         for field in form_request.keys():
             while True:
                 try:
-                    if field not in ("expression", "confirmation", "password"):
+                    if field not in ("expression", "confirmation", "password", "user_code"):
                         answer = str(input(f"{field}: "))
                     elif field == "expression":
                         answer = self.__expression_input()

@@ -6,15 +6,15 @@ if __name__ != "__main__":
 
 def CHECK_EXPLICIT_SYSTEM(kwargs):
     if not kwargs['id']:
-        kwargs['id'] = kwargs['server'].current_system
+        kwargs['id'] = kwargs['connection'].system
     return kwargs
 
 def CHECK_PWD(kwargs):
     kwargs = CHECK_EXPLICIT_SYSTEM(kwargs)
     if not kwargs['file']:
         kwargs['file'] = ''
-    if not kwargs['file'] or kwargs['server'].pwd not in kwargs['file']:
-        file = kwargs['server'].pwd + kwargs['file']
+    if not kwargs['file'] or kwargs['connection'].pwd not in kwargs['file']:
+        file = kwargs['connection'].pwd + kwargs['file']
         kwargs['file'] = fileCommands.simplify_path(file)
     return kwargs
 

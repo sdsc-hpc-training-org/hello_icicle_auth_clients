@@ -47,8 +47,6 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
         self.username = None
         self.password = None
         self.auth_type = None
-        self.current_system = ''
-        self.pwd = ''
 
         self.__name__ = "Server"
         self.initialize_logger(self.__name__)
@@ -91,7 +89,8 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
         self.logger.info("Received connection request")
         try:
             await self.handshake(connection)
-        except ValueError:
+        except exceptions.InvalidCredentialsReceived as e:
+            print(e)
             self.logger.warning("invalid credentials entered too many times. Cancelling request")
             await connection.close()
             return
@@ -117,7 +116,7 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
                 self.timeout_handler()  
                 kwargs = message.request_content
                 result = await self.run_command(connection, kwargs)
-                response = schemas.ResponseData(message={"message":result}, url=self.url, active_username=self.username, pwd=self.pwd, system=self.current_system)
+                response = schemas.ResponseData(message={"message":result}, url=self.url, active_username=self.username)
                 self.end_time = time.time() + self.SESSION_TIME 
                 await connection.send(response)
                 self.logger.info(message.schema_type)
@@ -125,7 +124,7 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
                 self.logger.warning(e)
                 continue
             except (exceptions.TimeoutError, exceptions.Shutdown) as e:
-                error_response = schemas.ResponseData(error=str(e), exit_status=1, url=self.url, active_username=self.username, pwd=self.pwd, system=self.current_system)
+                error_response = schemas.ResponseData(error=str(e), exit_status=1, url=self.url, active_username=self.username)
                 await connection.send(error_response)
                 self.logger.warning(str(e))
                 self.server.close()
@@ -135,7 +134,7 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
                 sys.exit(0)
             except exceptions.Exit as e:
                 self.logger.info("user exit initiated")
-                error_response = schemas.ResponseData(error=str(e), exit_status=1, url=self.url, active_username=self.username, pwd=self.pwd, system=self.current_system)
+                error_response = schemas.ResponseData(error=str(e), exit_status=1, url=self.url, active_username=self.username)
                 await connection.send(error_response)
                 await connection.close()
                 return
@@ -145,7 +144,7 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
                 await connection.close()
             except (exceptions.CommandNotFoundError, exceptions.NoConfirmationError, exceptions.InvalidCredentialsReceived, Exception) as e:
                 error_str = traceback.format_exc()
-                error_response = schemas.ResponseData(error=str(e), url=self.url, active_username=self.username, pwd=self.pwd, system=self.current_system)
+                error_response = schemas.ResponseData(error=str(e), url=self.url, active_username=self.username)
                 await connection.send(error_response)
                 self.logger.warning(f"{error_str}")
     

@@ -1,1 +1,4 @@
-print([1]+[2])
+import webbrowser
+
+webbrowser.open('http://example.com')
+print("silly")

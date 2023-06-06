@@ -77,6 +77,11 @@ class ServerSocketOpts(BaseSocketOpts):
     """
     behind the scenes, low level functions to handle the socket operations asynchronoously on the server
     """
+    def __init__(self, name, debug=False):
+        super().__init__(name, debug=debug)
+        self.system = ''
+        self.pwd = ''
+
     async def __json_receive_explicit_async(self):
         json_data = ""
         while True:
@@ -89,8 +94,10 @@ class ServerSocketOpts(BaseSocketOpts):
             except BlockingIOError: # this is raised in the event that it tries to receive data when no data available due to non blocking
                 continue
 
-    async def send(self, data: typing.Type[pydantic.BaseModel]):
+    async def send(self, data: typing.Type[schemas.BaseSchema]):
         self.debug('SENDING', data)
+        data.pwd = self.pwd
+        data.system = self.system
         json_data = json.dumps(data.dict())
         self.writer.write(json_data.encode())
         await self.writer.drain()

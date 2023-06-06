@@ -8,6 +8,10 @@ class Args: # should add a way to automatically check for duplicate entries to t
             "args":["-i", "--id"],
             "kwargs":{"action":"store"}
         },
+        "parent_id":{
+            "args":["-pid", "--parent_id"],
+            "kwargs":{"action":"store"}
+        },
         "template":{
             "args":["-t", "--template"],
             "kwargs":{

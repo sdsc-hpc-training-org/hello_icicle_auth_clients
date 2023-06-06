@@ -46,8 +46,8 @@ class InvalidCredentialsReceived(Exception):
     """
     raise error when the provided credentials fail
     """
-    def __init__(self, function: typing.Callable, cred_type: str):
-        super().__init__(f"The {cred_type} provided for the command {function.__class__.__name__} was invalid")
+    def __init__(self, *args):
+        super().__init__(*args)
 
 
 class HelpDoesNotExist(AttributeError):

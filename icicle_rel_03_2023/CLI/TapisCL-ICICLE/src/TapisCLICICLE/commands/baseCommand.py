@@ -44,6 +44,7 @@ class CommandMetaClass(abc.ABCMeta):
             instance.__check_run(name, attrs)
             instance.__check_command_args(name, attrs)
             instance.__check_decorator(name, attrs)
+            instance.__check_command_opt(name, attrs)
         return instance
     
     def __check_run(self, name, attrs):

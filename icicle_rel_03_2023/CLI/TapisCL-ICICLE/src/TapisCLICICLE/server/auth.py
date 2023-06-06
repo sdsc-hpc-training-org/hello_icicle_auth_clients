@@ -2,6 +2,7 @@ import time
 import os 
 import sys
 import json
+import webbrowser
 
 
 from tapipy.tapis import Tapis
@@ -28,16 +29,17 @@ class ServerSideAuth:
         username_password_request = schemas.AuthRequest(auth_request_type='password',
                                                         request_content={"username":None, "password":None},
                                                         message={"message":"enter your TACC username and password"})
-        await connection.send(username_password_request)
-        username_password_response = await connection.receive()
-        username = username_password_response.request_content['username']
-        password = username_password_response.request_content['password']
         for attempt in range(1, 4):
+            await connection.send(username_password_request)
+            username_password_response = await connection.receive()
+            username = username_password_response.request_content['username']
+            password = username_password_response.request_content['password']
             try:
                 t = Tapis(base_url=f"https://{link}",
                         username=username,
                         password=password)
                 t.get_tokens()
+                break
             except Exception as e:
                 if attempt > 3:
                     username_password_request.message = None
@@ -46,10 +48,9 @@ class ServerSideAuth:
                     connection.send(username_password_request)
                     if self.initial:
                         await self.aggregate_command_map['shutdown']
-                    return
+                    raise exceptions.InvalidCredentialsReceived()
 
                 username_password_request.error = f"Authentication failure, attempt {attempt} of 3"
-                await connection.send(username_password_request)
 
         self.username = username
         self.password = password
@@ -66,18 +67,15 @@ class ServerSideAuth:
     
     async def device_code_grant(self, link: str, connection):
         start = time.time()
-        try:
-            t = Tapis(base_url=f"https://{link}")
-        except Exception as e:
-            self.logger.warning(e)
-            raise ValueError(f"Invalid uri")
+        t = Tapis(base_url=f"https://{link}")
         client_id = get_client_code(link)
         authentication_information = self.t.authenticator.generate_device_code(client_id=client_id)
         payload = schemas.AuthRequest(request_type='device_code',
-                                      message={"message":"Go to to the URL and enter the user code to authenticate", 
+                                      message={"message":"Go to to the URL if it doesnt open automatically and enter the user code to authenticate", 
                                                "url":authentication_information.verification_uri, 
                                                "user_code": authentication_information.user_code})
         await connection.send(payload)
+        webbrowser.open(authentication_information.verification_uri)
         token = self.create_token_device_grant(client_id=client_id, client_key=None, device_code=authentication_information.device_code)#t.authenticator.create_token(grant_type="device_code", device_code='y7NPZccnzMoTi2GRNCAIer86wk6YKJbixdlru3wC') # if needed, add a confirmation from client here to wait for entry of data
         self.t = Tapis(base_url=f"https://{link}",
                        access_token=token)
@@ -97,13 +95,14 @@ class ServerSideAuth:
         auth_link = rf"https://{link}/v3/oauth2/webapp"
         payload = schemas.AuthRequest(auth_request_type='federated',
                                       message={
-                                          "message":"Go to the URL and enter your account information. Then enter the user code to this application",
+                                          "message":"Go to the URL if it doesnt open and enter your account information. Then enter the user code to this application",
                                           "url":auth_link
                                             }, 
                                       request_content={
                                           "user_code":None
                                           })
         await connection.send(payload)
+        webbrowser.open(auth_link)
         response_code_message: schemas.AuthRequest = await connection.receive()
         self.t = Tapis(
             base_url=f"https://{link}",
@@ -131,10 +130,14 @@ class ServerSideAuth:
                 await connection.send(session_auth_type_request)
                 session_auth_type_response: schemas.FormResponse = await connection.receive()
                 auth_type = session_auth_type_response.request_content['auth_type']
+                if auth_type not in ('password', 'device_code', 'federated'):
+                    raise exceptions.InvalidCredentialsReceived()
                 self.auth_type = auth_type
                 link = session_auth_type_response.request_content['uri']
                 Tapis(f"https://{link}")
                 break
+            except exceptions.InvalidCredentialsReceived:
+                session_auth_type_request.error = "Invalid auth type received"
             except tapis.errors.BaseTapyException:
                 session_auth_type_request.error = "Invalid tenant URI received, try again"
 
@@ -159,8 +162,8 @@ class ServerSideAuth:
                 else:
                     await self.password_grant(link, connection)
                 break
-            except ValueError:
-                raise ValueError
+            except exceptions.InvalidCredentialsReceived:
+                raise exceptions.InvalidCredentialsReceived
             except Exception as e:
                 continue
         success_message = schemas.AuthRequest(auth_request_type="success", message={
