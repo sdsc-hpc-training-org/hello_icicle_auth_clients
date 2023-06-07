@@ -9,15 +9,6 @@ def CHECK_EXPLICIT_SYSTEM(kwargs):
         kwargs['id'] = kwargs['connection'].system
     return kwargs
 
-def CHECK_PWD(kwargs):
-    kwargs = CHECK_EXPLICIT_SYSTEM(kwargs)
-    if not kwargs['file']:
-        kwargs['file'] = ''
-    if not kwargs['file'] or kwargs['connection'].pwd not in kwargs['file']:
-        file = kwargs['connection'].pwd + kwargs['file']
-        kwargs['file'] = fileCommands.simplify_path(file)
-    return kwargs
-
 class Systems(baseCommand.BaseCommandMap):
     """
     @help: run operations on Tapis systems
@@ -27,6 +18,9 @@ class Systems(baseCommand.BaseCommandMap):
     command_map = {
         'get_systems':systemCommands.get_systems(), # since initialization of commands is separate from __init__, you dont need to specify these as classes anymore
         'get_system_info':systemCommands.get_system_info(),
+        'get_scheduler_profile':systemCommands.set_system_credentials(),
+        'create_system_from_file':systemCommands.create_system_from_file(),
+        'create_child_system':systemCommands.create_child_system(),
         'create_system':systemCommands.create_system(),
         'system':systemCommands.system(),
         'exit_system':systemCommands.exit_system(),

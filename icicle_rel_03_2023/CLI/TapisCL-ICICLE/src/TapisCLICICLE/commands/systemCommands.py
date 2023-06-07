@@ -43,16 +43,26 @@ class SystemAuth:
                             password=self.password)
         return cred_return_value
     
+    def token_auth(self, id):
+        cred_return_value = self.t.systems.createUserCredential(systemId=id,
+                            access_token=self.t.access_token.access_token,
+                            refresh_token=self.t.refresh_token.refresh_token)
+        return cred_return_value
+    
     def create_system(self, system, kwargs):
         return_value = self.t.systems.createSystem(**system)
 
         kwargs['connection'].pwd = system['rootDir']
         kwargs['connection'].system = system['id']
     
-        if self.server.auth_type == "password":
-            self.password_auth(system['id'])
-        else:
-            self.keygen()
+        try:
+            if self.server.auth_type == "password":
+                self.password_auth(system['id'])
+            else:
+                self.token_auth()
+        except:
+            self.t.systems.deleteSystem(systemId=system['id'])
+            raise Exception("Authentication of system failed, cancelling system creation!")
         return return_value
     
 
@@ -124,6 +134,7 @@ class create_system(baseCommand.BaseCommand, SystemAuth):
             system['jobRunTimes'] = [{"runtimeType":jobRuntime}]
             system['batchScheduler'] = batchScheduler
             system['batchSchedulerProfile'] = batchSchedulerProfile
+            system['loginUser'] = self.username
         return_value = self.create_system(system, kwargs)
         return return_value
     
@@ -133,8 +144,10 @@ class create_system_from_file(baseCommand.BaseCommand, SystemAuth):
     @help: create a system from a config file
     """
     async def run(self, file: str, *args, **kwargs):
+        system["defaultAuthnMethod"] = self.auth_methods[self.server.auth_type]
         with open(file, 'r') as f:
             system = json.loads(f.read())
+            system['loginUser'] = self.username
 
         return_value = self.create_system(system, kwargs)
         return return_value
@@ -145,7 +158,7 @@ class create_child_system(baseCommand):
     @help: create a child system which inherits majority attributes from parent
     """
     async def run(self, parent_id: str, id: str):
-        pass
+        return "UNFINISHED FEATURE"
     
 
 class system(baseCommand.BaseCommand):

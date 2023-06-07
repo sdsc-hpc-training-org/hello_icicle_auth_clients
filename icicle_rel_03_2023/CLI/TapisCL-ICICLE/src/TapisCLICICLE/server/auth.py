@@ -3,6 +3,7 @@ import os
 import sys
 import json
 import webbrowser
+import base64
 
 
 from tapipy.tapis import Tapis
@@ -74,9 +75,13 @@ class ServerSideAuth:
                                       message={"message":"Go to to the URL if it doesnt open automatically and enter the user code to authenticate", 
                                                "url":authentication_information.verification_uri, 
                                                "user_code": authentication_information.user_code})
+        
         await connection.send(payload)
         webbrowser.open(authentication_information.verification_uri)
-        token = self.create_token_device_grant(client_id=client_id, client_key=None, device_code=authentication_information.device_code)#t.authenticator.create_token(grant_type="device_code", device_code='y7NPZccnzMoTi2GRNCAIer86wk6YKJbixdlru3wC') # if needed, add a confirmation from client here to wait for entry of data
+
+        client_auth = base64.b64encode(f"{client_id}:{client_key}".encode()).decode()
+        token = t.authenticator.create_token(grant_type="device_code", device_code=authentication_information.device_code, _tapis_headers={"Authorization": f"Basic {client_auth}"})
+
         self.t = Tapis(base_url=f"https://{link}",
                        access_token=token)
         self.username = self.t.authenticator.get_userinfo().username
