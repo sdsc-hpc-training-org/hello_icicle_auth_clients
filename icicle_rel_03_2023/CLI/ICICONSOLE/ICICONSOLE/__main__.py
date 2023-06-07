@@ -15,6 +15,8 @@ from tapipy.tapis import Tapis
 import os
 import signal
 import json
+import pkg_resources
+
 try:
     from . import BasicCypherCommands as bcc
 except:
@@ -66,8 +68,9 @@ heavyFormat("Welcome to ICICONSOLE. Login to get started. ")
 
 # Loads help for cypher commands
 def helpCypher():
+    json_path = pkg_resources.resource_filename(__name__, 'helpCypher.json')
     print("\n")
-    with open('helpCypher.json') as f:
+    with open(json_path) as f:
         help_data = json.load(f)
     for key, value in help_data.items():
         print(key + ' : ' + value + '\n')
