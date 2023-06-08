@@ -16,6 +16,7 @@ import os
 import signal
 import json
 import pkg_resources
+from datascroller import scroll
 
 try:
     from . import BasicCypherCommands as bcc
@@ -83,7 +84,7 @@ def helpCypher():
         
 def console(graph, pod_id):
     # Instructions message, formatted with the lightFormat function
-    lightFormat("Type \"new\" to access a different pod, or type \"exit\" to leave ICICONSOLE. Type \"clear\" to clear the screen. Type \"help\" for help!")
+    lightFormat("Type \"new\" to access a different pod, or type \"exit\" to leave ICICONSOLE. Type \"help\" for help!\nNote that the scrolling menu, which appears on some queries, has a separate help menu.")
 
     # Loop so that the console keeps prompting the user for commands, until the user exits
     while(True):
@@ -107,8 +108,11 @@ def console(graph, pod_id):
                 console(graph, pod_id)
                 executeCypher = False
             case "help":
-                helpCypher()
-                executeCypher = False
+                try:
+                    helpCypher()
+                    executeCypher = False
+                except:
+                    pass
             case "all":
                 query = bcc.getAll()
             case "allNames":
@@ -127,11 +131,22 @@ def console(graph, pod_id):
         if (executeCypher):
             # This tries to read the input as Cypher and apply the command to the Neo4j graph object.
             try: 
-                # Storing the results of the query as a pandas dataframe
-                df = graph.run(query).to_data_frame()
-                # Displaying the result
-                with pd.option_context('expand_frame_repr', False, 'display.max_rows', None): 
-                    print(df)
+                result = graph.run(query)
+                
+                try:
+                    data = []
+                    for record in result:
+                        node = record[0]
+                        properties = dict(node)
+                        data.append(properties)
+                    df = pd.DataFrame(data)
+                    with pd.option_context('display.max_rows', None, 'display.max_columns', None):
+                        scroll(df)
+                except:
+                    df = graph.run(query).to_data_frame()
+                    with pd.option_context('expand_frame_repr', False, 'display.max_rows', None): 
+                        print(df)
+
 
 
             # Error catching, if the Cypher was not executed properly
