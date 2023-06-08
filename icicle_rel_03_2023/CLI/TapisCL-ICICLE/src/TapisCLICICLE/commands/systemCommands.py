@@ -11,6 +11,8 @@ import os
 
 if __name__ != "__main__":
     from . import baseCommand, decorators
+    from .arguments import argument
+    Argument = argument.Argument
 
 
 __location__ = os.path.realpath(
@@ -25,17 +27,17 @@ class SystemAuth:
         "device_code":"TOKEN",
         "default":"PKI_KEYS"
     }
-    def keygen(self):
-        local_files = os.listdir(__location__)
-        if "id_rsa" not in local_files or "id_rsa.pub" not in local_files:
-            os.system(f'ssh-keygen -q -m PEM -f {__location__}\\id_rsa -N ""')
-            with open(f"{__location__}\\id_rsa", 'r') as f:
-                formatted_key = ""
-                for line in f.readlines()[1:-1]:
-                    formatted_key += line.strip()
+    # def keygen(self):
+    #     local_files = os.listdir(__location__)
+    #     if "id_rsa" not in local_files or "id_rsa.pub" not in local_files:
+    #         os.system(f'ssh-keygen -q -m PEM -f {__location__}\\id_rsa -N ""')
+    #         with open(f"{__location__}\\id_rsa", 'r') as f:
+    #             formatted_key = ""
+    #             for line in f.readlines()[1:-1]:
+    #                 formatted_key += line.strip()
 
-            with open(f"{__location__}\\id_rsa", 'w') as f:
-                f.write(formatted_key)
+    #         with open(f"{__location__}\\id_rsa", 'w') as f:
+    #             f.write(formatted_key)
 
     def password_auth(self, id):
         cred_return_value = self.t.systems.createUserCredential(systemId=id,
@@ -113,51 +115,108 @@ class get_scheduler_profiles(baseCommand.BaseCommand):
         return [{"name":scheduler.name, "description":scheduler.description, "tenant":scheduler.tenant} for scheduler in self.t.systems.getSchedulerProfiles()]
 
 
+class get_scheduler_profiles_choices(argument.DynamicChoiceList):
+    def __call__(self, tapis_instance):
+        return tapis_instance.systems.getSchedulerProfiles()
+    
+
 class create_system(baseCommand.BaseCommand, SystemAuth):
     """
     @help: create a system. Must have a properly configured system file.
     see the template at https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients/blob/main/icicle_rel_04_2023/CLI/TapisCL-ICICLE/tapis-config-files/system-config.json
     this command will automatically create and upload the ssh keys
     """
-    decorator = decorators.RequiresForm()
-    async def run(self, id: str, description=None, systemType=['LINUX', 'S3', 'IRODS', 'GLOBUS'],
-        jobRuntime=["DOCKER", "SINGULARITY"],
-        batchScheduler=['SLURM', 'CONDOR', 'PBS', 'SGE', 'UGE', 'TORQUE'],
-        batchSchedulerProfile=['tacc'], *args, **kwargs) -> str: # create a tapius system. Takes a path to a json file with all system information, as well as an ID
-        
-        system["defaultAuthnMethod"] = self.auth_methods[self.server.auth_type]
-        with open(base_config_path, 'r') as f:
-            system = json.loads(f.read())
-            system['id'] = id
-            system['description'] = description
-            system['systemType'] = systemType
-            system['jobRunTimes'] = [{"runtimeType":jobRuntime}]
-            system['batchScheduler'] = batchScheduler
-            system['batchSchedulerProfile'] = batchSchedulerProfile
-            system['loginUser'] = self.username
-        return_value = self.create_system(system, kwargs)
-        return return_value
-    
-
-class create_system_from_file(baseCommand.BaseCommand, SystemAuth):
-    """
-    @help: create a system from a config file
-    """
-    async def run(self, file: str, *args, **kwargs):
-        system["defaultAuthnMethod"] = self.auth_methods[self.server.auth_type]
-        with open(file, 'r') as f:
-            system = json.loads(f.read())
-            system['loginUser'] = self.username
-
-        return_value = self.create_system(system, kwargs)
-        return return_value
+    supports_config_file=True
+    required_arguments=[
+        Argument('id', size_limit=80),
+        Argument('systemType', choices=["LINUX", "S3", "IRODS", "GLOBUS"]),
+        Argument('host', size_limit=256),
+        Argument('defaultAuthnMethod', choices=['PASSWORD', "PKI_KEYS", "ACCESS_KEY", "TOKEN", "CERT"]),
+        Argument('canExec', action='store_true')
+    ]
+    optional_arguments=[
+        Argument('description', arg_type='str_input', size_limit=2048),
+        Argument('owner'),
+        Argument('enabled', action='store_true'),
+        Argument('effectiveUserId', default_value=r"${apiUserId}", size_limit=60),
+        Argument('bucketName'),
+        Argument('rootDir', default_value='/', size_limit=4096),
+        Argument('port', data_type='int'),
+        Argument('useProxy', action='store_true'),
+        Argument('proxyHost', size_limit=256),
+        Argument('proxyPort', data_type='int'),
+        Argument('isDtn', action='store_true'),
+        Argument('dtnSystemId', size_limit=80),
+        Argument('dtnMountPoint'),
+        Argument('canRunBatch', action='store_true'),
+        Argument('enableCmdPrefix', action='store_true'),
+        Argument('mpiCmd', size_limit=126, arg_type='str_input'),
+        Argument('jobRuntimes', arg_type='input_list', data_type=argument.Form(
+            'jobRuntime', arguments_list = [
+                Argument('runtimeType', choices=['DOCKER', 'SINGULARITY']), 
+                Argument('version')
+                ]
+            )),
+        Argument('jobWorkingDir', default_value=r"HOST_EVAL($WORK2)", size_limit=4096),
+        Argument('jobEnvVariables', arg_type='input_list', data_type=argument.Form(
+            'jobEnvironmentVariable', arguments_list = [
+                Argument('key'),
+                Argument('value', default_value=''),
+                Argument('description', size_limit=2048, arg_type='str_input')
+            ]
+        )),
+        Argument('jobMaxJobs', data_type='int'),
+        Argument('jobMaxJobsPerUser', data_type='int'),
+        Argument('batchScheduler', choices=['SLURM', "CONDOR", "PBS", "SGE", "UGE", "TORQUE"]),
+        Argument('batchLogicalQueues', arg_type='input_list', data_type=argument.Form(
+            'batchLogicalQueue', arguments_list = [
+                Argument('name', size_limit=[1, 128]),
+                Argument('hpcQueueName', size_limit=[1, 128]),
+                Argument('maxJobs', data_type='int'),
+                Argument('maxJobsPerUser', data_type='int'),
+                Argument('minNodeCount', data_type='int'),
+                Argument('maxNodeCount', data_type='int'),
+                Argument('minCoresPerNode', data_type='int'),
+                Argument('maxCoresPerNode', data_type='int'),
+                Argument('minMemoryMB', data_type='int'),
+                Argument('maxMemoryMB', data_type='int'),
+                Argument('minMinutes', data_type='int'),
+                Argument('maxMinutes', data_type='int')
+            ]
+        )),
+        Argument('batchDefaultLoginQueue', size_limit=[1, 128]),
+        Argument('batchSchedulerProfile', choices=get_scheduler_profiles_choices()),
+        Argument('jobCapabilities', arg_type='input_list', data_type=argument.Form(
+            'jobCapability', arguments_list=[
+                Argument('category', choices=['SCHEUDLER', 
+                                              'OS', 'HARDWARE', 
+                                              'SOFTWARE', 'JOB', 
+                                              'CONTAINER', 'MISC', 
+                                              'CUSTOM']),
+                Argument('name', size_limit=[1, 128]),
+                Argument('datatype', choices=['STRING', 'INTEGER', 
+                                              'BOOLEAN', 'NUMBER', 
+                                              'TIMESTAMP']),
+                Argument('precedence', data_type='int'),
+                Argument('value')
+            ]
+        )),
+        Argument('tags', arg_type='input_list'),
+        Argument('notes', arg_type='str_input'),
+        Argument('importRefId')
+    ]
+    async def run(self, *args, **kwargs) -> str: # create a tapius system. Takes a path to a json file with all system information, as well as an ID
+        return "NOT IMPLEMENTED YET"
     
 
 class create_child_system(baseCommand):
     """
     @help: create a child system which inherits majority attributes from parent
     """
-    async def run(self, parent_id: str, id: str):
+    required_arguments=[
+
+    ]
+    async def run(self, id: str):
         return "UNFINISHED FEATURE"
     
 

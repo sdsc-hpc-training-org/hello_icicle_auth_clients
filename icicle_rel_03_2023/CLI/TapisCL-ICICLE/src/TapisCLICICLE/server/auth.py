@@ -20,10 +20,10 @@ from commands import args
 
 
 class ServerSideAuth:
-    def create_token_device_grant(self, device_code, client_id, client_key):
-        response = requests.post(r"https://smartfoods.develop.tapis.io/v3/oauth2/tokens", json={"grant_type":"device_code", "device_code":device_code}, auth=(client_id, client_key))
+    def create_token_device_grant(link, device_code, client_id):
+        response = requests.post(f"https://{link}/v3/oauth2/tokens", json={"grant_type":"device_code", "device_code":device_code, "client_id":client_id})
         parsed_data = json.loads(response.content.decode())
-        return parsed_data['result']['access_token']['access_token']
+        return parsed_data['result']['access_token']['access_token'], parsed_data['result']['refresh_token']['refresh_token']
     
     async def password_grant(self, link: str, connection):
         start = time.time()
@@ -36,10 +36,9 @@ class ServerSideAuth:
             username = username_password_response.request_content['username']
             password = username_password_response.request_content['password']
             try:
-                t = Tapis(base_url=f"https://{link}",
-                        username=username,
-                        password=password)
-                t.get_tokens()
+                self.t.username = username
+                self.t.password = password
+                self.t.get_tokens()
                 break
             except Exception as e:
                 if attempt > 3:
@@ -55,12 +54,8 @@ class ServerSideAuth:
 
         self.username = username
         self.password = password
-        self.t = t
         self.url = link
         self.access_token = self.t.access_token
-
-        self.configure_decorators(self.username, self.password)
-        self.update_credentials(t, username, password)
 
         self.logger.info(f"initiated in {time.time()-start}")
 
@@ -68,7 +63,6 @@ class ServerSideAuth:
     
     async def device_code_grant(self, link: str, connection):
         start = time.time()
-        t = Tapis(base_url=f"https://{link}")
         client_id = get_client_code(link)
         authentication_information = self.t.authenticator.generate_device_code(client_id=client_id)
         payload = schemas.AuthRequest(request_type='device_code',
@@ -79,17 +73,14 @@ class ServerSideAuth:
         await connection.send(payload)
         webbrowser.open(authentication_information.verification_uri)
 
-        client_auth = base64.b64encode(f"{client_id}:{client_key}".encode()).decode()
-        token = t.authenticator.create_token(grant_type="device_code", device_code=authentication_information.device_code, _tapis_headers={"Authorization": f"Basic {client_auth}"})
+        access_token, refresh_token = self.t.authenticator.create_token(grant_type="device_code", device_code=authentication_information.device_code, client_id=client_id)
 
-        self.t = Tapis(base_url=f"https://{link}",
-                       access_token=token)
+        self.t.access_token = access_token
+        self.t.refresh_token = refresh_token
+        
         self.username = self.t.authenticator.get_userinfo().username
         self.url = link
         self.access_token = self.t.access_token
-
-        self.configure_decorators(self.username, self.password)
-        self.update_credentials(t, self.username, self.password)
 
         self.logger.info(f"initiated in {time.time()-start}")
 
@@ -109,17 +100,12 @@ class ServerSideAuth:
         await connection.send(payload)
         webbrowser.open(auth_link)
         response_code_message: schemas.AuthRequest = await connection.receive()
-        self.t = Tapis(
-            base_url=f"https://{link}",
-            access_token = response_code_message.request_content['user_code'].strip()
-            )
-        print(self.t)
+        
+        self.t.access_token = response_code_message.request_content['user_code'].strip()
+
         self.username = self.t.authenticator.get_userinfo().username
         self.url = link
         self.access_token = self.t.access_token
-
-        self.configure_decorators(self.username, self.password)
-        self.update_credentials(self.t, self.username, self.password)
 
         self.logger.info(f"initiated in {time.time()-start}")
 
@@ -139,7 +125,7 @@ class ServerSideAuth:
                     raise exceptions.InvalidCredentialsReceived()
                 self.auth_type = auth_type
                 link = session_auth_type_response.request_content['uri']
-                Tapis(f"https://{link}")
+                self.t = Tapis(f"https://{link}", resource_set='dev')
                 break
             except exceptions.InvalidCredentialsReceived:
                 session_auth_type_request.error = "Invalid auth type received"
@@ -176,6 +162,7 @@ class ServerSideAuth:
             "username":self.username,
             "url":link})
         self.configure_decorators(self.username, self.password)
+        self.update_credentials(self.t, self.username, self.password)
         await connection.send(success_message)
             
 

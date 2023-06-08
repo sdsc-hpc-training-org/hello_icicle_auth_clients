@@ -1,6 +1,6 @@
 if __name__ != "__main__":
     from . import baseCommand
-    from . import args
+    from .arguments import args
     from . import decorators
 
 

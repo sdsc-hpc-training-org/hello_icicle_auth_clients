@@ -8,10 +8,12 @@ import traceback
 
 import pyfiglet
 
+from ..commands.arguments import args
+
 if __name__ != "__main__":
     from . import parsers, handlers
     from ..socketopts import socketOpts, schemas
-    from ..commands import decorators, args
+    from ..commands import decorators
     from ..utilities import killableThread
 
 

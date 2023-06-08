@@ -4,7 +4,7 @@ from tapipy.tapis import Tapis
 
 
 if __name__ != "__main__":
-    from . import args as Args
+    from .arguments import args as Args
     from . import baseCommand, decorators
     from utilities import exceptions
 

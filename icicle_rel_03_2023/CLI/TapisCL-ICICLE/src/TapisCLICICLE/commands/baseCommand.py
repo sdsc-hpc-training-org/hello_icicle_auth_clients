@@ -8,6 +8,7 @@ from abc import abstractmethod, ABC
 from commands import decorators # I finally understand. Imported at the top level by serverRun, so it can only see packages from that vantage point
 from commands import args as Args
 from utilities import exceptions
+from commands.arguments import argument
 
 
 EXCLUDED_ARGUMENTS = ('self', 'args', 'kwargs')
@@ -73,6 +74,9 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
     decorator = None
     return_formatter = None
     command_opt = None
+    supports_config_file: bool = False
+    required_arguments: list[argument.Argument] = list()
+    optional_argument: list[argument.Argument] = list()
     def __init__(self):
         self.t = None
         self.username = None
