@@ -61,11 +61,11 @@ class ClientSocketOpts(BaseSocketOpts):
         json_data = json.dumps(data)
         connection.send(json_data.encode())
 
-    def send(self, data):
+    def send(self, data: typing.Type[schemas.BaseSchema]):
         self.debug('SENDING', data)
         self.__json_send_explicit(self.connection, data.dict())
 
-    def receive(self):
+    def receive(self) -> typing.Type[schemas.BaseSchema]:
         self.debug("WAITING", "Awaiting message receive")
         data = self.__json_receive_explicit(self.connection)
         schema_type = schema_types[data['schema_type']]

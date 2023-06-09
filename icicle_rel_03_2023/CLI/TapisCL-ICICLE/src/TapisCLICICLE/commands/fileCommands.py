@@ -1,7 +1,8 @@
 if __name__ != "__main__":
     from . import baseCommand
-    from .arguments import args
+    from .arguments import args, argument
     from . import decorators
+    Argument = argument.Argument
 
 
 class CHECK_PWD:
@@ -64,12 +65,14 @@ class ls(baseCommand.BaseCommand):
     """
     @help: list the files on a system 
     """
-    command_opt = [CHECK_PWD(('file',))]
-    async def run(self, id: str, file: str, *args, **kwargs) -> str: # lists files available on a tapis account
-        file_list = self.t.files.listFiles(systemId=id, path=file)
-        file_list_truncated = []
-        for file in file_list:
-            file_list_truncated.append(f"{file.type} - {file.nativePermissions} ---- {file.name}")
+    command_opt = [CHECK_PWD(('file_path',))]
+    required_arguments = [
+        Argument('systemId'),
+        Argument('file_path', positional=True)
+    ]
+    async def run(self, *args, **kwargs) -> str: # lists files available on a tapis account
+        file_list = self.t.files.listFiles(systemId=kwargs['systemId'], path=kwargs['file_path'])
+        file_list_truncated = [f"{file.type} - {file.nativePermissions} ---- {file.name}" for file in file_list]
         return file_list_truncated
     
 
@@ -77,10 +80,14 @@ class cd(baseCommand.BaseCommand):
     """
     @help: change the directory
     """
-    command_opt = [CHECK_PWD(('file',))]
-    async def run(self, id: str, file: str, *args, **kwargs):
-        self.t.files.listFiles(systemId=id, path=file)
-        kwargs['connection'].pwd = file
+    command_opt = [CHECK_PWD(('file_path',))]
+    required_arguments = [
+        Argument('systemId'),
+        Argument('file_path', positional=True)
+    ]
+    async def run(self, *args, **kwargs):
+        self.t.files.listFiles(systemId=kwargs['systemId'], path=kwargs['file_path'])
+        kwargs['connection'].pwd = kwargs['file_path']
         return kwargs['connection'].pwd
 
 
@@ -88,9 +95,13 @@ class showme(baseCommand.BaseCommand):
     """
     @help: display file metadata
     """
-    command_opt = [CHECK_PWD(('file',))]
-    async def run(self, id: str, file: str, *args, **kwargs):
-        return_data = str(self.t.files.getStatInfo(systemId=id, path=file))
+    command_opt = [CHECK_PWD(('file_path',))]
+    required_arguments = [
+        Argument('systemId'),
+        Argument('file_path', positional=True)
+    ]
+    async def run(self, *args, **kwargs):
+        return_data = str(self.t.files.getStatInfo(systemId=kwargs['systemId'], path=kwargs['file_path']))
         return return_data
     
 
@@ -98,12 +109,16 @@ class cat(baseCommand.BaseCommand):
     """
     @help: display small files directly to the terminal
     """
-    command_opt = [CHECK_PWD(('file',))]
-    async def run(self, id: str, file: str, *args, **kwargs):
-        size = self.t.files.getStatInfo(systemId=id, path=file).size
+    command_opt = [CHECK_PWD(('file_path',))]
+    required_arguments = [
+        Argument('systemId'),
+        Argument('file_path', positional=True)
+    ]
+    async def run(self, *args, **kwargs):
+        size = self.t.files.getStatInfo(systemId=kwargs['systemId'], path=kwargs['file_path']).size
         if size <= 4000:
-            file_info = self.t.files.getContents(systemId=id,
-                                path=file)
+            file_info = self.t.files.getContents(systemId=kwargs['systemId'],
+                                path=kwargs['file_path'])
         else:
             file_info = "file too large to print"
         return file_info
@@ -113,10 +128,14 @@ class mkdir(baseCommand.BaseCommand):
     """
     @help: create a new directory at the selected path
     """
-    command_opt = [CHECK_PWD(('file',))]
-    async def run(self, id: str, file: str, *args, **kwargs):
-        self.t.files.mkdir(systemId=id, path=file)
-        return f"Successfully created file at {file}"
+    command_opt = [CHECK_PWD(('file_path',))]
+    required_arguments = [
+        Argument('systemId'),
+        Argument('file_path', positional=True)
+    ]
+    async def run(self, *args, **kwargs):
+        self.t.files.mkdir(systemId=kwargs['systemId'], path=kwargs['file_path'])
+        return f"Successfully created file at {kwargs['file_path']}"
     
 
 class mv(baseCommand.BaseCommand):
@@ -124,8 +143,13 @@ class mv(baseCommand.BaseCommand):
     @help: move a file from a source directory to a destination directory within a system's file structure
     """
     command_opt = [CHECK_PWD(('source_file', 'destination_file'))]
-    async def run(self, id: str, source_file: str, destination_file: str, *args, **kwargs):
-        self.t.files.moveCopy(systemId=id, path=source_file, operation="MOVE", newPath=destination_file)
+    required_arguments = [
+        Argument('systemId'),
+        Argument('source_file'),
+        Argument('desination_file')
+    ]
+    async def run(self, destination_file: str, *args, **kwargs):
+        self.t.files.moveCopy(systemId=kwargs['systemId'], path=kwargs['source_file'], operation="MOVE", newPath=destination_file)
         return f"File moved successfully to {destination_file}"
     
 
@@ -134,9 +158,14 @@ class cp(baseCommand.BaseCommand):
     @help: copy a file from a source directory to another directory
     """
     command_opt = [CHECK_PWD(('source_file', 'destination_file'))]
-    async def run(self, id: str, source_file: str, destination_file: str, *args, **kwargs):
-        self.t.files.moveCopy(systemId=id, path=source_file, operation="COPY", newPath=destination_file)
-        return f"File copied successfully to {destination_file}"
+    required_arguments = [
+        Argument('systemId'),
+        Argument('source_file'),
+        Argument('destination_file')
+    ]
+    async def run(self, *args, **kwargs):
+        self.t.files.moveCopy(systemId=kwargs['systemId'], path=kwargs['source_file'], operation="COPY", newPath=kwargs['destination_file'])
+        return f"File copied successfully to {kwargs['destination_file']}"
     
 
 class rm(baseCommand.BaseCommand):
@@ -144,10 +173,14 @@ class rm(baseCommand.BaseCommand):
     @help: delete a selected file
     """
     decorator=decorators.NeedsConfirmation()
-    command_opt = [CHECK_PWD(('file',))]
-    async def run(self, id: str, file: str, *args, **kwargs):
-        self.t.delete(systemId=id, path=file)
-        return f"file {file} successfully deleted"
+    command_opt = [CHECK_PWD(('file_path',))]
+    required_arguments = [
+        Argument('systemId'),
+        Argument('file_path', positional=True)
+    ]
+    async def run(self, *args, **kwargs):
+        self.t.delete(systemId=kwargs['systemId'], path=kwargs['file_path'])
+        return f"file {kwargs['file_path']} successfully deleted"
     
 
 class get_recent_transfers(baseCommand.BaseCommand):
@@ -164,19 +197,29 @@ class create_postit(baseCommand.BaseCommand):
     @help: create a postit to easily share file with other users
     """
     decorator=decorators.RequiresForm()
-    command_opt = [CHECK_PWD(('file',))]
-    async def run(self, id: str, file: str, allowed_uses=1, expiration_time=2592000, *args, **kwargs):
-        self.t.files.createPostIt(systemId=id, path=file, allowedUses=allowed_uses, validSeconds=expiration_time)
-        return f"created a postit for the file {file}"
+    command_opt = [CHECK_PWD(('file_path',))]
+    required_arguments = [
+        Argument('systemId'),
+        Argument('file_path', positional=True)
+    ]
+    optional_arguments = [
+        Argument('allowed_uses', data_type='int'),
+        Argument('expiration_time', data_type='int')
+    ]
+    async def run(self, *args, **kwargs):
+        self.t.files.createPostIt(systemId=kwargs['systemId'], path=kwargs['file_path'], allowedUses=kwargs['allowed_uses'], validSeconds=kwargs['expiration_time'])
+        return f"created a postit for the file {kwargs['file_path']}"
     
 
 class list_postits(baseCommand.BaseCommand):
     """
     @help: list all postits
     """
-    decorator=decorators.RequiresForm()
-    async def run(self, OWNED_or_ALL="ALL", *args, **kwargs):
-        postit_list = str(self.t.files.listPostIts(listType=OWNED_or_ALL))
+    optional_arguments = [
+        Argument('owned_or_all', choices=['ALL', 'OWNED'])
+    ]
+    async def run(self, *args, **kwargs):
+        postit_list = str(self.t.files.listPostIts(listType=kwargs['owned_or_all']))
         return postit_list
     
 
@@ -184,27 +227,36 @@ class get_postit(baseCommand.BaseCommand):
     """
     @help: get a specific postit information based on postit id
     """
-    async def run(self, id, *args, **kwargs):
-        postit = str(self.t.files.getPostIt(postitId=id))
+    required_arguments = [
+        Argument('postitId'),
+    ]
+    async def run(self, *args, **kwargs):
+        postit = str(self.t.files.getPostIt(postitId=kwargs['postitId']))
         return postit
     
 
 class delete_postit(baseCommand.BaseCommand):
     """
-    @help: get a specific postit information based on postit id
+    @help: get a specific postit information based on postit kwargs['systemId']
     """
-    async def run(self, id, *args, **kwargs):
-        postit = str(self.t.files.deletePostIt(postitId=id))
-        return f"Successfully deleted postit {id}"
+    required_arguments = [
+        Argument('postitId'),
+    ]
+    async def run(self, *args, **kwargs):
+        postit = str(self.t.files.deletePostIt(postitId=kwargs['postitId']))
+        return f"Successfully deleted postit {kwargs['postitId']}"
     
 
 class redeem_postit(baseCommand.BaseCommand):
     """
     @help: redeem a postit and download posted file. Downloads to browser
     """
-    async def run(self, id, *args, **kwargs):
-        self.t.files.redeemPostIt(postitId=id)
-        return f"Downloading postit {id}, check browser"
+    required_arguments = [
+        Argument('postitId'),
+    ]
+    async def run(self, *args, **kwargs):
+        self.t.files.redeemPostIt(postitId=kwargs['postitId'])
+        return f"Downloading postit {kwargs['postitId']}, check browser"
 
     
 class upload(baseCommand.BaseCommand):
@@ -215,13 +267,18 @@ class upload(baseCommand.BaseCommand):
     and sets that file location to be the upload point. Do the same for downloads but in reverse
     """
     command_opt = [CHECK_PWD(('destination_file',))]
-    async def run(self, source_file, destination_file, id: str, *args, **kwargs) -> str: # upload a file from local to remote using tapis. Takes source and destination paths
-        if not destination_file:
-            destination_file = kwargs['connection'].pwd
-        self.t.upload(system_id=id,
-                source_file_path=source_file,
-                dest_file_path=destination_file)
-        return f'successfully uploaded {source_file} to {destination_file}'
+    required_arguments = [
+        Argument('source_file'),
+        Argument('destination_file'),
+        Argument('systemId')
+    ]
+    async def run(self, *args, **kwargs) -> str: # upload a file from local to remote using tapis. Takes source and destination paths
+        if not kwargs['destination_file']:
+            kwargs['destination_file'] = kwargs['connection'].pwd
+        self.t.upload(system_id=kwargs['systemId'],
+                source_file_path=kwargs['source_file'],
+                dest_file_path=kwargs['destination_file'])
+        return f'successfully uploaded {kwargs["source_file"]} to {kwargs["destination_file"]}'
 
 
 class download(baseCommand.BaseCommand):
@@ -230,12 +287,17 @@ class download(baseCommand.BaseCommand):
     the source and destination files must both be in the file argument, respectively, separated by a comma
     """
     command_opt = [CHECK_PWD(('source_file',))]
-    async def run(self, source_file: str, destination_file: str, id: str, *args, **kwargs) -> str: # download a remote file using tapis, operates basically the same as upload
-        if not source_file:
-            source_file = kwargs['connection'].pwd
-        file_info = self.t.files.getContents(systemId=id,
-                            path=source_file)
+    required_arguments = [
+        Argument('source_file'),
+        Argument('destination_file'),
+        Argument('systemId')
+    ]
+    async def run(self, *args, **kwargs) -> str: # download a remote file using tapis, operates basically the same as upload
+        if not kwargs["source_file"]:
+            kwargs["source_file"] = kwargs['connection'].pwd
+        file_info = self.t.files.getContents(systemId=kwargs['systemId'],
+                            path=kwargs["source_file"])
         file_info = file_info.decode('utf-8')
-        with open(destination_file, 'w') as f:
+        with open(kwargs['destination_file'], 'w') as f:
             f.write(file_info)
-        return f'successfully downloaded {source_file} to {destination_file}'
+        return f'successfully downloaded {kwargs["source_file"]} to {kwargs["destination_file"]}'

@@ -31,7 +31,7 @@ class ClientSideConnection(socketOpts.ClientSocketOpts, handlers.Handlers):
         self.connection.close()
 
 
-class CLI(decorators.DecoratorSetup, args.Args, parsers.Parsers, handlers.Handlers):
+class CLI(decorators.DecoratorSetup, parsers.Parsers, handlers.Handlers):
     """
     Receive user input, either direct from bash environment or from the custom interface, then parse these commands and send them to the server to be executed. 
     """
@@ -42,20 +42,56 @@ class CLI(decorators.DecoratorSetup, args.Args, parsers.Parsers, handlers.Handle
         self.connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
 
         # set up argparse
-        self.parser = argparse.ArgumentParser(description="Command Line Argument Parser", exit_on_error=False, usage=argparse.SUPPRESS, conflict_handler='resolve')
-        self.parser.add_argument('command')
-        self.parser.error = self.parser_error
+        self.parser = None
 
-        for parameters in self.argparser_args.values():
-            self.parser.add_argument(*parameters["args"], **parameters["kwargs"])
-
-        self.username, self.url = self.connect()
+        setup_message = schemas.BaseSchema(request_content={'setup_success':True})
+        try:
+            self.username, self.url = self.connect()
+            self.connection.send(setup_message)
+        except Exception as e:
+            print(e)
+            setup_message.request_content['setup_success'] = False
+            self.connection.send(setup_message)
+            os._exit(0)
 
         self.pwd = ""
         self.current_system = ""
 
     def parser_error(self, args):
         print(f"Ignoring unrecognized arguments: {args}")
+
+    class ParserTypeLenEnforcer:
+        type_map = {'int':int, 'string':str}
+        def __init__(self, name: str, size: tuple, data_type: str):
+            self.arg_name = name
+            self.data_type = self.type_map[data_type]
+            self.lower_size_limit, self.upper_size_limit = size
+
+        def __call__(self, data):
+            try:
+                self.data_type(data)
+            except:
+                raise ValueError(f"The input for the argument {self.arg_name} must be of type {self.data_type}. Got type {type(data)}")
+            if self.data_type == int:
+                if not data >= self.lower_size_limit or not data < self.upper_size_limit:
+                    raise ValueError(f"The input for the argument {self.arg_name} must be in the range ({self.lower_size_limit}, {self.upper_size_limit}). Got value {data}")
+            if not len(data) >= self.lower_size_limit or not len(data) < self.upper_size_limit:
+                raise ValueError(f"The input length for the argument {self.arg_name} must be in the range ({self.lower_size_limit}, {self.upper_size_limit}). Got length {len(data)}")
+    
+    def configure_parser(self, arguments):
+        parser = argparse.ArgumentParser(description="Command Line Argument Parser", exit_on_error=False, usage=argparse.SUPPRESS, conflict_handler='resolve')
+        parser.add_argument('command')
+        parser.add_argument('positionals', nargs='*', default='default1')
+        parser.error = self.parser_error
+
+        for arg_name, arg in arguments.items():
+            if not arg['positional']:
+                parser.add_argument(arg['truncated_arg'], arg['full_arg'],
+                                    default=arg['default_value'], choices=arg['choices'],
+                                    action=arg['action'], type=self.ParserTypeLenEnforcer(name=arg_name, 
+                                                                                          size=arg['size_limit'], 
+                                                                                          data_type=arg['data_type']))
+        return parser
 
     def initialize_server(self): 
         """
@@ -116,6 +152,9 @@ class CLI(decorators.DecoratorSetup, args.Args, parsers.Parsers, handlers.Handle
             username, url = self.auth()
         else:
             username, url = connection_info.username, connection_info.url
+        arguments: schemas.BaseSchema = self.connection.receive()
+        self.parser = self.configure_parser(arguments.request_content)
+
         return username, url # return the username and url
 
     def interface(self, kwargs):

@@ -7,6 +7,7 @@ if __name__ != "__main__":
     from .arguments import args as Args
     from . import baseCommand, decorators
     from utilities import exceptions
+    from commands.arguments.argument import Argument
 
 
 class switch_service(baseCommand.BaseCommand):
@@ -14,7 +15,13 @@ class switch_service(baseCommand.BaseCommand):
     @help: switch the connected tapis service
     @todo: upgrade to federated auth
     """
-    async def run(self, link: str, auth: str, *args, **kwargs):  # link is the baseURL
+    required_arguments=[
+        Argument('link', size_limit=80),
+        Argument('auth', choices=['password', 'device_code', 'federated'])
+    ]
+    async def run(self, *args, **kwargs):  # link is the baseURL
+        auth = kwargs['auth']
+        link = kwargs['link']
         self.server.auth_type = auth
         if auth == "password":
             results = await self.server.password_grant(link, kwargs['connection'])
