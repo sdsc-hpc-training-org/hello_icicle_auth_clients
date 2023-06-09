@@ -49,7 +49,6 @@ This software was developed as part of the [SDSC/UCSD Smmer 2022 REHS Project](h
    * Matthew Lange, Ph.D., CEO, International Center for Food Ontology Operability Data and Semantics (IC-FOODS [4]); 
    * Joe Stubbs, Ph.D., Manager, Cloud & Interactive Computing (Texas Advanced Computing Center [5]).
 
-<hr>
 ## Acknowledgement <a name="acks"></a>
 This work has been funded by grants from the National Science Foundation, including:
 * The AI Institute for Intelligent CyberInfrastructure with Computational Learning in the Environment (ICICLE) (_#2112606_);
