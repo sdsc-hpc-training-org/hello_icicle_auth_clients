@@ -92,6 +92,8 @@ def console(graph, pod_id):
         query = str(input("[" + user + "@" + pod_id + "] "))
 
         executeCypher = True
+        node = False
+        listedProps = False
 
         # This is a switch statement that allows for the user to type in a command, and the console will execute the command.
         match query:
@@ -115,16 +117,19 @@ def console(graph, pod_id):
                     pass
             case "all":
                 query = bcc.getAll()
+                node = True
             case "allNames":
                 query = bcc.getAllNames()
             case "oneByName":
                 query = bcc.getOneByName()
+                node = True
             case "allProperty":
                 query = bcc.allProperty()
             case "allProperties":
                 query = bcc.allProperties()
             case "allPropertiesForNode":
                 query = bcc.allPropertiesForNode()
+                listedProps = True
             case _:
                 pass
 
@@ -133,7 +138,7 @@ def console(graph, pod_id):
             try: 
                 result = graph.run(query)
                 
-                try:
+                if node:
                     data = []
                     for record in result:
                         node = record[0]
@@ -142,7 +147,12 @@ def console(graph, pod_id):
                     df = pd.DataFrame(data)
                     with pd.option_context('display.max_rows', None, 'display.max_columns', None):
                         scroll(df)
-                except:
+                elif listedProps:
+                    data = result.data()[0]['keys(n)']
+                    df = pd.DataFrame(data)
+                    with pd.option_context('display.max_rows', None, 'display.max_columns', None):
+                        scroll(df)
+                else:
                     df = graph.run(query).to_data_frame()
                     with pd.option_context('expand_frame_repr', False, 'display.max_rows', None): 
                         print(df)
