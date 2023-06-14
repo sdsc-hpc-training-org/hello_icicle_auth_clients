@@ -1,10 +1,10 @@
-import argparse
+import time
+from blessed import Terminal
+term = Terminal()
 
+class Silly():
+    location = (1,2)
 
-parser = argparse.ArgumentParser()
-
-# Multiple positional arguments with nargs='?'
-parser.add_argument('command')
-parser.add_argument('arg1', nargs='*', default='default1')
-
-print(parser.parse_args(['1','2', '3']))
+start = time.time()
+x, y = Silly().location
+print(time.time()-start)

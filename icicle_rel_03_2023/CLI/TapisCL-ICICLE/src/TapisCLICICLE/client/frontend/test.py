@@ -1,105 +1,176 @@
 import time
 import sys
 import os
+import typing
+import signal
+import asyncio
+import threading
+import string
 
+
+import pydantic
+import blessed
 import pandas as pd
 import keyboard
 from tabulate import tabulate
 from colorama import Fore, Back, Style, init
 form = {'ID':None, "Port": None, "Host": None}
 
+logpath = r"C:\Users\ahuma\Desktop\log.txt"
 
-class FormHandler:
-    up = "\u2191"
-    down = "\u2193"
-    selection_time_interval = 0.05
-    def __init__(self):
-        self.time_of_last_input = time.time()
-        self.up_reference = None
-        self.down_reference = None
-        self.position_index = 0
-        self.max_position_index = 0
-        self.form = None
-        self.formatted_form_string = None
-        self.form_lines = None
-        self.current_field_name = None
+def log(data):
+    with open(logpath, 'a') as f:
+        f.write(str(data))
+
+term = blessed.Terminal()
+
+ACCEPTED_KEYS = string.ascii_lowercase + string.ascii_uppercase + string.digits 
+
+
+class Form(pydantic.BaseModel):
+    Fields: list[str]
+    Values: list | None = []
+    index: int = 0
+    previous_index: tuple[int, str] = (0, '')
+    max_index: int = 0
+
+    def __init__(self, form: dict[str, typing.Any]):
+        Fields = list(form.keys())
+        Values = list(form.values())
+        if not Fields:
+            raise AttributeError("Must supply fields for the form")
+        for index, value in enumerate(Values):
+            if not value:
+                Values[index] = ''
+        super().__init__(Fields=Fields, Values=Values, index=0, max_index=len(Fields), previous_index = (0, Fields[0]))
+        self.Fields[0] = self.__select_string_formatter(Fields[0])
 
     def __select_string_formatter(self, string):
         return f"{Fore.BLACK}{Back.WHITE}{string}{Style.RESET_ALL}"
     
-    def move_cursor_up(self, lines):
-        sys.stdout.write(f"\033[{lines}A")
-        sys.stdout.flush()
-    
-    def move_cursor_down(self, lines):
-        sys.stdout.write(f"\033[{lines}B")
-        sys.stdout.flush()
-    
-    def __stringify_form(self):
-        form_present = pd.DataFrame.from_dict(self.form)
-        self.formatted_form_string = tabulate(form_present, headers='keys', tablefmt='heavy_grid', showindex=False)
-        self.form_lines = len(self.formatted_form_string.split("\n")) - 1
+    def increment(self, direction: typing.Literal['UP', 'DOWN']):
+        previous_index, name = self.previous_index
+        if direction == "UP":
+            self.index += 1
+        elif direction == "DOWN":
+            self.index -= 1
+        if self.index == self.max_index:
+            self.index = 0
+        elif self.index == -1:
+            self.index = self.max_index - 1
+        self.Fields[previous_index] = name
+        self.previous_index = (self.index, self.Fields[self.index])
+        self.Fields[self.index] = self.__select_string_formatter(self.Fields[self.index])
 
-    def __print_form(self):
-        self.__stringify_form()
-        self.move_cursor_up(self.form_lines)
-        print(f"\r{self.formatted_form_string}\r", end="\r")
-        self.move_cursor_down(self.form_lines + 2)
-    
-    def __increment(self, direction):
-        if time.time() - self.time_of_last_input >= self.selection_time_interval:
-            self.form['Field'][self.position_index] = self.current_field_name
-            if direction == "UP":
-                self.position_index += 1
-            elif direction == "DOWN":
-                self.position_index -= 1
-            if self.position_index == self.max_position:
-                self.position_index = 0
-            elif self.position_index == -1:
-                self.position_index = self.max_position - 1
-            self.current_field_name = self.form['Field'][self.position_index]
-            self.form['Field'][self.position_index] = self.__select_string_formatter(self.form['Field'][self.position_index])
-            self.__print_form()
-            self.time_of_last_input = time.time()
+    def set_value(self, value):
+        self.Values[self.index] = value
 
-    def form_formatter(self, unformatted_form: dict) -> dict:
-        formatted_form = {"Field":[], "Response":[]}
-        for name, value in unformatted_form.items():
-            formatted_form['Field'].append(name)
-            formatted_form['Response'].append(value)
-        return formatted_form
+    def current_value(self):
+        return self.Values[self.index]
+
+    def __str__(self):
+        form_present = pd.DataFrame.from_dict({'Field':self.Fields, 'Value':self.Values})
+        formatted_form_string = tabulate(form_present, headers='keys', tablefmt='rounded_grid', showindex=False, maxcolwidths=50)
+        return formatted_form_string
+
+    def dict(self) -> dict:
+        return dict([(name, value) for name, value in zip(self.Fields, self.Values)])
     
-    def de_format_form(self, formatted_form: dict) -> dict:
-        return dict([(name, value) for name, value in zip(formatted_form['Field'], formatted_form['Response'])])
+
+class FormHandler:
+    refresh_rate = 0.01666
+    def __init__(self):
+        self.form = None
+        self.input_location_minimum = (0, 0)
+        self.input_location_maximum = (0, 0)
+        self.location = (0, 0)
+        self.operations = None
+        self.size = 0
+
+    def shift_cursor(self, direction: typing.Literal['LEFT', 'RIGHT']):
+        x, y = self.location
+        if direction == 'LEFT' and self.location != self.input_location_minimum:
+            if x != 0:
+                print(term.move_left(1), end='', flush=True)
+                self.location = (x-1,y)
+            else:
+                print(f"{term.move_right(term.width)}{term.move_up(1)}", end='', flush=True)
+                self.location = (term.width, y-1)
+        elif direction == 'RIGHT' and self.location != self.input_location_maximum:
+            if x != term.width:
+                print(term.move_right(1), end='', flush=True)
+                self.location = (x+1,y)
+            else:
+                print(f"{term.move_xy(0, y+1)}", end='', flush=True)
+                self.location = (0, y+1)
     
-    def initiate_form(self, form):
-        self.form = self.form_formatter(form)
-        self.__stringify_form()
-        print("\n" * self.form_lines)
-        self.current_field_name = self.form['Field'][self.position_index]
-        self.max_position = len(self.form['Field'])
-        self.up_reference = keyboard.add_hotkey('down', lambda: self.__increment("UP")) 
-        self.down_reference = keyboard.add_hotkey('up', lambda: self.__increment("DOWN"))
-        self.__print_form()
-        self.handle_input()
+    def register_form(self, form):
+        self.form = form
+
+    def print_form(self):
+        print(f"{term.home}{str(self.form)}\n{form.Fields[form.index]}: ", end='', flush=True)
+        self.input_location_minimum = term.get_location()
+        print(f"{form.Values[form.index]}{term.clear_eos()}", end='', flush=True)
+        self.input_location_maximum = term.get_location()
+        self.location = self.input_location_maximum
+        log(self.input_location_maximum)
+
+    def window_change_event(self):
+        if term.width != self.size[0] or term.height != self.size[1]:
+            self.size = (term.width, term.height)
+            self.print_form()      
+
+    def accept_input(self):
+        keystroke = term.inkey(timeout=self.refresh_rate)
+        if not keystroke:
+            pass
+        elif keystroke.is_sequence:
+            if keystroke.name == 'KEY_UP':
+                self.down()
+            elif keystroke.name == 'KEY_DOWN':
+                self.up()
+            elif keystroke.name == 'KEY_BACKSPACE':
+                self.backspace()
+            elif keystroke.name == "KEY_ENTER":
+                self.up()
+            elif keystroke.name == "KEY_LEFT":
+                self.shift_cursor("LEFT")
+            elif keystroke.name == "KEY_RIGHT":
+                self.shift_cursor("RIGHT")
+        elif keystroke:
+            self.form.set_value(self.form.current_value() + keystroke)
+            print(keystroke, flush=True, end='')
+
+    def backspace(self):
+        if True:
+            #self.form.set_value(self.form.current_value()[:-1])
+            self.shift_cursor("LEFT")
+            print(f" ", end='', flush=True)
+
+    def up(self):
+        self.form.increment('UP')
+        self.print_form()
+
+    def down(self):
+        self.form.increment('DOWN')
+        self.print_form()
 
     def handle_input(self):
-        while True:
-            input_value = input(f"\r{self.current_field_name}\r")
-
-#keyboard.remove_hotkey
-# while True:
-#     pass
-
-# def form_handler(form):
-#     field = ""
-#     form_present = pd.DataFrame.from_dict(form)
-#     print(tabulate(form_present, headers='keys', tablefmt='heavy_grid', showindex=False), end="\r")
-        
-        
-
+        old_hook = sys.stdin.readline
+        sys.stdin.readline = lambda: old_hook().rstrip()
+        with term.fullscreen(), term.cbreak():
+            self.print_form()
+            self.size = (term.width, term.height)
+            while True:
+                self.window_change_event()
+                self.accept_input()
 
 # form_handler(form)
 
+
+form = Form(form)
+form.set_value("asldkfl;kasdf;lkjasdlkfkjasl;kkdjflkajfgl;kjadfl;kgjla;skkjgfl;sdjfgljals;fjlasdjfl;jadsljdaflgkjasl;dfjlasdjdflajsd;lfjasl;dfjlasdfjlkasdjflkasjdf;;lksajdfl;kjsdfa")
+
 form_handler = FormHandler()
-form_handler.initiate_form(form)
+form_handler.register_form(form)
+form_handler.handle_input()
