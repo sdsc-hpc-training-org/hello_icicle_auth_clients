@@ -1,30 +1,21 @@
-from prompt_toolkit.formatted_text import HTML
+from prompt_toolkit.validation import Validator, ValidationError
 from prompt_toolkit import prompt
-from prompt_toolkit import Form
-from prompt_toolkit import print_formatted_text as print_text
 
-def submit(form):
-    # Access form data
-    username = form['username'].text
-    password = form['password'].text
-    
-    # Perform some action with the submitted data
-    print_text(HTML(f"<ansigreen>Submitted:</ansigreen> Username={username}, Password={password}"))
+class NumberValidator(Validator):
+    def validate(self, document):
+        text = document.text
+        print(type(text))
+        if text and not text.isdigit():
+            i = 0
 
-def main():
-    # Define the form fields
-    form = Form(
-        [
-            ("Username: ", "username"),
-            ("Password: ", "password"),
-        ],
-        submit=submit,
-        style="class:form",
-    )
+            # Get index of first non numeric character.
+            # We want to move the cursor here.
+            for i, c in enumerate(text):
+                if not c.isdigit():
+                    break
 
-    # Run the form
-    print_text(HTML("<b>Please enter your credentials:</b>"))
-    form.run()
+            raise ValidationError(message='This input contains non-numeric characters',
+                                  cursor_position=i)
 
-if __name__ == '__main__':
-    main()
+number = int(prompt('Give a number: ', validator=NumberValidator()))
+print('You said: %i' % number)

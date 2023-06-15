@@ -25,31 +25,6 @@ class BaseRequirementDecorator(abc.ABC):
         pass
 
 
-class RequiresForm(BaseRequirementDecorator):
-    """
-    This is for when you want to request separate input for specific command parameters instead of taking directly from the original command input (kwargs)
-    Takes the parameters list of the function in question, filters out the ones that were not received from the original request message, sends another message 
-    to request the unreceived parameters, and receives a message in response from the client to execute the function
-    """
-    async def __call__(self, command, *args, **kwargs):
-        connection = kwargs['connection']
-        if connection and not kwargs['file']:
-            connection = connection
-            fields = command.keyword_arguments
-            fields = {field:None for field in fields}
-            if not fields:
-                raise AttributeError(f"The decorated function {command} has no keyword parameters.")
-            form_request = schemas.FormRequest(request_content=fields,
-                                               message={"message":"The command requests that you enter responses for the following fields:",
-                                                        "fields":fields})
-            await connection.send(form_request)
-            filled_form: schemas.FormResponse = await connection.receive()
-            for key, value in filled_form.request_content.items():
-                kwargs[key] = value
-
-        return await command.run(**kwargs)
-
-
 class Auth(BaseRequirementDecorator):
     """
     used for secure authentication from the client. Requires that the function has a username and password parameter for credentials. sends request for credentials from 
@@ -99,7 +74,6 @@ class NeedsConfirmation(BaseRequirementDecorator):
 
 DECORATOR_LIST = [
     NeedsConfirmation,
-    RequiresForm,
     Auth
 ]
     

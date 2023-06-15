@@ -11,7 +11,7 @@ import pyfiglet
 from ..commands.arguments import args
 
 if __name__ != "__main__":
-    from . import parsers, handlers
+    from . import handlers
     from ..socketopts import socketOpts, schemas
     from ..commands import decorators
     from ..utilities import killableThread
@@ -31,7 +31,7 @@ class ClientSideConnection(socketOpts.ClientSocketOpts, handlers.Handlers):
         self.connection.close()
 
 
-class CLI(decorators.DecoratorSetup, parsers.Parsers, handlers.Handlers):
+class CLI(handlers.Handlers):
     """
     Receive user input, either direct from bash environment or from the custom interface, then parse these commands and send them to the server to be executed. 
     """
@@ -59,24 +59,6 @@ class CLI(decorators.DecoratorSetup, parsers.Parsers, handlers.Handlers):
 
     def parser_error(self, args):
         print(f"Ignoring unrecognized arguments: {args}")
-
-    class ParserTypeLenEnforcer:
-        type_map = {'int':int, 'string':str}
-        def __init__(self, name: str, size: tuple, data_type: str):
-            self.arg_name = name
-            self.data_type = self.type_map[data_type]
-            self.lower_size_limit, self.upper_size_limit = size
-
-        def __call__(self, data):
-            try:
-                self.data_type(data)
-            except:
-                raise ValueError(f"The input for the argument {self.arg_name} must be of type {self.data_type}. Got type {type(data)}")
-            if self.data_type == int:
-                if not data >= self.lower_size_limit or not data < self.upper_size_limit:
-                    raise ValueError(f"The input for the argument {self.arg_name} must be in the range ({self.lower_size_limit}, {self.upper_size_limit}). Got value {data}")
-            if not len(data) >= self.lower_size_limit or not len(data) < self.upper_size_limit:
-                raise ValueError(f"The input length for the argument {self.arg_name} must be in the range ({self.lower_size_limit}, {self.upper_size_limit}). Got length {len(data)}")
     
     def configure_parser(self, arguments):
         parser = argparse.ArgumentParser(description="Command Line Argument Parser", exit_on_error=False, usage=argparse.SUPPRESS, conflict_handler='resolve')
@@ -88,9 +70,10 @@ class CLI(decorators.DecoratorSetup, parsers.Parsers, handlers.Handlers):
             if not arg['positional']:
                 parser.add_argument(arg['truncated_arg'], arg['full_arg'],
                                     default=arg['default_value'], choices=arg['choices'],
-                                    action=arg['action'], type=self.ParserTypeLenEnforcer(name=arg_name, 
+                                    action=arg['action'], type=handlers.ParserTypeLenEnforcer(name=arg_name, 
                                                                                           size=arg['size_limit'], 
-                                                                                          data_type=arg['data_type']))
+                                                                                          data_type=arg['data_type'],
+                                                                                          choices=arg['choices']))
         return parser
 
     def initialize_server(self): 
@@ -170,7 +153,7 @@ class CLI(decorators.DecoratorSetup, parsers.Parsers, handlers.Handlers):
                 if command_response.exit_status:
                     print("Exit initiated")
                     os._exit(0)
-            handled_response = self.universal_message_handler(command_response)
+            handled_response, repeat = self.universal_message_handler(command_response)
             if not handled_response:
                 break
             handled_response = schemas.FormResponse(request_content=handled_response)

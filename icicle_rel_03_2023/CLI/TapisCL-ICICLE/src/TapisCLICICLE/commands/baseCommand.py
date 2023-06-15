@@ -4,12 +4,14 @@ import abc
 import ast
 import json
 from typing import Type
+import typing
 from abc import abstractmethod, ABC
 
 from commands import decorators # I finally understand. Imported at the top level by serverRun, so it can only see packages from that vantage point
 from commands.arguments import args as Args
 from utilities import exceptions
-from commands.arguments.argument import Argument, DynamicChoiceList
+from commands.arguments.argument import Argument, DynamicChoiceList, ALLOWED_ARG_TYPES
+from socketopts import schemas
 
 
 def get_kwargs(function):
@@ -77,14 +79,19 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
     return_formatter = None
     command_opt: list = None
     supports_config_file: bool = False
-    required_arguments: list[Argument] = list()
-    optional_arguments: list[Argument] = list()
+    required_arguments: list[Argument] | dict = list()
+    optional_arguments: list[Argument] | dict = list()
     def __init__(self):
         self.t = None
         self.username = None
         self.password = None
         self.server = None
-        self.arg_names = [argument.argument for argument in self.required_arguments + self.optional_arguments]
+        self.arg_names = [argument.argument for argument in self.required_arguments] + [argument.argument for argument in self.optional_arguments]
+        if isinstance(self.required_arguments, list):
+            self.required_arguments = {argument.argument:argument for argument in self.required_arguments}
+        if isinstance(self.optional_arguments, list):  
+            self.optional_arguments = {argument.argument:argument for argument in self.optional_arguments}
+        self.positional_arguments = [arg_name for arg_name, arg in self.required_arguments.items() if arg.positional]
         self.help: dict[dict[str, list[dict[str, str]]]] = dict()
 
     def set_t_and_creds(self, t, username, password, server):
@@ -93,18 +100,21 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
         self.password = password
         self.server = server
 
-    def __argument_list_help_compiler(self, arg_list: list[Argument]):
+    def __argument_list_help_compiler(self, arg_dict: dict):
         return [{"help":f"{argument.truncated_arg}/{argument.full_arg} <{argument.argument}>",
-          "description":argument.description} 
-         for argument in arg_list]
+                "description":argument.description} 
+                if not argument.positional 
+                else {"help":f"<{argument.argument}>",
+                "description":argument.description}
+                for argument in arg_dict.values()]
 
     def update_args_with_truncated(self, aggregate_args_dict):
-        for index, arg in enumerate(self.required_arguments):
-            self.required_arguments[index] = aggregate_args_dict[arg.argument]
-        for index, arg in enumerate(self.optional_arguments):
-            if issubclass(aggregate_args_dict[arg.argument].choices.__class__, DynamicChoiceList):
-                aggregate_args_dict[arg.argument].choices = aggregate_args_dict[arg.argument].choices(self.t)
-            self.required_arguments[index] = aggregate_args_dict[arg.argument]
+        for key, arg in self.required_arguments.items():
+            self.required_arguments[key] = aggregate_args_dict[key]
+        for key, arg in self.optional_arguments.items():
+            if issubclass(aggregate_args_dict[key].choices.__class__, DynamicChoiceList):
+                aggregate_args_dict[key].choices = aggregate_args_dict[key].choices(self.t)
+            self.required_arguments[key] = aggregate_args_dict[key]
         self.help['required'] = self.__argument_list_help_compiler(self.required_arguments)
         self.help['optional'] = self.__argument_list_help_compiler(self.optional_arguments)
     
@@ -132,6 +142,18 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
             for opt in self.command_opt:
                 kwargs = opt(kwargs)
         return kwargs
+    
+    def check_commands_for_special_requests(self, kwargs):
+        require_further_input = dict()
+        for name, arg in kwargs.items():
+            if arg and name in list(self.optional_arguments.keys()) and self.self.optional_arguments[name].arg_type in typing.get_args(ALLOWED_ARG_TYPES):
+                require_further_input[name] = arg.json()
+        return require_further_input
+    
+    def check_for_positionals(self, kwargs):
+        for arg_name, value in zip(self.positional_arguments, kwargs['positionals']):
+            kwargs[arg_name] = value
+        return kwargs
 
     async def __call__(self, **kwargs):
         verbose = kwargs.pop('verbose')
@@ -142,7 +164,16 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
         elif self.supports_config_file and 'file' in list(kwargs['keys']):
             with open(kwargs['file'], 'r') as f:
                 kwargs = json.loads(f.read)
-        
+
+        kwargs = self.check_for_positionals(kwargs)
+
+        require_further_input = self.check_commands_for_special_requests(kwargs)
+        if require_further_input:
+            request = schemas.FormRequest(request_content=require_further_input)
+            await kwargs['connection'].send(request)
+            response: schemas.FormResponse = await kwargs['connection'].receive()
+            kwargs.update(**response.request_content)
+
         kwargs = self.run_command_opts(**kwargs)
 
         if self.decorator:
@@ -226,11 +257,11 @@ class BaseCommandMap(CommandContainer, HelpStringRetriever, metaclass=CommandMap
             self.__contribute_to_arguments(command)
 
     def __contribute_to_arguments(self, command):
-        arg_list = command.required_arguments + command.optional_arguments
-        for arg in arg_list:
-            if arg.argument not in list(self.arguments.keys()):
-                self.arguments[arg.argument] = arg
-            elif self.arguments[arg.argument].json() != arg.json():
+        arg_dict = command.required_arguments.update(**command.optional_arguments)
+        for name, arg in arg_dict:
+            if name not in list(self.arguments.keys()):
+                self.arguments[name] = arg
+            elif self.arguments[name].json() != arg.json():
                 raise ValueError(f"Found two instances of the argument {arg.argument} that had different attributes")
 
     def __help_gen(self):

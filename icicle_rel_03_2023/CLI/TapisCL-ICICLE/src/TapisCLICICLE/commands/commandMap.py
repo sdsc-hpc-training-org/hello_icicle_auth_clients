@@ -176,10 +176,10 @@ class AggregateCommandMap(baseCommand.CommandContainer, ArgsGenerator):
         if command.supports_config_file and 'file' in list(command_data.keys()):
             command_data = {'file':command_data['file']}
 
-        command_data['connection'] = connection
-        command_data['server'] = self # ISSUE. HOW DO I PASS THESE WITHOUT INTERFERING WITH PASSING KWARGS AS DICT??
-
         map(lambda name, attr: command_data.pop(name) if not self.__filter_kwargs(name, attr, command) else False, command_data.items())
+
+        command_data['connection'] = connection
+        command_data['server'] = self
 
         if command_name in list(self.aggregate_command_map.keys()):
             return await command(**command_data)

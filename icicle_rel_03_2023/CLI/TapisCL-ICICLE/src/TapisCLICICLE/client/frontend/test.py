@@ -80,29 +80,27 @@ class Form(pydantic.BaseModel):
 class FormHandler:
     refresh_rate = 0.01666
     def __init__(self):
-        self.form = None
+        self.form: Form = None
         self.input_location_minimum = (0, 0)
         self.input_location_maximum = (0, 0)
         self.location = (0, 0)
-        self.operations = None
-        self.size = 0
+        self.size = (0, 0)
 
-    def shift_cursor(self, direction: typing.Literal['LEFT', 'RIGHT']):
+    def shift_cursor(self, direction: int = 1):
         x, y = self.location
-        if direction == 'LEFT' and self.location != self.input_location_minimum:
-            if x != 0:
-                print(term.move_left(1), end='', flush=True)
-                self.location = (x-1,y)
-            else:
-                print(f"{term.move_right(term.width)}{term.move_up(1)}", end='', flush=True)
-                self.location = (term.width, y-1)
-        elif direction == 'RIGHT' and self.location != self.input_location_maximum:
-            if x != term.width:
-                print(term.move_right(1), end='', flush=True)
-                self.location = (x+1,y)
-            else:
-                print(f"{term.move_xy(0, y+1)}", end='', flush=True)
-                self.location = (0, y+1)
+        if (x, y) in (self.input_location_maximum, self.input_location_minimum):
+            return ""
+        x += 1*direction
+        if x < 0:
+            x = term.width
+            y -= 1
+        elif x > term.width:
+            x = 0
+            y += 1
+        self.location = (x, y)
+        log(f"LOCATION: {self.location}")
+        return term.move_xy(x, y)
+
     
     def register_form(self, form):
         self.form = form
@@ -113,7 +111,7 @@ class FormHandler:
         print(f"{form.Values[form.index]}{term.clear_eos()}", end='', flush=True)
         self.input_location_maximum = term.get_location()
         self.location = self.input_location_maximum
-        log(self.input_location_maximum)
+        log(f"MAXIMUM LOCATION{self.input_location_maximum}")
 
     def window_change_event(self):
         if term.width != self.size[0] or term.height != self.size[1]:
@@ -134,18 +132,17 @@ class FormHandler:
             elif keystroke.name == "KEY_ENTER":
                 self.up()
             elif keystroke.name == "KEY_LEFT":
-                self.shift_cursor("LEFT")
+                print(f"{self.shift_cursor(-1)}", flush=True, end='')
             elif keystroke.name == "KEY_RIGHT":
-                self.shift_cursor("RIGHT")
+                print(f"{self.shift_cursor()}", flush=True, end='')
         elif keystroke:
             self.form.set_value(self.form.current_value() + keystroke)
-            print(keystroke, flush=True, end='')
+            print(f"{self.shift_cursor()}{keystroke}", flush=True, end='')
 
     def backspace(self):
         if True:
             #self.form.set_value(self.form.current_value()[:-1])
-            self.shift_cursor("LEFT")
-            print(f" ", end='', flush=True)
+            print(f" {self.shift_cursor(-1)}{self.shift_cursor()}", end='', flush=True)
 
     def up(self):
         self.form.increment('UP')
