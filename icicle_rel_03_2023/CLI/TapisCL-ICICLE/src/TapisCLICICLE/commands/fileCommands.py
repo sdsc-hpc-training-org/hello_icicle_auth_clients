@@ -1,6 +1,6 @@
 if __name__ != "__main__":
     from . import baseCommand
-    from .arguments import args, argument
+    from .arguments import argument
     from . import decorators
     Argument = argument.Argument
 
@@ -10,9 +10,6 @@ class CHECK_PWD:
     support the invocation of relative paths for tapis systems
     """
     def __init__(self, dir_simplify_args: tuple):
-        for arg in dir_simplify_args:
-            if arg not in list(args.Args.argparser_args.keys()):
-                raise AttributeError(f"The argument {arg} is not in the args file!")
         self.dir_simplify_args = dir_simplify_args
 
     def __go_back_checker(self, index: int, path_list: list):
@@ -67,7 +64,7 @@ class ls(baseCommand.BaseCommand):
     """
     command_opt = [CHECK_PWD(('file_path',))]
     required_arguments = [
-        Argument('systemId'),
+        Argument('systemId', size_limit=(1, 80)),
         Argument('file_path', positional=True)
     ]
     async def run(self, *args, **kwargs) -> str: # lists files available on a tapis account
@@ -82,7 +79,7 @@ class cd(baseCommand.BaseCommand):
     """
     command_opt = [CHECK_PWD(('file_path',))]
     required_arguments = [
-        Argument('systemId'),
+        Argument('systemId', size_limit=(1, 80)),
         Argument('file_path', positional=True)
     ]
     async def run(self, *args, **kwargs):
@@ -97,7 +94,7 @@ class showme(baseCommand.BaseCommand):
     """
     command_opt = [CHECK_PWD(('file_path',))]
     required_arguments = [
-        Argument('systemId'),
+        Argument('systemId', size_limit=(1, 80)),
         Argument('file_path', positional=True)
     ]
     async def run(self, *args, **kwargs):
@@ -111,7 +108,7 @@ class cat(baseCommand.BaseCommand):
     """
     command_opt = [CHECK_PWD(('file_path',))]
     required_arguments = [
-        Argument('systemId'),
+        Argument('systemId', size_limit=(1, 80)),
         Argument('file_path', positional=True)
     ]
     async def run(self, *args, **kwargs):
@@ -130,7 +127,7 @@ class mkdir(baseCommand.BaseCommand):
     """
     command_opt = [CHECK_PWD(('file_path',))]
     required_arguments = [
-        Argument('systemId'),
+        Argument('systemId', size_limit=(1, 80)),
         Argument('file_path', positional=True)
     ]
     async def run(self, *args, **kwargs):
@@ -144,7 +141,7 @@ class mv(baseCommand.BaseCommand):
     """
     command_opt = [CHECK_PWD(('source_file', 'destination_file'))]
     required_arguments = [
-        Argument('systemId'),
+        Argument('systemId', size_limit=(1, 80)),
         Argument('source_file'),
         Argument('desination_file')
     ]
@@ -159,7 +156,7 @@ class cp(baseCommand.BaseCommand):
     """
     command_opt = [CHECK_PWD(('source_file', 'destination_file'))]
     required_arguments = [
-        Argument('systemId'),
+        Argument('systemId', size_limit=(1, 80)),
         Argument('source_file'),
         Argument('destination_file')
     ]
@@ -175,7 +172,7 @@ class rm(baseCommand.BaseCommand):
     decorator=decorators.NeedsConfirmation()
     command_opt = [CHECK_PWD(('file_path',))]
     required_arguments = [
-        Argument('systemId'),
+        Argument('systemId', size_limit=(1, 80)),
         Argument('file_path', positional=True)
     ]
     async def run(self, *args, **kwargs):
@@ -196,10 +193,9 @@ class create_postit(baseCommand.BaseCommand):
     """
     @help: create a postit to easily share file with other users
     """
-    decorator=decorators.RequiresForm()
     command_opt = [CHECK_PWD(('file_path',))]
     required_arguments = [
-        Argument('systemId'),
+        Argument('systemId', size_limit=(1, 80)),
         Argument('file_path', positional=True)
     ]
     optional_arguments = [
@@ -270,7 +266,7 @@ class upload(baseCommand.BaseCommand):
     required_arguments = [
         Argument('source_file'),
         Argument('destination_file'),
-        Argument('systemId')
+        Argument('systemId', size_limit=(1, 80))
     ]
     async def run(self, *args, **kwargs) -> str: # upload a file from local to remote using tapis. Takes source and destination paths
         if not kwargs['destination_file']:
@@ -290,7 +286,7 @@ class download(baseCommand.BaseCommand):
     required_arguments = [
         Argument('source_file'),
         Argument('destination_file'),
-        Argument('systemId')
+        Argument('systemId', size_limit=(1, 80))
     ]
     async def run(self, *args, **kwargs) -> str: # download a remote file using tapis, operates basically the same as upload
         if not kwargs["source_file"]:

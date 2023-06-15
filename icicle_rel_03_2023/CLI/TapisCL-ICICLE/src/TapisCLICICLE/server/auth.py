@@ -16,8 +16,6 @@ from socketopts import schemas
 from utilities import exceptions
 
 
-from commands import args
-
 
 class ServerSideAuth:
     def create_token_device_grant(link, device_code, client_id):
@@ -115,7 +113,7 @@ class ServerSideAuth:
         session_auth_type_request = schemas.AuthRequest(request_content={"uri":None, "auth_type":None},
                                                         auth_request_type="requested",
                                                         message={"message":"Enter the URI of the Tapis tenant you wish to connect to, then select your auth type from the options below",
-                                                                 "options":args.Args.argparser_args['auth']['kwargs']['choices']})
+                                                                 "options":['password', 'device_code', 'federated']})
         while True:
             try:
                 await connection.send(session_auth_type_request)

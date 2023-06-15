@@ -4,7 +4,6 @@ from tapipy.tapis import Tapis
 
 
 if __name__ != "__main__":
-    from .arguments import args as Args
     from . import baseCommand, decorators
     from utilities import exceptions
     from commands.arguments.argument import Argument
@@ -63,7 +62,7 @@ class get_args(baseCommand.BaseCommand):
     @help: get the list of possible arguments 
     """
     async def run(self, *args, **kwargs):
-        return Args.Args.argparser_args
+        return kwargs['server'].arguments
     
 
 class whereami(baseCommand.BaseCommand):

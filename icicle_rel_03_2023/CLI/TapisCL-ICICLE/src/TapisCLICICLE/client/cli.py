@@ -8,8 +8,6 @@ import traceback
 
 import pyfiglet
 
-from ..commands.arguments import args
-
 if __name__ != "__main__":
     from . import handlers
     from ..socketopts import socketOpts, schemas
@@ -44,7 +42,7 @@ class CLI(handlers.Handlers):
         # set up argparse
         self.parser = None
 
-        setup_message = schemas.BaseSchema(request_content={'setup_success':True})
+        setup_message = schemas.ResponseData(request_content={'setup_success':True})
         try:
             self.username, self.url = self.connect()
             self.connection.send(setup_message)
@@ -135,7 +133,7 @@ class CLI(handlers.Handlers):
             username, url = self.auth()
         else:
             username, url = connection_info.username, connection_info.url
-        arguments: schemas.BaseSchema = self.connection.receive()
+        arguments: schemas.ResponseData = self.connection.receive()
         self.parser = self.configure_parser(arguments.request_content)
 
         return username, url # return the username and url

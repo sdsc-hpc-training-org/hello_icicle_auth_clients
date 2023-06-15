@@ -1,11 +1,18 @@
 from getpass import getpass
 import os
+import json
 
 from prompt_toolkit.validation import Validator, ValidationError
 from prompt_toolkit import prompt
+from blessed import Terminal
 
 if __name__ != "__main__":
     from ..socketopts import schemas
+
+
+__location__ = os.path.realpath(
+    os.path.join(os.getcwd(), os.path.dirname(f"{__file__}")))
+saved_command = os.path.join(__location__, r'entered_command.json')
 
 
 class Formatters:
@@ -33,7 +40,7 @@ class Formatters:
 
 class ParserTypeLenEnforcer:
         type_map = {'int':int, 'string':str}
-        def __init__(self, name: str=str(), size: tuple=tuple(), data_type: str=str(), choices: list=list()):
+        def __init__(self, name: str=str(), size: tuple=(0, 0), data_type: str='string', choices: list=list()):
             self.arg_name = name
             self.data_type = self.type_map[data_type]
             self.lower_size_limit, self.upper_size_limit = size
@@ -99,49 +106,51 @@ class Handlers(Formatters):
                 print("Enter valid response")
         return decision
     
-    def form_handler(self, form_request: dict):
+    def form_handler(self, form_request: dict, term: Terminal):
         response = dict()
         repeat = False
         for field, attrs in form_request.items():
             while True:
                 arg_type = attrs['arg_type']
                 self.validator.update_constraints(**attrs)
-                match arg_type:
-                    case 'secure':
-                        answer = prompt(attrs['argument'], validator=self.validator(), is_password=True)
-                    case 'expression':
-                        answer = self.__expression_input()
-                    case 'form':
-                        answer = self.form_handler(attrs['arguments_list'])
-                    case 'input_list':
-                        repeat = True
-                        answer = []
-                        while repeat:
-                            sub_answer, repeat = self.form_handler(attrs['data_type'])
-                            answer.append(sub_answer)
-                    case 'input_dict':
-                        repeat = True
-                        answer = dict()
-                        while repeat:
-                            name = str(input(f"enter the {attrs['data_type']['argument']} for the instance of {attrs['argument']}"))
-                            sub_answer, repeat = self.form_handler(attrs['data_type'])
-                            answer[name] = sub_answer
-                    
-                # try:
-                #     if field not in ("expression", "confirmation", "password", "user_code"):
-                #         answer = str(input(f"{field}: "))
-                #     elif field == "expression":
-                #         answer = self.__expression_input()
-                #     elif field == "confirmation":
-                #         answer = self.confirmation_handler()
-                #     else:
-                #         answer = getpass("password: ")
-                #     if not answer:
-                #         answer = None
-                # except KeyboardInterrupt:
-                #     continue
-                response[field] = answer
-                break
+                try:
+                    match arg_type:
+                        case 'secure':
+                            answer = prompt(attrs['argument'], validator=self.validator(), is_password=True)
+                        case 'expression':
+                            with term.fullscreen():
+                                print(f"Enter expression input for the {attrs['argument']} argument.")
+                                answer = self.__expression_input()
+                        case 'form':
+                            answer = self.form_handler(attrs['arguments_list'], term)
+                        case 'input_list':
+                            repeat = True
+                            answer = []
+                            with term.fullscreen():
+                                print(f"You are now entering data for the {attrs['args']} field")
+                                while repeat:
+                                    sub_answer, repeat = self.form_handler(attrs['data_type'], term)
+                                    answer.append(sub_answer)
+                        case 'input_dict':
+                            repeat = True
+                            answer = dict()
+                            with term.fullscreen():
+                                print(f"You are now entering data for the {attrs['args']} field")
+                                while repeat:
+                                    name = str(input(f"enter the {attrs['data_type']['argument']} for the instance of {attrs['argument']}"))
+                                    sub_answer, repeat = self.form_handler(attrs['data_type'], term)
+                                    answer[name] = sub_answer
+                        case 'str_input':
+                            answer = prompt(attrs['argument'], validator = self.validator)
+                        case _:
+                            raise AttributeError(f"There is not argument type {arg_type}")
+                    response[field] = answer
+                    break
+                except Exception as e:
+                    with open(saved_command, 'w') as f:
+                        f.write(json.dumps(response))
+                        print(f"Argument input failure, command data written to file {saved_command}")
+                        raise e
         return response, repeat
     
     def universal_message_handler(self, message: schemas.BaseSchema):

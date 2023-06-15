@@ -96,9 +96,9 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
             return
 
         self.logger.info("connection is running now")
-        await connection.send(schemas.BaseSchema(request_content={name:argument.json() for name, argument in self.arguments.items()}))
+        await connection.send(schemas.ResponseData(request_content={name:argument.json() for name, argument in self.arguments.items()}))
         
-        setup_response: schemas.BaseSchema = await connection.receive()
+        setup_response: schemas.ResponseData = await connection.receive()
         if not setup_response.request_content['setup_success']:
             self.logger.warning(f"The setup of the connection {connection.name} failed")
             return

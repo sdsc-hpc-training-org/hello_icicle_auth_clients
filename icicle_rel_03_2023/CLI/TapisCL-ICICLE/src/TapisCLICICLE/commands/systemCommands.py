@@ -72,7 +72,7 @@ class get_system_info(baseCommand.BaseCommand):
     @help: get information on a selected system
     """
     required_arguments=[
-        Argument('systemId')
+        Argument('systemId', size_limit=(1, 80))
     ]
     async def run(self, *args, **kwargs): 
         system_info = self.t.systems.getSystem(systemId=kwargs['systemId'])
@@ -201,14 +201,11 @@ class create_system(baseCommand.BaseCommand, SystemAuth):
         return self.t.systems.createSystem(**kwargs)
 
     
-class create_child_system(baseCommand):
+class create_child_system(baseCommand.BaseCommand):
     """
     @help: create a child system which inherits majority attributes from parent
     """
-    required_arguments=[
-
-    ]
-    async def run(self, id: str):
+    async def run(self, *args, **kwargs):
         return "UNFINISHED FEATURE"
     
 
@@ -217,7 +214,7 @@ class system(baseCommand.BaseCommand):
     @help: set the system to run operations on by default. Running this will put you "in" the system so that you dont have to specify system ID for each command
     """
     required_arguments=[
-        Argument('systemId', size_limit=(0, 80))
+        Argument('systemId', size_limit=(1, 80))
     ]
     async def run(self, *args, **kwargs):
         system_info = self.t.systems.getSystem(systemId=kwargs['systemId'])
@@ -242,7 +239,7 @@ class delete_system(baseCommand.BaseCommand):
     """
     decorator=decorators.NeedsConfirmation()
     required_arguments=[
-        Argument('systemId', size_limit=(0, 80))
+        Argument('systemId', size_limit=(1, 80))
     ]
     async def run(self, *args, **kwargs) -> str:
         return_value = self.t.systems.deleteSystem(systemId=kwargs['systemId'])

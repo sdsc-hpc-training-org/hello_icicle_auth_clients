@@ -34,22 +34,14 @@ class Auth(BaseRequirementDecorator):
         connection = kwargs['connection']
         requires_username = True
         if connection:
-            if 'password' not in command.keyword_arguments:
-                raise AttributeError(f"The command {command.__class__.__name__} does not have a 'password' keyword argument")
-            if 'username' not in command.keyword_arguments:
-                auth_request = schemas.FormRequest(request_content={"password":None},
-                                                   message={"message":"Password is required to continue. If you logged in using TACC password login, use that. Otherwise use the session password"})
-                requires_username = False
-            else:
-                auth_request = schemas.FormRequest(request_content={"password":None, "username":None},
-                                                   message={"message":"Password is required to continue. If you logged in using TACC password login, use that. Otherwise use the session password\nYour username was returned during initial login"})
+            auth_request = schemas.FormRequest(request_content={"username":None, "password":None},
+                                                message={"message":"Password is required to continue. If you logged in using TACC password login, use that. Otherwise use the session password\nYour username was returned during initial login"})
             await connection.send(auth_request)
             auth_data = await connection.receive()
-            if auth_data.request_content['password'] != self.password and self.password:
+            if auth_data.request_content['password'] != self.password:
                 raise ValueError("The provided password does not match the stored password")
-            if ((requires_username and auth_data.request_content['password'] != self.password) or (not requires_username and kwargs['username'] != self.username)) and self.username:
+            if auth_data.request_content['username'] != self.username:
                 raise ValueError("The provided username does not match the stored username")
-            kwargs['username'], kwargs['password'] = auth_data.username, auth_data.password
             return await command.run(**kwargs)
         return await command.run(**kwargs)
 

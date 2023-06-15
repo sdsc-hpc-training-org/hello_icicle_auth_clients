@@ -19,13 +19,11 @@ class Systems(baseCommand.BaseCommandMap):
     command_map = {
         'get_systems':systemCommands.get_systems(), # since initialization of commands is separate from __init__, you dont need to specify these as classes anymore
         'get_system_info':systemCommands.get_system_info(),
-        'get_scheduler_profile':systemCommands.set_system_credentials(),
+        'get_scheduler_profiles':systemCommands.get_scheduler_profiles(),
         'create_child_system':systemCommands.create_child_system(),
         'create_system':systemCommands.create_system(),
         'system':systemCommands.system(),
         'exit_system':systemCommands.exit_system(),
-        'set_system_credentials':systemCommands.set_system_credentials(),
-        'set_system_password':systemCommands.set_system_password(),
         'delete_system':systemCommands.delete_system(),
     }
 
@@ -147,9 +145,8 @@ class AggregateCommandMap(baseCommand.CommandContainer, ArgsGenerator):
     def __init__(self):
         self.process_all_args(self.arguments)
         for command in self.aggregate_command_map.values():
-            command.update_args_with_truncated(self.aggregate_command_map)
+            command.update_args_with_truncated(self.arguments)
         self.help = self.__general_help()
-        self.args_dict = self.get_all_args()
 
     def __general_help(self):
         general_help = list()

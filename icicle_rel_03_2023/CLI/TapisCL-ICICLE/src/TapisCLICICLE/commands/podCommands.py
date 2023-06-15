@@ -39,7 +39,7 @@ class create_pod(baseCommand.BaseCommand):
         Argument('pod_template')
     ]
     optional_arguments=[
-        Argument('description', arg_type='str_input'),
+        Argument('description', arg_type='str_input', size_limit=(0, 2048)),
         Argument('command', arg_type='input_list'),
         Argument('evnironment_variables', arg_type='input_dict'),
         Argument('data_request', arg_type='input_list'),
