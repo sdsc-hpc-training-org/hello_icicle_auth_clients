@@ -28,6 +28,8 @@ class switch_service(baseCommand.BaseCommand):
             results = await self.server.device_code_grant(link, kwargs['connection'])
         elif auth == "federated":
             results = await self.server.federated_grant(link, kwargs['connection'])
+        else:
+            results = None
         return results
       
 

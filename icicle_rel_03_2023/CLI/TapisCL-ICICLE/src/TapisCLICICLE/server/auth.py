@@ -4,6 +4,7 @@ import sys
 import json
 import webbrowser
 import base64
+import traceback
 
 
 from tapipy.tapis import Tapis
@@ -65,21 +66,33 @@ class ServerSideAuth:
     
     async def device_code_grant(self, link: str, connection):
         start = time.time()
+        self.t = Tapis(f"https://{link}", resource_set='dev')
         client_id = get_client_code(link)
+        if not client_id:
+            raise exceptions.NoTenantClient(link)
+        print(client_id)
         authentication_information = self.t.authenticator.generate_device_code(client_id=client_id)
-        payload = schemas.AuthRequest(request_type='device_code',
-                                      message={"message":"Go to to the URL if it doesnt open automatically and enter the user code to authenticate", 
+        payload = schemas.AuthRequest(auth_request_type='device_code',
+                                      message={"message":"Go to the URL if it doesnt open automatically and enter the user code to authenticate. Then click y when you enter the code", 
                                                "url":authentication_information.verification_uri, 
-                                               "user_code": authentication_information.user_code})
-        
+                                               "user_code": authentication_information.user_code},
+                                      request_content={'entered_confirm':argument.Argument('entered_confirm', arg_type='confirmation')})
         await connection.send(payload)
+        confirmation = await connection.receive()
         webbrowser.open(authentication_information.verification_uri)
-
-        access_token, refresh_token = self.t.authenticator.create_token(grant_type="device_code", device_code=authentication_information.device_code, client_id=client_id)
+        start_time = time.time()
+        while True:
+            try:
+                access_info = self.t.authenticator.create_token(grant_type="device_code", device_code=authentication_information.device_code, client_id=client_id)
+                break
+            except:
+                time.sleep(1)
+                if time.time() - start_time > 500:
+                    raise Exception("Timeout while polling for authenticator token")
 
         self.t = Tapis(f"https://{link}",
-                       access_token=access_token,
-                       refresh_token=refresh_token)
+                       access_token=access_info.access_token.access_token,
+                       refresh_token=access_info.refresh_token.refresh_token)
         
         self.username = self.t.authenticator.get_userinfo().username
         self.url = link
@@ -157,11 +170,11 @@ class ServerSideAuth:
                 else:
                     await self.password_grant(link, connection)
                 break
-            except exceptions.ClientSideError as e:
+            except (exceptions.ClientSideError, exceptions.InvalidCredentialsReceived, exceptions.NoTenantClient) as e:
                 raise e
-            except exceptions.InvalidCredentialsReceived:
-                raise exceptions.InvalidCredentialsReceived()
             except Exception as e:
+                error_str = traceback.format_exc()
+                print(error_str)
                 continue
         success_message = schemas.AuthRequest(auth_request_type="success", message={
             "message":f"Successfully authenticated with {auth_type} authentication",

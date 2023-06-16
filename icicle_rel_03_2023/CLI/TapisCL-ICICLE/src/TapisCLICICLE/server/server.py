@@ -109,7 +109,10 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
             self.logger.warning(f"Encountered client side error during startup handshake. {e}")
             await connection.close()
             return
-
+        except Exception as e:
+            self.logger.warning(e)
+            await connection.close()
+            return
         self.logger.info("connection is running now")
         await connection.send(schemas.ResponseData(request_content={name:argument.json() for name, argument in self.arguments.items()}))
         

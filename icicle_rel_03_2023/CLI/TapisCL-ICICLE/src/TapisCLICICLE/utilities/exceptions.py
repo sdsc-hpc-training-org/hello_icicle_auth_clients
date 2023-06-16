@@ -72,3 +72,11 @@ class ClientSideError(ConnectionError):
     """
     def __init__(self, error_message):
         super().__init__(f"CLIENT SIDE ERROR: {error_message}")
+
+
+class NoTenantClient(AttributeError):
+    """
+    raise error when no client for tenant for auth
+    """
+    def __init__(self, tenant):
+        super().__init__(f"No client found for the tenant {tenant}")
