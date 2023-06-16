@@ -37,5 +37,8 @@ dev = []
 [project.urls]
 Homepage = "https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients/tree/main/icicle_rel_04_2023/CLI/TapisCL-ICICLE"
 
-[project.entry-points."TapisCLICICLE.__main__"]
-tomatoes = "src:__main__"
+# [project.entry-points."TapisCLICICLE.__main__"]
+# tomatoes = "src:__main__"
+
+[tool.poetry.scripts]
+TapisCLICICLE = "src.__main__"
