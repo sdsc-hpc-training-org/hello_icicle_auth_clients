@@ -6,13 +6,14 @@ import pydantic
 
 try:
     from socketopts import schemas
+    from utilities import logger, exceptions
 except:
     from . import schemas
+    from ..utilities import logger, exceptions
 
 
 schema_types: dict = {
         'CommandData':schemas.CommandData,
-        'AuthData':schemas.AuthData,
         'StartupData':schemas.StartupData,
         'ResponseData':schemas.ResponseData,
         'FormRequest':schemas.FormRequest,
@@ -22,11 +23,30 @@ schema_types: dict = {
     }
 
 
-class ClientSocketOpts:
+class BaseSocketOpts(logger.ConnectionLogger):
+    """
+    behind the scenes, low level functions to handle the socket operations asynchronoously on the server
+    """
+    def __init__(self, name, debug=False):
+        self.initialize_logger(f"{name} LOGGER")
+        self.debug_state = debug
+
+    def debug(self, operation: typing.Literal["SENDING", "RECEIVED", "WAITING"], message: str | typing.Type[schemas.BaseSchema]):
+        if self.debug_state:
+            if not isinstance(message, str):
+                self.logger.info(f"""{operation}: {message.schema_type}
+                                    MESSAGE CONTENT:{message.request_content}
+                                    MESSAGE: {message.message}
+                                    ERROR: {message.error}""")
+            else:
+                self.logger.info(message)
+
+
+class ClientSocketOpts(BaseSocketOpts):
     """
     synchronous sockets to be used by clients
     """
-    def json_receive_explicit(self, connection):
+    def __json_receive_explicit(self, connection):
         json_data = ""
         while True:
             try: 
@@ -37,23 +57,31 @@ class ClientSocketOpts:
             except BlockingIOError:
                 continue
 
-    def json_send_explicit(self, connection, data):
+    def __json_send_explicit(self, connection, data):
         json_data = json.dumps(data)
         connection.send(json_data.encode())
 
-    def schema_send_explicit(self, connection, data):
-        self.json_send_explicit(connection, data.dict())
+    def send(self, data: typing.Type[schemas.BaseSchema]):
+        self.debug('SENDING', data)
+        self.__json_send_explicit(self.connection, data.dict())
 
-    def schema_unpack_explicit(self, connection):
-        data = self.json_receive_explicit(connection)
+    def receive(self) -> typing.Type[schemas.BaseSchema]:
+        self.debug("WAITING", "Awaiting message receive")
+        data = self.__json_receive_explicit(self.connection)
         schema_type = schema_types[data['schema_type']]
+        self.debug('RECEIVED', schema_type(**data))
         return schema_type(**data)
 
 
-class ServerSocketOpts:
+class ServerSocketOpts(BaseSocketOpts):
     """
     behind the scenes, low level functions to handle the socket operations asynchronoously on the server
     """
+    def __init__(self, name, debug=False):
+        super().__init__(name, debug=debug)
+        self.system = ''
+        self.pwd = ''
+
     async def __json_receive_explicit_async(self):
         json_data = ""
         while True:
@@ -66,13 +94,25 @@ class ServerSocketOpts:
             except BlockingIOError: # this is raised in the event that it tries to receive data when no data available due to non blocking
                 continue
 
-    async def send(self, data: typing.Type[pydantic.BaseModel]):
+    async def send(self, data: typing.Type[schemas.BaseSchema]):
+        if data.request_content:
+            for key, value in data.request_content.items():
+                if not isinstance(value, (str, list, tuple, bool, int, dict, set)) and value != None:
+                    data.request_content[key] = value.json()
+        self.debug('SENDING', data)
+        data.pwd = self.pwd
+        data.system = self.system
         json_data = json.dumps(data.dict())
         self.writer.write(json_data.encode())
         await self.writer.drain()
 
     async def receive(self):
+        self.debug("WAITING", "Awaiting message receive")
         data = await self.__json_receive_explicit_async()
         schema_type = schema_types[data['schema_type']]
-        return schema_type(**data)
+        formatted_data = schema_type(**data)
+        self.debug('RECEIVED', formatted_data)
+        if formatted_data.error:
+            raise exceptions.ClientSideError(formatted_data.error)
+        return formatted_data
     

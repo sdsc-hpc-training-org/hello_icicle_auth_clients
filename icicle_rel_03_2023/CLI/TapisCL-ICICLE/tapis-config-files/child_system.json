@@ -1,0 +1,5 @@
+{
+    "id": null,
+    "effectiveUserId": "${apiUserId}",
+    "rootDir": "/home/<userid>"
+ }

@@ -4,47 +4,84 @@ import argparse
 import sys
 import os
 import time
+import traceback
 
 import pyfiglet
+from blessed import Terminal
 
 if __name__ != "__main__":
-    from . import formatters, parsers, handlers
+    from . import handlers
     from ..socketopts import socketOpts, schemas
-    from ..commands import decorators, args
+    from ..commands import decorators
     from ..utilities import killableThread
 
 
 __location__ = os.path.realpath(
     os.path.join(os.getcwd(), os.path.dirname(f"{__file__}")))
 server_path = os.path.join(__location__, r'..\serverRun.py')
+    
+
+class ClientSideConnection(socketOpts.ClientSocketOpts, handlers.Handlers):
+    def __init__(self, connection, debug=False):
+        super().__init__("client", debug=debug)
+        self.connection = connection
+    
+    def close(self):
+        self.connection.close()
 
 
-class CLI(socketOpts.ClientSocketOpts, decorators.DecoratorSetup, formatters.Formatters, args.Args, parsers.Parsers, handlers.Handlers):
+class CLI(handlers.Handlers):
     """
     Receive user input, either direct from bash environment or from the custom interface, then parse these commands and send them to the server to be executed. 
     """
     def __init__(self, IP: str, PORT: int):
         super().__init__()
 
+        self.term = Terminal()
         self.ip, self.port = IP, PORT
         self.connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
 
-        # sets up connection with the server
-        self.username = None
-        self.password = None
-
         # set up argparse
-        self.parser = argparse.ArgumentParser(description="Command Line Argument Parser", exit_on_error=False, usage=argparse.SUPPRESS, conflict_handler='resolve')
-        self.parser.add_argument('command')
+        self.parser = None
 
-        self.message_handlers = {
-            'FormRequest':self.form_handler,
-            'AuthRequest':self.auth_handler,
-            'ConfirmationRequest':self.confirmation_handler,
-        }
+        setup_message = schemas.ResponseData(request_content={'setup_success':True})
+        try:
+            self.username, self.url = self.connect()
+            self.connection.send(setup_message)
+        except (KeyboardInterrupt, Exception) as e:
+            error_str = traceback.format_exc()
+            print(error_str)
+            print(e)
+            setup_message.error = str(e)
+            setup_message.request_content['setup_success'] = False
+            self.connection.send(setup_message)
+            os._exit(0)
 
-        for parameters in self.argparser_args.values():
-            self.parser.add_argument(*parameters["args"], **parameters["kwargs"])
+        self.pwd = ""
+        self.current_system = ""
+
+    def parser_error(self, args):
+        print(f"Ignoring unrecognized arguments: {args}")
+    
+    def configure_parser(self, arguments):
+        parser = argparse.ArgumentParser(description="Command Line Argument Parser", exit_on_error=False, usage=argparse.SUPPRESS, add_help=False)
+        parser.add_argument('command')
+        parser.add_argument('positionals', nargs='*', default='default1')
+        parser.error = self.parser_error
+
+        for arg_name, arg in arguments.items():
+            print(arg_name)
+            print(arg)
+            if not arg['positional'] and arg['action'] == 'store':
+                parser.add_argument(arg['truncated_arg'], arg['full_arg'],
+                                    default=arg['default_value'], choices=arg['choices'],
+                                    action=arg['action'])#, type=handlers.ParserTypeLenEnforcer(name=arg_name, 
+                                                                                          #size=arg['size_limit'], 
+                                                                                          #data_type=arg['data_type'],
+                                                                                          #choices=arg['choices']))
+            elif not arg['positional']:
+                parser.add_argument(arg['truncated_arg'], arg['full_arg'], action=arg['action'])
+        return parser
 
     def initialize_server(self): 
         """
@@ -68,6 +105,7 @@ class CLI(socketOpts.ClientSocketOpts, decorators.DecoratorSetup, formatters.For
                 os._exit(0)
             try:
                 self.connection.connect((self.ip, self.port)) 
+                self.connection = ClientSideConnection(self.connection, debug=True)
                 if startup_flag:
                     startup.kill()
                 break
@@ -78,104 +116,100 @@ class CLI(socketOpts.ClientSocketOpts, decorators.DecoratorSetup, formatters.For
                     startup_flag = True # set the flag to true so the thread runs only once
                     continue
 
+    def auth(self):
+        while True:
+            server_auth_request: schemas.AuthRequest = self.connection.receive()
+            if not server_auth_request.message and not server_auth_request.request_content:
+                self.print_response(server_auth_request.error)
+                sys.exit(0)
+            elif server_auth_request.auth_request_type == "success":
+                self.print_response(server_auth_request.message)
+                return server_auth_request.message['username'], server_auth_request.message['url']
+            form_response, repeat = self.universal_message_handler(server_auth_request, self.term)
+            if not form_response:
+                break
+            client_response_request = schemas.AuthRequest(auth_request_type=server_auth_request.auth_request_type, request_content=form_response)
+            self.connection.send(client_response_request)
+        
     def connect(self):
         """
         connect to the local server
         """
         self.connection_initialization() 
         #self.connection.connect((self.ip, self.port)) # enable me for debugging. Requires manual server start
-        connection_info: schemas.StartupData = self.schema_unpack_explicit(self.connection) # receive info from the server whether it is a first time connection
+        connection_info: schemas.StartupData = self.connection.receive() # receive info from the server whether it is a first time connection
         if connection_info.initial: # if the server is receiving its first connection for the session\
-            while True:
-                try:
-                    url = str(input("\nEnter the uri for the tapis service you are connecting to: ")).strip()
-                except KeyboardInterrupt:
-                    url = " "
-                    pass
-                url_data = schemas.StartupData(url=url)
-                self.json_send_explicit(self.connection, url_data.dict())
-                auth_request: schemas.AuthRequest = self.schema_unpack_explicit(self.connection)
-                while True:
-                    try:
-                        auth_data = self.auth_handler(auth_request)
-                        break
-                    except KeyboardInterrupt:
-                        pass
-                self.json_send_explicit(self.connection, auth_data.dict())
+            username, url = self.auth()
+        else:
+            username, url = connection_info.username, connection_info.url
+        arguments: schemas.ResponseData = self.connection.receive()
+        for name, val in arguments.request_content.items():
+            print(f"{name} :: {val}\n\n\n")
+        self.parser = self.configure_parser(arguments.request_content)
 
-                verification: schemas.ResponseData | schemas.StartupData = self.schema_unpack_explicit(self.connection)
-                if verification.schema_type == 'StartupData': # verification success, program moves forward
-                    return verification.username, verification.url
-                else: # verification failed. User has 3 tries, afterwards the program will shut down
-                    print(f"[-] verification failure, attempt # {verification.response_message[1]}")
-                    if verification.response_message[1] == 3:
-                        sys.exit(0)
-                    continue
+        return username, url # return the username and url
 
-        return connection_info.username, connection_info.url # return the username and url
-    
-    def special_forms_ops(self):
-        """
-        handle special form requests sent by the server
-        """
+    def interface(self, kwargs):
+        if not kwargs['command']:
+            return
+        command_request = schemas.CommandData(request_content=kwargs)
+        self.connection.send(command_request)
         while True:
-            message = self.schema_unpack_explicit(self.connection)
-            message_type = message.schema_type
-            if message_type in self.message_handlers.keys():
-                filled_form = self.message_handlers[message_type](message)
-            else:
-                return message
-            self.json_send_explicit(self.connection, filled_form.dict())
+            command_response = self.connection.receive()
+            if isinstance(command_response, schemas.ResponseData):
+                self.url, self.username = command_response.url, command_response.active_username
+                self.pwd, self.current_system = command_response.pwd, command_response.system
+                if command_response.exit_status:
+                    print("Exit initiated")
+                    os._exit(0)
+            handled_response, repeat = self.universal_message_handler(command_response, self.term)
+            if not handled_response:
+                break
+            handled_response = schemas.FormResponse(request_content=handled_response)
+            self.connection.send(handled_response)
 
     def terminal_cli(self):
-        self.username, self.url = self.connect()
         try:
             kwargs = self.parser.parse_args()
         except:
             print("Invalid Arguments")
             os._exit(0)
         kwargs = vars(kwargs)
-        command = self.command_input_parser(kwargs, exit_=1) # operate with args, send them over
-        self.json_send_explicit(self.connection, command.dict())
-        response = self.special_forms_ops()
-        if response.schema_type == 'ResponseData':
-            self.print_response(response.response_message)
+        self.interface(kwargs)
         os._exit(0)
 
-    def environment_cli(self):
-        self.username, self.url = self.connect()
+    def cli_window(self):
         title = pyfiglet.figlet_format("-----------\nTapisCLICICLE\n-----------", font="slant") # print the title when CLI is accessed
         print(title)
         print(r"""If you find any issues, please create a new issue here: https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients/issues
                 Enter 'exit' to exit the client
                 Enter 'shutdown' to shut down the client and server
                 Enter 'Help' to show command options""")
-        
-        while True: # open the CLI if no arguments provided on startup
+        while True:
             try:
                 time.sleep(0.01)
-                kwargs = self.process_command(str(input(f"[{self.username}@{self.url}] "))) # ask for and process user input
-                try:
-                    command = self.command_input_parser(kwargs) # run operations
-                except:
-                    continue
-                if not command:
-                    continue
-                self.json_send_explicit(self.connection, command.dict())
-                response = self.special_forms_ops()
-                self.environment_cli_response_stream_handler(response)
+                kwargs: dict = vars(self.parser.parse_args(str(input(f"[{self.username}@{self.url}][{self.current_system}]{self.pwd} ")).split(" ")))
+                self.interface(kwargs)
             except KeyboardInterrupt:
-                pass # keyboard interrupts mess with the server, dont do it! it wont work anyway, hahahaha
-            except WindowsError: # if connection error with the server (there wont be any connection errors)
-                print("[-] Connection was dropped. Exiting")
+                continue
+            except (ConnectionAbortedError, ConnectionResetError):
+                print("Server shutdown, exiting")
                 os._exit(0)
-            except Exception as e: # if something else happens
+            except (TypeError, argparse.ArgumentError, argparse.ArgumentTypeError) as e:
                 print(e)
+                error_str = traceback.format_exc()
+                print(error_str)
+                print("Invalid command")
+            except Exception as e:
+                error_str = traceback.format_exc()
+                print(error_str)
+                error_message = schemas.CommandData(error=str(e))
+                self.connection.send(error_message)
 
     def main(self):
         if len(sys.argv) > 1: # checks if any command line arguments were provided. Does not open CLI
             self.terminal_cli()
-        self.environment_cli()
+        self.cli_window()
 
 
 if __name__ == "__main__":

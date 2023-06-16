@@ -46,8 +46,8 @@ class InvalidCredentialsReceived(Exception):
     """
     raise error when the provided credentials fail
     """
-    def __init__(self, function: typing.Callable, cred_type: str):
-        super().__init__(f"The {cred_type} provided for the command {function.__class__.__name__} was invalid")
+    def __init__(self, *args):
+        super().__init__(*args)
 
 
 class HelpDoesNotExist(AttributeError):
@@ -64,3 +64,11 @@ class UnauthorizedAccessError(Exception):
     """
     def __init__(self, ip):
         super().__init__(f"DANGER! UNAUTHORIZED IP {ip} TRIED TO CONNECT TO THE SERVER. SOMEONE IS TRYING TO PIGGYBACK ON THE TAPIS APPLICATION, AND ATTEMPTING TO STEAL YOUR DATA.")
+
+
+class ClientSideError(ConnectionError):
+    """
+    raise error when problem is on client side
+    """
+    def __init__(self, error_message):
+        super().__init__(f"CLIENT SIDE ERROR: {error_message}")

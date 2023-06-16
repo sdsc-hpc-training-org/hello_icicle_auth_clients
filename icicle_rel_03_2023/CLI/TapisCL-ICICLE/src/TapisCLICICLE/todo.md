@@ -12,3 +12,5 @@
 6. Standardize the library, to make it redistributable for other project
 
 7.  make schemas more intuitive, so that the schema type isnt explicitly states, maybe make ti copy the class name?
+
+8. Make it so optional parameters can be entered to tapis pods

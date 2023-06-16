@@ -27,3 +27,16 @@ class ServerLogger:
         self.logger.addHandler(file_handler)
 
         self.logger.disabled = False
+
+
+class ConnectionLogger:
+    def initialize_logger(self, name):
+        self.logger = logging.getLogger(name)
+        self.logger.setLevel(logging.INFO)
+        stream_handler = logging.StreamHandler(stream=sys.stdout)
+        stream_handler.setLevel(logging.INFO)
+        stream_format = logging.Formatter(
+            '%(name)s - %(levelname)s - %(message)s')
+        stream_handler.setFormatter(stream_format)
+        self.logger.addHandler(stream_handler)
+        self.logger.disabled = False

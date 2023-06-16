@@ -9,7 +9,7 @@ name = "TapisCL-ICICLE"
 version = "0.0.52"
 description = "Provide good performance command line user interface for Tapis services hosted on HPC clusters"
 readme = "README.md"
-authors = [{ name = "Michael Ray", email = "ahumanbeing189@gmail.com" }]
+authors = [{ name = "Michael Ray", email = "m.ray37990@gmail.com" }]
 license = { file = "LICENSE" }
 classifiers = [
     "License :: OSI Approved :: GNU General Public License (GPL)",
