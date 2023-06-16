@@ -4,7 +4,7 @@ These are standardized JSON serializable data formats to make socket operations 
 '''
 from typing import Any, Optional, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator
 
 
 class BaseSchema(BaseModel):
@@ -47,11 +47,10 @@ class ResponseData(BaseSchema):
     data from the server to the client with return data from commands, as well as errors
     """
     schema_type: str = 'ResponseData'
-    url: str
-    active_username: str
+    url: str = str()
+    active_username: str = str()
     exit_status = 0
     
-
 
 class FormRequest(BaseSchema):
     """

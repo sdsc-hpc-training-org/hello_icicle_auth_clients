@@ -109,7 +109,8 @@ class get_scheduler_profiles(baseCommand.BaseCommand):
 
 class get_scheduler_profiles_choices(argument.DynamicChoiceList):
     def __call__(self, tapis_instance):
-        return tapis_instance.systems.getSchedulerProfiles()
+        profiles_unfiltered = tapis_instance.systems.getSchedulerProfiles()
+        return [profile.name for profile in profiles_unfiltered]
     
 
 class create_system(baseCommand.BaseCommand, SystemAuth):

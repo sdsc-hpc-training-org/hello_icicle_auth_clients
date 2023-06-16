@@ -2,7 +2,7 @@ import typing
 import abc
 
 
-ALLOWED_ARG_TYPES = typing.Literal['secure', 'expression', 'input_list', 'input_dict', 'form', 'str_input']
+ALLOWED_ARG_TYPES = typing.Literal['secure', 'expression', 'input_list', 'input_dict', 'form', 'str_input', 'confirmation']
 ALLOWED_DATA_TYPES = typing.Literal['string', 'int']
 ALLOWED_ACTIONS = typing.Literal['store', 'store_true', 'store_false']
 
@@ -74,10 +74,13 @@ class Argument(AbstractArgument):
 class Form(Argument):
     def __init__(self, form_name, arguments_list):
         super().__init__(form_name, arg_type='form')
+        for argument in arguments_list:
+            if argument.arg_type == 'standard':
+                argument.arg_type = 'str_input'
         self.arguments_list = {argument.argument:argument for argument in arguments_list}
 
     def json(self):
-        return [argument.json() for argument in self.arguments_list]
+        return {argument_name:argument.json() for argument_name, argument in self.arguments_list.items()}
     
 
 class RequestHandler:

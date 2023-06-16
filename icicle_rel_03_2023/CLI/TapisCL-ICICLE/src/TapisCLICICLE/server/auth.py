@@ -14,6 +14,7 @@ import requests
 
 from socketopts import schemas
 from utilities import exceptions
+from commands.arguments import argument
 
 
 
@@ -26,7 +27,7 @@ class ServerSideAuth:
     async def password_grant(self, link: str, connection):
         start = time.time()
         username_password_request = schemas.AuthRequest(auth_request_type='password',
-                                                        request_content={"username":None, "password":None},
+                                                        request_content={"username":argument.Argument('username', size_limit=(1, 100), arg_type='str_input'), "password":argument.Argument('password', arg_type='secure')},
                                                         message={"message":"enter your TACC username and password"})
         for attempt in range(1, 4):
             await connection.send(username_password_request)
@@ -34,10 +35,13 @@ class ServerSideAuth:
             username = username_password_response.request_content['username']
             password = username_password_response.request_content['password']
             try:
-                self.t.username = username
-                self.t.password = password
+                self.t = Tapis(f"https://{link}",
+                               username=username,
+                               password=password)
                 self.t.get_tokens()
                 break
+            except exceptions.ClientSideError as e:
+                raise e
             except Exception as e:
                 if attempt > 3:
                     username_password_request.message = None
@@ -73,8 +77,9 @@ class ServerSideAuth:
 
         access_token, refresh_token = self.t.authenticator.create_token(grant_type="device_code", device_code=authentication_information.device_code, client_id=client_id)
 
-        self.t.access_token = access_token
-        self.t.refresh_token = refresh_token
+        self.t = Tapis(f"https://{link}",
+                       access_token=access_token,
+                       refresh_token=refresh_token)
         
         self.username = self.t.authenticator.get_userinfo().username
         self.url = link
@@ -93,13 +98,14 @@ class ServerSideAuth:
                                           "url":auth_link
                                             }, 
                                       request_content={
-                                          "user_code":None
+                                          "user_code":argument.Argument('user_code', arg_type='str_input')
                                           })
         await connection.send(payload)
         webbrowser.open(auth_link)
         response_code_message: schemas.AuthRequest = await connection.receive()
         
-        self.t.access_token = response_code_message.request_content['user_code'].strip()
+        self.t = Tapis(f"https://{link}",
+                       access_token=response_code_message.request_content['user_code'].strip())
 
         self.username = self.t.authenticator.get_userinfo().username
         self.url = link
@@ -110,7 +116,7 @@ class ServerSideAuth:
         return f"Successfully initialized tapis service on {self.url}"
 
     async def auth_startup(self, connection):
-        session_auth_type_request = schemas.AuthRequest(request_content={"uri":None, "auth_type":None},
+        session_auth_type_request = schemas.AuthRequest(request_content={"uri":argument.Argument('uri', arg_type='str_input'), "auth_type":argument.Argument('auth_type', choices=['password', 'device_code', 'federated'], arg_type='str_input')},
                                                         auth_request_type="requested",
                                                         message={"message":"Enter the URI of the Tapis tenant you wish to connect to, then select your auth type from the options below",
                                                                  "options":['password', 'device_code', 'federated']})
@@ -131,7 +137,7 @@ class ServerSideAuth:
                 session_auth_type_request.error = "Invalid tenant URI received, try again"
 
         if auth_type != "password":
-            session_password_request = schemas.AuthRequest(auth_request_type=auth_type, request_content={"password":None},
+            session_password_request = schemas.AuthRequest(auth_request_type=auth_type, request_content={"password":argument.Argument('password', arg_type='secure', size_limit=(6, 50))},
                                                             message={"message":"Please create a session password. The password must be at least 6 characters long"})
             while True:
                 await connection.send(session_password_request)
@@ -151,8 +157,10 @@ class ServerSideAuth:
                 else:
                     await self.password_grant(link, connection)
                 break
+            except exceptions.ClientSideError as e:
+                raise e
             except exceptions.InvalidCredentialsReceived:
-                raise exceptions.InvalidCredentialsReceived
+                raise exceptions.InvalidCredentialsReceived()
             except Exception as e:
                 continue
         success_message = schemas.AuthRequest(auth_request_type="success", message={

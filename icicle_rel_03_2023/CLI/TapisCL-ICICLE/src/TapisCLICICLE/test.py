@@ -1,8 +1,11 @@
-from commands import commandMap
+class TaskCallback:
+    def __init__(self, logger, task):
+        self.logger, self.task = logger, task
+        print("DOING THE INIT")
+
+    def __call__(self):
+        print("CALLED")
 
 
-if __name__ == "__main__":
-    pods = commandMap.Pods()
-    args = commandMap.ArgsGenerator().get_all_args(pods.command_map)
-    for arg_name, arg in args.items():
-        print(f"{arg_name}: {arg.truncated_arg}/{arg.full_arg}")
+x = TaskCallback(1,2)
+x()

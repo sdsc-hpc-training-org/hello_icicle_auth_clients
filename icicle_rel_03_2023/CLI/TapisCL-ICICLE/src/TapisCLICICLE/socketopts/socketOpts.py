@@ -95,6 +95,10 @@ class ServerSocketOpts(BaseSocketOpts):
                 continue
 
     async def send(self, data: typing.Type[schemas.BaseSchema]):
+        if data.request_content:
+            for key, value in data.request_content.items():
+                if not isinstance(value, (str, list, tuple, bool, int, dict, set)) and value != None:
+                    data.request_content[key] = value.json()
         self.debug('SENDING', data)
         data.pwd = self.pwd
         data.system = self.system

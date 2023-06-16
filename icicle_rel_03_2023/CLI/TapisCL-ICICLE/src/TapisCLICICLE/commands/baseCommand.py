@@ -91,12 +91,13 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
         self.password = None
         self.server = None
         self.arg_names = [argument.argument for argument in self.required_arguments] + [argument.argument for argument in self.optional_arguments]
+        self.arguments = dict()
         if isinstance(self.required_arguments, list):
             self.required_arguments = {argument.argument:argument for argument in self.required_arguments}
+            self.arguments.update(**self.required_arguments)
         if isinstance(self.optional_arguments, list):  
             self.optional_arguments = {argument.argument:argument for argument in self.optional_arguments}
-        if self.required_arguments and self.optional_arguments:
-            self.arguments = {**self.required_arguments, **self.optional_arguments}
+            self.arguments.update(**self.optional_arguments)
         self.positional_arguments = [arg_name for arg_name, arg in self.required_arguments.items() if arg.positional]
         self.help: dict[dict[str, list[dict[str, str]]]] = dict()
 
@@ -109,37 +110,51 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
             if issubclass(arg.choices.__class__, DynamicChoiceList):
                 arg.choices = arg.choices(self.t)
 
-    def __argument_list_help_compiler(self, arg_dict: dict):
-        return [{"help":f"{argument.truncated_arg}/{argument.full_arg} <{argument.argument}>",
-                "description":argument.description} 
-                if not argument.positional 
-                else {"help":f"<{argument.argument}>",
-                "description":argument.description}
-                for argument in arg_dict.values()]
-
     def update_args_with_truncated(self, aggregate_args_dict):
         try:
             for key, arg in self.required_arguments.items():
                 self.required_arguments[key] = aggregate_args_dict[key]
             for key, arg in self.optional_arguments.items():
-                self.required_arguments[key] = aggregate_args_dict[key]
+                self.optional_arguments[key] = aggregate_args_dict[key]
             self.help['required'] = self.__argument_list_help_compiler(self.required_arguments)
             self.help['optional'] = self.__argument_list_help_compiler(self.optional_arguments)
         except Exception as e:
             print(self.__class__.__name__)
             raise e
+        
+    def __argument_list_help_compiler(self, arg_dict: dict):
+        argument_help_dict = dict()
+        for name, argument in arg_dict.items():
+            if argument.positional:
+                arg_help = {name:f"<{argument.argument}>",
+                "description":argument.description}
+            elif argument.action != 'store':
+                arg_help = {name:f"{argument.truncated_arg}/{argument.full_arg}",
+                "description":argument.description}
+            else:
+                arg_help = {name:f"{argument.truncated_arg}/{argument.full_arg} <{argument.argument}>",
+                "description":argument.description}
+            argument_help_dict[name] = arg_help
+        return argument_help_dict
+    
+    def __non_verbose_help_string_creator(self, help_dict):
+        help_string = ""
+        for arg_name, arg_help in help_dict.items():
+            help_string += f"{arg_help[arg_name]}\n"
+        return help_string
 
     def __get_help(self, verbose):
         help_dict = {"Command":self.__class__.__name__,
                     "Description":self.help_string_retriever()}
         if not verbose:
             help_dict.update(**{
-                "Syntax":f"{self.__class__.__name__} {[arg_help['help'] for arg_help in self.help['required']]}",
-                "Optional Arguments":[arg_help['help'] for arg_help in self.help['optional']]
+                "Syntax":f"{self.__class__.__name__} {self.__non_verbose_help_string_creator(self.help['required'])}",
+                "Optional Arguments":self.__non_verbose_help_string_creator(self.help['optional'])
             })
         else:
             help_dict.update(**{
-                "Syntax":f"{self.__class__.__name__} {self.help['required']}",
+                "Syntax":f"{self.__class__.__name__}",
+                "Required Arguments":self.help['required'],
                 "Optional Arguments":self.help['optional']
             })
         return help_dict
@@ -169,10 +184,11 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
     async def __call__(self, **kwargs):
         verbose = kwargs.pop('verbose')
         help = kwargs.pop('help')
+        command = kwargs.pop('command')
         if help:
             return self.__get_help(verbose=verbose)
         
-        elif self.supports_config_file and 'file' in list(kwargs['keys']):
+        elif self.supports_config_file and 'file' in list(kwargs.keys()):
             with open(kwargs['file'], 'r') as f:
                 kwargs = json.loads(f.read)
 

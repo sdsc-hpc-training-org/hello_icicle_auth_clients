@@ -27,10 +27,20 @@ class ServerConnection(socketOpts.ServerSocketOpts):
         self.writer = writer
 
     async def close(self):
-        await self.reader.feed_eof()
         self.writer.close()
         await self.writer.wait_closed()
         
+
+class TaskCallback:
+    def __init__(self, logger, task: asyncio.Task):
+        self.logger, self.task = logger, task
+        print("DOING THE INIT")
+
+    def __call__(self, result):
+        print(result)
+        result = self.task.result()
+        self.logger.info(result)
+
 
 class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.DecoratorSetup, auth.ServerSideAuth):
     """
@@ -58,6 +68,8 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
         self.sock.bind((self.ip, self.port))
         self.sock.listen(1)
         self.end_time = time.time() + self.SESSION_TIME # start the countdown on the timeout
+
+        self.task_list = []
 
         self.server = None
         self.num_connections = 0
@@ -90,8 +102,11 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
         try:
             await self.handshake(connection)
         except exceptions.InvalidCredentialsReceived as e:
-            print(e)
             self.logger.warning("invalid credentials entered too many times. Cancelling request")
+            await connection.close()
+            return
+        except exceptions.ClientSideError as e:
+            self.logger.warning(f"Encountered client side error during startup handshake. {e}")
             await connection.close()
             return
 
@@ -104,7 +119,9 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
             return
 
         loop = asyncio.get_event_loop()
-        await loop.create_task(self.receive_and_execute(connection))
+        task: asyncio.Task = loop.create_task(self.receive_and_execute(connection))
+        callback = TaskCallback(self.logger, task)
+        task.add_done_callback(callback)
 
     def timeout_handler(self):  
         """

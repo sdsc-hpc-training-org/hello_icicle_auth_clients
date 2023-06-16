@@ -7,6 +7,7 @@ import time
 import traceback
 
 import pyfiglet
+from blessed import Terminal
 
 if __name__ != "__main__":
     from . import handlers
@@ -36,6 +37,7 @@ class CLI(handlers.Handlers):
     def __init__(self, IP: str, PORT: int):
         super().__init__()
 
+        self.term = Terminal()
         self.ip, self.port = IP, PORT
         self.connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
 
@@ -46,8 +48,11 @@ class CLI(handlers.Handlers):
         try:
             self.username, self.url = self.connect()
             self.connection.send(setup_message)
-        except Exception as e:
+        except (KeyboardInterrupt, Exception) as e:
+            error_str = traceback.format_exc()
+            print(error_str)
             print(e)
+            setup_message.error = str(e)
             setup_message.request_content['setup_success'] = False
             self.connection.send(setup_message)
             os._exit(0)
@@ -59,19 +64,23 @@ class CLI(handlers.Handlers):
         print(f"Ignoring unrecognized arguments: {args}")
     
     def configure_parser(self, arguments):
-        parser = argparse.ArgumentParser(description="Command Line Argument Parser", exit_on_error=False, usage=argparse.SUPPRESS, conflict_handler='resolve')
+        parser = argparse.ArgumentParser(description="Command Line Argument Parser", exit_on_error=False, usage=argparse.SUPPRESS, add_help=False)
         parser.add_argument('command')
         parser.add_argument('positionals', nargs='*', default='default1')
         parser.error = self.parser_error
 
         for arg_name, arg in arguments.items():
-            if not arg['positional']:
+            print(arg_name)
+            print(arg)
+            if not arg['positional'] and arg['action'] == 'store':
                 parser.add_argument(arg['truncated_arg'], arg['full_arg'],
                                     default=arg['default_value'], choices=arg['choices'],
-                                    action=arg['action'], type=handlers.ParserTypeLenEnforcer(name=arg_name, 
-                                                                                          size=arg['size_limit'], 
-                                                                                          data_type=arg['data_type'],
-                                                                                          choices=arg['choices']))
+                                    action=arg['action'])#, type=handlers.ParserTypeLenEnforcer(name=arg_name, 
+                                                                                          #size=arg['size_limit'], 
+                                                                                          #data_type=arg['data_type'],
+                                                                                          #choices=arg['choices']))
+            elif not arg['positional']:
+                parser.add_argument(arg['truncated_arg'], arg['full_arg'], action=arg['action'])
         return parser
 
     def initialize_server(self): 
@@ -116,7 +125,7 @@ class CLI(handlers.Handlers):
             elif server_auth_request.auth_request_type == "success":
                 self.print_response(server_auth_request.message)
                 return server_auth_request.message['username'], server_auth_request.message['url']
-            form_response = self.universal_message_handler(server_auth_request)
+            form_response, repeat = self.universal_message_handler(server_auth_request, self.term)
             if not form_response:
                 break
             client_response_request = schemas.AuthRequest(auth_request_type=server_auth_request.auth_request_type, request_content=form_response)
@@ -134,6 +143,8 @@ class CLI(handlers.Handlers):
         else:
             username, url = connection_info.username, connection_info.url
         arguments: schemas.ResponseData = self.connection.receive()
+        for name, val in arguments.request_content.items():
+            print(f"{name} :: {val}\n\n\n")
         self.parser = self.configure_parser(arguments.request_content)
 
         return username, url # return the username and url
@@ -151,7 +162,7 @@ class CLI(handlers.Handlers):
                 if command_response.exit_status:
                     print("Exit initiated")
                     os._exit(0)
-            handled_response, repeat = self.universal_message_handler(command_response)
+            handled_response, repeat = self.universal_message_handler(command_response, self.term)
             if not handled_response:
                 break
             handled_response = schemas.FormResponse(request_content=handled_response)
@@ -184,7 +195,10 @@ class CLI(handlers.Handlers):
             except (ConnectionAbortedError, ConnectionResetError):
                 print("Server shutdown, exiting")
                 os._exit(0)
-            except (TypeError, argparse.ArgumentError, argparse.ArgumentTypeError):
+            except (TypeError, argparse.ArgumentError, argparse.ArgumentTypeError) as e:
+                print(e)
+                error_str = traceback.format_exc()
+                print(error_str)
                 print("Invalid command")
             except Exception as e:
                 error_str = traceback.format_exc()

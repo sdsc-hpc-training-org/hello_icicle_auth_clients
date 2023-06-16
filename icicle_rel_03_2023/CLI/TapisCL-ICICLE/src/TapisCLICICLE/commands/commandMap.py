@@ -128,8 +128,8 @@ class ArgsGenerator:
         if argument[attempt-1] in ('_', '-'):
             attempt += 1
         truncated_argument = argument[:attempt]
-        if f"-{truncated_argument}" in truncated_arguments_list:
-            return self.generate_truncated_argument(argument, truncated_arguments_list, attempt=attempt+1)
+        if truncated_argument in truncated_arguments_list:
+            return self.__generate_truncated_argument(argument, truncated_arguments_list, attempt=attempt+1)
         return truncated_argument
     
 
@@ -158,27 +158,19 @@ class AggregateCommandMap(baseCommand.CommandContainer, ArgsGenerator):
         for command_name, command in self.aggregate_command_map.items():
             command.set_t_and_creds(t, username, password, self)
 
-    def __filter_kwargs(self, arg_name, arg, command):
-        if arg_name != 'file' and arg_name not in ['help', 'verbose'] + command.arg_names:
-            return False
-        return True
-
     async def run_command(self, connection, command_data: dict):
         """
         process and run command based on received kwargs
         """
         command_name = command_data['command']
-        command = self.aggregate_command_map[command_name]
-
-        if command.supports_config_file and 'file' in list(command_data.keys()):
-            command_data = {'file':command_data['file']}
-
-        map(lambda name, attr: command_data.pop(name) if not self.__filter_kwargs(name, attr, command) else False, command_data.items())
-
-        command_data['connection'] = connection
-        command_data['server'] = self
 
         if command_name in list(self.aggregate_command_map.keys()):
+            command = self.aggregate_command_map[command_name]
+            if command.supports_config_file and 'file' in list(command_data.keys()) and command_data['file']:
+                command_data = {'file':command_data['file']}
+
+            command_data['connection'] = connection
+            command_data['server'] = self
             return await command(**command_data)
         elif command_name in list(self.groups.keys()):
             return self.groups[command_name]()

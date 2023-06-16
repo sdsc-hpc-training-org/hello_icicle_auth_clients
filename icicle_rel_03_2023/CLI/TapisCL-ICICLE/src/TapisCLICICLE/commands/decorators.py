@@ -11,9 +11,11 @@ from functools import update_wrapper, partial
 try:
     from socketopts import schemas
     from utilities import exceptions, killableThread
+    from commands.arguments import argument
 except:
     from ..socketopts import schemas
     from ..utilities import exceptions, killableThread
+    from ..commands.arguments import argument
 
 
 class BaseRequirementDecorator(abc.ABC):
@@ -34,8 +36,11 @@ class Auth(BaseRequirementDecorator):
         connection = kwargs['connection']
         requires_username = True
         if connection:
-            auth_request = schemas.FormRequest(request_content={"username":None, "password":None},
-                                                message={"message":"Password is required to continue. If you logged in using TACC password login, use that. Otherwise use the session password\nYour username was returned during initial login"})
+            auth_request = schemas.FormRequest(request_content=argument.Form('auth', [
+                        argument.Argument('username'),
+                        argument.Argument('password', arg_type='secure')
+                    ]).json(),
+                    message={"message":"Password is required to continue. If you logged in using TACC password login, use that. Otherwise use the session password\nYour username was returned during initial login"})
             await connection.send(auth_request)
             auth_data = await connection.receive()
             if auth_data.request_content['password'] != self.password:
@@ -55,7 +60,7 @@ class NeedsConfirmation(BaseRequirementDecorator):
         if connection:
             connection = connection
             confirmation_request = schemas.FormRequest(message={"message":f"YOU REQUESTED TO {command.__class__.__name__.upper()}. THIS MIGHT CAUSE DATA LOSS! Please confirm (y/n)"},
-                                                       request_content={"confirmation":None})
+                                                       request_content={"confirmation":argument.Argument('confirm', arg_type='confirmation')})
             await connection.send(confirmation_request)
             confirmation_reply: schemas.FormResponse = await connection.receive()
             confirmed = confirmation_reply.request_content['confirmation']

@@ -41,7 +41,7 @@ class create_pod(baseCommand.BaseCommand):
     optional_arguments=[
         Argument('description', arg_type='str_input', size_limit=(0, 2048)),
         Argument('command', arg_type='input_list'),
-        Argument('evnironment_variables', arg_type='input_dict'),
+        Argument('environment_variables', arg_type='input_dict'),
         Argument('data_request', arg_type='input_list'),
         Argument('roles_required', arg_type='input_list'),
         Argument('time_to_stop_default', data_type='int'),
