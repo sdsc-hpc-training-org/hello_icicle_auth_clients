@@ -78,8 +78,8 @@ class ServerSideAuth:
                                                "user_code": authentication_information.user_code},
                                       request_content={'entered_confirm':argument.Argument('entered_confirm', arg_type='confirmation')})
         await connection.send(payload)
-        confirmation = await connection.receive()
         webbrowser.open(authentication_information.verification_uri)
+        confirmation = await connection.receive()
         start_time = time.time()
         while True:
             try:
