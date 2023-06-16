@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "TapisCL-ICICLE"
-version = "0.0.52"
+version = "0.0.60"
 description = "Provide good performance command line user interface for Tapis services hosted on HPC clusters"
 readme = "README.md"
 authors = [{ name = "Michael Ray", email = "m.ray37990@gmail.com" }]
@@ -23,7 +23,11 @@ dependencies = [
     "tapipy",
     "pyperclip",
     "py2neo",
-    "psycopg"
+    "psycopg",
+    "blessed",
+    "prompt_toolkit",
+    "TapisFederatedAuthClientAPI",
+    "requests"
 ]
 requires-python = ">=3.9"
 
@@ -34,4 +38,4 @@ dev = []
 Homepage = "https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients/tree/main/icicle_rel_04_2023/CLI/TapisCL-ICICLE"
 
 [project.entry-points."TapisCLICICLE.__main__"]
-tomatoes = "TapisCLICICLE:__main__"
+tomatoes = "src:__main__"

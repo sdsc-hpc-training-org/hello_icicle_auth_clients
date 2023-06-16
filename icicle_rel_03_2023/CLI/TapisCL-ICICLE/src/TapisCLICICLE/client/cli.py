@@ -105,7 +105,7 @@ class CLI(handlers.Handlers):
                 os._exit(0)
             try:
                 self.connection.connect((self.ip, self.port)) 
-                self.connection = ClientSideConnection(self.connection, debug=True)
+                self.connection = ClientSideConnection(self.connection)
                 if startup_flag:
                     startup.kill()
                 break
