@@ -16,6 +16,8 @@
 
 ## ICICONSOLE
 ### 0.0.9
+#### 6/15/23
+##### Changes
 1. improved user interface for select queries. Now, the user can select a query from a list of available queries (help command), and the query will be executed automatically. This works toward an automated process for querying Knowledge Graphs.
 2. for Knowledge Graph queries that return entire node(s), a separate view will be opened to display the node in a more readable format. In this view, scrolling is enabled to see the complete data in the confined space of the terminal.
 3. minor bug fixes
