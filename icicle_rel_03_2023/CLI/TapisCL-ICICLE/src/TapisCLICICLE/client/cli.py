@@ -70,8 +70,6 @@ class CLI(handlers.Handlers):
         parser.error = self.parser_error
 
         for arg_name, arg in arguments.items():
-            print(arg_name)
-            print(arg)
             if not arg['positional'] and arg['action'] == 'store':
                 parser.add_argument(arg['truncated_arg'], arg['full_arg'],
                                     default=arg['default_value'], choices=arg['choices'],
@@ -143,8 +141,6 @@ class CLI(handlers.Handlers):
         else:
             username, url = connection_info.username, connection_info.url
         arguments: schemas.ResponseData = self.connection.receive()
-        for name, val in arguments.request_content.items():
-            print(f"{name} :: {val}\n\n\n")
         self.parser = self.configure_parser(arguments.request_content)
 
         return username, url # return the username and url

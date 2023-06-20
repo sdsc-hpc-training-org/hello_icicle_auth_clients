@@ -132,7 +132,7 @@ class ServerSideAuth:
         session_auth_type_request = schemas.AuthRequest(request_content={"uri":argument.Argument('uri', arg_type='str_input'), "auth_type":argument.Argument('auth_type', choices=['password', 'device_code', 'federated'], arg_type='str_input')},
                                                         auth_request_type="requested",
                                                         message={"message":"Enter the URI of the Tapis tenant you wish to connect to, then select your auth type from the options below",
-                                                                 "options":['password', 'device_code', 'federated']})
+                                                                 "grant options":['password', 'device_code', 'federated']})
         while True:
             try:
                 await connection.send(session_auth_type_request)

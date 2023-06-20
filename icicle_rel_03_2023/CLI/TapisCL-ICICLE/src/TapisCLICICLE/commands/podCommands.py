@@ -70,11 +70,11 @@ class create_pod(baseCommand.BaseCommand):
         ))
     ]
     async def run(self, *args, **kwargs) -> str:
-        template_name = kwargs['template']
+        template_name = kwargs['pod_template']
         template_formats = (f"template/{template_name}", f"{self.username}/{template_name}", template_name)
         for template_format in template_formats:
             try:
-                kwargs['template'] = template_format
+                kwargs['pod_template'] = template_format
                 pod_information = self.t.pods.create_pod(**kwargs)
                 break
             except TapisErrors.BadRequestError as e:

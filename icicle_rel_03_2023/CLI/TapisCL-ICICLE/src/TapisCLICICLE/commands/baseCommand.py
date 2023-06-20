@@ -176,7 +176,7 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
                 require_further_input[name] = arg.json()
         return require_further_input
     
-    def check_for_positionals(self, kwargs):
+    def check_for_positionals_and_extraneous(self, kwargs):
         for arg_name, value in zip(self.positional_arguments, kwargs['positionals']):
             kwargs[arg_name] = value
         return kwargs
@@ -185,14 +185,18 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
         verbose = kwargs.pop('verbose')
         help = kwargs.pop('help')
         command = kwargs.pop('command')
+        file = kwargs.pop('file')
+
         if help:
             return self.__get_help(verbose=verbose)
         
-        elif self.supports_config_file and 'file' in list(kwargs.keys()):
-            with open(kwargs['file'], 'r') as f:
+        elif self.supports_config_file and file:
+            with open(file, 'r') as f:
                 kwargs = json.loads(f.read)
 
-        kwargs = self.check_for_positionals(kwargs)
+        kwargs = self.check_for_positionals_and_extraneous(kwargs)
+
+        print(kwargs)
 
         require_further_input = self.check_commands_for_special_requests(kwargs)
         if require_further_input:
@@ -202,6 +206,7 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
             kwargs.update(**response.request_content)
 
         kwargs = self.run_command_opts(**kwargs)
+        print(kwargs)
 
         if self.decorator:
             return_value = await self.decorator(self, **kwargs)
