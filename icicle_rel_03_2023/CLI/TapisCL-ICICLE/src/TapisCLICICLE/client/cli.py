@@ -64,21 +64,15 @@ class CLI(handlers.Handlers):
         print(f"Ignoring unrecognized arguments: {args}")
     
     def configure_parser(self, arguments):
-        parser = argparse.ArgumentParser(description="Command Line Argument Parser", exit_on_error=False, usage=argparse.SUPPRESS, add_help=False)
-        parser.add_argument('command')
+        parser = argparse.ArgumentParser(description="Command Line Argument Parser", exit_on_error=False, usage=argparse.SUPPRESS, add_help=False, conflict_handler='resolve')
+        parser.add_argument('command_selection')
         parser.add_argument('positionals', nargs='*', default='default1')
         parser.error = self.parser_error
 
         for arg_name, arg in arguments.items():
-            if not arg['positional'] and arg['action'] == 'store':
-                parser.add_argument(arg['truncated_arg'], arg['full_arg'],
-                                    default=arg['default_value'], choices=arg['choices'],
-                                    action=arg['action'])#, type=handlers.ParserTypeLenEnforcer(name=arg_name, 
-                                                                                          #size=arg['size_limit'], 
-                                                                                          #data_type=arg['data_type'],
-                                                                                          #choices=arg['choices']))
-            elif not arg['positional']:
-                parser.add_argument(arg['truncated_arg'], arg['full_arg'], action=arg['action'])
+            print(arg['truncated_arg'])
+            parser.add_argument(f"-{arg['truncated_arg']}", arg['full_arg'],
+                                action=arg['action'])
         return parser
 
     def initialize_server(self): 
@@ -146,7 +140,7 @@ class CLI(handlers.Handlers):
         return username, url # return the username and url
 
     def interface(self, kwargs):
-        if not kwargs['command']:
+        if not kwargs['command_selection']:
             return
         command_request = schemas.CommandData(request_content=kwargs)
         self.connection.send(command_request)

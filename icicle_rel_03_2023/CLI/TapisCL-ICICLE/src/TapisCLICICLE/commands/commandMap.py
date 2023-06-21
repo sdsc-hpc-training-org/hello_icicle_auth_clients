@@ -116,20 +116,19 @@ class Query(baseCommand.BaseCommandMap):
 
 
 class ArgsGenerator:
-    def process_all_args(self, arg_dict: dict) -> dict:
-        truncation_list = list()
+    def generate_truncated_arguments(self, arg_dict: dict) -> dict:
+        truncation_dict = dict()
         for argument_name in arg_dict.keys():
-            truncated_argument = self.__generate_truncated_argument(argument_name, truncation_list)
-            truncation_list.append(truncated_argument)
-            arg_dict[argument_name].truncated_arg, arg_dict[argument_name].full_arg = f"-{truncated_argument}", f"--{argument_name}"
-        return arg_dict
+            truncated_argument = self.__generate_truncated_argument(argument_name, truncation_dict)
+            truncation_dict[argument_name] = truncated_argument
+        return truncation_dict
             
-    def __generate_truncated_argument(self, argument, truncated_arguments_list, attempt=1):
+    def __generate_truncated_argument(self, argument, truncated_arguments_dict, attempt=1):
         if argument[attempt-1] in ('_', '-'):
             attempt += 1
         truncated_argument = argument[:attempt]
-        if truncated_argument in truncated_arguments_list:
-            return self.__generate_truncated_argument(argument, truncated_arguments_list, attempt=attempt+1)
+        if truncated_argument in list(truncated_arguments_dict.values()):
+            return self.__generate_truncated_argument(argument, truncated_arguments_dict, attempt=attempt+1)
         return truncated_argument
     
 
@@ -143,9 +142,11 @@ class AggregateCommandMap(baseCommand.CommandContainer, ArgsGenerator):
         'Query': Query(),
     }
     def __init__(self):
-        self.process_all_args(self.arguments)
+        truncated_arguments = self.generate_truncated_arguments(self.arguments)
         for command in self.aggregate_command_map.values():
-            command.update_args_with_truncated(self.arguments)
+            command.update_args_with_truncated(truncated_arguments)
+        for name, argument in self.arguments.items():
+            argument.truncated_arg = truncated_arguments[name]
         self.help = self.__general_help()
 
     def __general_help(self):
@@ -162,7 +163,7 @@ class AggregateCommandMap(baseCommand.CommandContainer, ArgsGenerator):
         """
         process and run command based on received kwargs
         """
-        command_name = command_data['command']
+        command_name = command_data['command_selection']
 
         if command_name in list(self.aggregate_command_map.keys()):
             command = self.aggregate_command_map[command_name]

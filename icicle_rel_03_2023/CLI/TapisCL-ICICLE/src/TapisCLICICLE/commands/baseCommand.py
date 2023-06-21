@@ -78,6 +78,25 @@ class CommandMetaClass(abc.ABCMeta):
             raise TypeError(f"The command opt attribute of the command {name} must be a list!")
 
 
+class HelpMenu:
+    def __init__(self, required_arguments: dict[str, Argument], optional_arguments: dict[str, Argument]):
+        self.required_arguments = required_arguments
+        self.optional_arguments = optional_arguments
+        self.arguments = {**required_arguments, **optional_arguments}
+        self.help = self.create_help_menu()
+
+    def create_help_menu(self):
+        help_dict = {'required':dict(), 'optional':dict()}
+        for arg_name, argument in self.required_arguments.items():
+            help_dict['required'][arg_name] = argument.help_message()
+        for arg_name, argument in self.optional_arguments.items():
+            help_dict['optional'][arg_name] = argument.help_message()
+        return help_dict
+    
+    def dict(self):
+        return self.arguments
+
+
 class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
     decorator = None
     return_formatter = None
@@ -90,7 +109,6 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
         self.username = None
         self.password = None
         self.server = None
-        self.arg_names = [argument.argument for argument in self.required_arguments] + [argument.argument for argument in self.optional_arguments]
         self.arguments = dict()
         if isinstance(self.required_arguments, list):
             self.required_arguments = {argument.argument:argument for argument in self.required_arguments}
@@ -99,7 +117,63 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
             self.optional_arguments = {argument.argument:argument for argument in self.optional_arguments}
             self.arguments.update(**self.optional_arguments)
         self.positional_arguments = [arg_name for arg_name, arg in self.required_arguments.items() if arg.positional]
+        self.form_arguments = [arg_name for arg_name, arg in self.arguments.items() if arg.arg_type != 'standard']
         self.help: dict[dict[str, list[dict[str, str]]]] = dict()
+
+        self.command_execution_sequence = [self.verify_argument_rules_followed]
+        if self.supports_config_file:
+            self.command_execution_sequence.append(self.handle_config_file)
+        if self.form_arguments:
+            self.command_execution_sequence.append(self.handle_form_input)
+        if self.positional_arguments:
+            self.command_execution_sequence.append(self.check_for_positionals)
+        if self.command_opt:
+            self.command_execution_sequence.append(self.handle_arg_opts)
+        self.command_execution_sequence.append(self.filter_kwargs)
+
+    async def verify_argument_rules_followed(self, kwargs):
+        for name, value in kwargs.items():
+            if name in self.optional_arguments and value and name not in self.form_arguments:
+                kwargs[name] = self.optional_arguments[name].verify_standard_value(value)
+            elif name in self.required_arguments:
+                kwargs[name] = self.required_arguments[name].verify_standard_value(value)
+        return kwargs
+
+    async def filter_kwargs(self, kwargs):
+        print(f"BEFORE FILTER {kwargs}")
+        filtered_kwargs = dict()
+        for arg, value in kwargs.items():
+            if arg in self.arguments and value != None:
+                if (self.arguments[arg].arg_type in typing.get_args(ALLOWED_ARG_TYPES) and kwargs[arg]) or self.arguments[arg].arg_type == 'standard':
+                    filtered_kwargs[arg] = value
+        print(f"AFTER FILTER {filtered_kwargs}")
+        return filtered_kwargs
+
+    async def handle_config_file(self, kwargs):
+        if kwargs['file']:
+            with open(kwargs['file'], 'r') as f:
+                kwargs = json.loads(f.read)
+        return kwargs
+    
+    async def handle_form_input(self, kwargs):
+        for arg_name in self.form_arguments:
+            if kwargs[arg_name] or arg_name in self.required_arguments:
+                request = schemas.FormRequest(request_content={arg_name:self.arguments[arg_name] for arg_name in self.form_arguments if kwargs[arg_name] or arg_name in self.required_arguments})
+                await kwargs['connection'].send(request)
+                response: schemas.FormResponse = await kwargs['connection'].receive()
+                kwargs.update(**response.request_content)
+        print(kwargs)
+        return kwargs
+    
+    async def handle_arg_opts(self, kwargs):
+        for opt in self.command_opt:
+            kwargs = opt(kwargs)
+        return kwargs
+    
+    async def check_for_positionals(self, kwargs):
+        for arg_name, value in zip(self.positional_arguments, kwargs['positionals']):
+            kwargs[arg_name] = value
+        return kwargs
 
     def set_t_and_creds(self, t, username, password, server):
         self.t = t
@@ -110,106 +184,57 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
             if issubclass(arg.choices.__class__, DynamicChoiceList):
                 arg.choices = arg.choices(self.t)
 
-    def update_args_with_truncated(self, aggregate_args_dict):
+    def update_args_with_truncated(self, truncated_args_dict):
         try:
-            for key, arg in self.required_arguments.items():
-                self.required_arguments[key] = aggregate_args_dict[key]
-            for key, arg in self.optional_arguments.items():
-                self.optional_arguments[key] = aggregate_args_dict[key]
-            self.help['required'] = self.__argument_list_help_compiler(self.required_arguments)
-            self.help['optional'] = self.__argument_list_help_compiler(self.optional_arguments)
+            for key in self.required_arguments:
+                self.required_arguments[key].truncated_arg = f"-{truncated_args_dict[key]}"
+            for key in self.optional_arguments:
+                self.optional_arguments[key].truncated_arg = f"-{truncated_args_dict[key]}"
+            self.help['required'] = self.__argument_help_compiler(self.required_arguments)
+            self.help['optional'] = self.__argument_help_compiler(self.optional_arguments)
         except Exception as e:
             print(self.__class__.__name__)
             raise e
         
-    def __argument_list_help_compiler(self, arg_dict: dict):
-        argument_help_dict = dict()
+    def __argument_help_compiler(self, arg_dict: dict[str, Argument]):
+        verbose_dict = dict()
+        standard_str = str()
         for name, argument in arg_dict.items():
-            if argument.positional:
-                arg_help = {name:f"<{argument.argument}>",
-                "description":argument.description}
-            elif argument.action != 'store':
-                arg_help = {name:f"{argument.truncated_arg}/{argument.full_arg}",
-                "description":argument.description}
-            else:
-                arg_help = {name:f"{argument.truncated_arg}/{argument.full_arg} <{argument.argument}>",
-                "description":argument.description}
-            argument_help_dict[name] = arg_help
-        return argument_help_dict
-    
-    def __non_verbose_help_string_creator(self, help_dict):
-        help_string = ""
-        for arg_name, arg_help in help_dict.items():
-            help_string += f"{arg_help[arg_name]}\n"
-        return help_string
+            if not (name in self.required_arguments and name in self.form_arguments) and argument.arg_type != 'silent':
+                verbose_dict[name] = argument.help_message()
+                standard_str += argument.str()
+        return {'verbose':verbose_dict, 'standard':standard_str}
 
     def __get_help(self, verbose):
         help_dict = {"Command":self.__class__.__name__,
                     "Description":self.help_string_retriever()}
         if not verbose:
             help_dict.update(**{
-                "Syntax":f"{self.__class__.__name__} {self.__non_verbose_help_string_creator(self.help['required'])}",
-                "Optional Arguments":self.__non_verbose_help_string_creator(self.help['optional'])
-            })
+                "Syntax":f"{self.__class__.__name__} {self.help['required']['standard']}\n(Optional Arguments) {self.help['optional']['standard']}"})
         else:
             help_dict.update(**{
                 "Syntax":f"{self.__class__.__name__}",
-                "Required Arguments":self.help['required'],
-                "Optional Arguments":self.help['optional']
-            })
+                "Required Arguments":self.help['required']['verbose'],
+                "Optional Arguments":self.help['optional']['verbose']})
         return help_dict
-
+    
     @abstractmethod
     async def run(self, *args, **kwargs):
         pass
 
-    def run_command_opts(self, **kwargs):
-        if self.command_opt:
-            for opt in self.command_opt:
-                kwargs = opt(kwargs)
-        return kwargs
-    
-    def check_commands_for_special_requests(self, kwargs):
-        require_further_input = dict()
-        for name, arg in kwargs.items():
-            if arg and name in list(self.arguments.keys()) and self.arguments[name].arg_type in typing.get_args(ALLOWED_ARG_TYPES):
-                require_further_input[name] = arg.json()
-        return require_further_input
-    
-    def check_for_positionals_and_extraneous(self, kwargs):
-        for arg_name, value in zip(self.positional_arguments, kwargs['positionals']):
-            kwargs[arg_name] = value
-        return kwargs
-
     async def __call__(self, **kwargs):
+        command = kwargs.pop('command_selection')
+
+        if self.decorator:
+            return_value = await self.decorator(input_command=self, **kwargs)
+        
         verbose = kwargs.pop('verbose')
         help = kwargs.pop('help')
-        command = kwargs.pop('command')
-        file = kwargs.pop('file')
 
         if help:
             return self.__get_help(verbose=verbose)
-        
-        elif self.supports_config_file and file:
-            with open(file, 'r') as f:
-                kwargs = json.loads(f.read)
-
-        kwargs = self.check_for_positionals_and_extraneous(kwargs)
-
-        print(kwargs)
-
-        require_further_input = self.check_commands_for_special_requests(kwargs)
-        if require_further_input:
-            request = schemas.FormRequest(request_content=require_further_input)
-            await kwargs['connection'].send(request)
-            response: schemas.FormResponse = await kwargs['connection'].receive()
-            kwargs.update(**response.request_content)
-
-        kwargs = self.run_command_opts(**kwargs)
-        print(kwargs)
-
-        if self.decorator:
-            return_value = await self.decorator(self, **kwargs)
+        for handler in self.command_execution_sequence:
+            kwargs = await handler(kwargs)
         else:
             return_value = await self.run(**kwargs)
         if self.return_formatter:
@@ -218,7 +243,6 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
     
 
 class BaseQuery(BaseCommand):
-    decorator = None
     def get_pod_credentials(self, id):
         uname, pword = self.t.pods.get_pod_credentials(pod_id=id).user_username, self.t.pods.get_pod_credentials(pod_id=id).user_password
         return uname, pword
@@ -292,10 +316,10 @@ class BaseCommandMap(CommandContainer, HelpStringRetriever, metaclass=CommandMap
     def __contribute_to_arguments(self, command):
         arg_dict = {**command.required_arguments, **command.optional_arguments}
         for name, arg in arg_dict.items():
-            if name not in list(self.arguments.keys()):
+            if name not in self.arguments:
                 self.arguments[name] = arg
-            elif self.arguments[name].json() != arg.json():
-                raise ValueError(f"Found two instances of the argument {arg.argument} that had different attributes.\n\n{command.__class__.__name__}: {arg.json()}\n\nvs\n\n{self.arguments[name].json()}")
+            elif self.arguments[name].check_for_copy_data() != arg.check_for_copy_data():
+                raise ValueError(f"Found two instances of the argument {arg.argument} that had different attributes.\n\n{command.__class__.__name__}: {arg.check_for_copy_data()}\n\nvs\n\n{self.arguments[name].check_for_copy_data()}")
 
     def __help_gen(self):
         verbose_help = dict()

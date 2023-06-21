@@ -69,12 +69,16 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
         self.sock.listen(1)
         self.end_time = time.time() + self.SESSION_TIME # start the countdown on the timeout
 
-        self.task_list = []
+        self.task_list: list[asyncio.Task] = []
 
         self.server = None
         self.num_connections = 0
 
         self.logger.info('initialization complete')
+
+    def cancel_tasks(self):
+        for task in self.task_list:
+            task.cancel()
 
     async def handshake(self, connection):
         self.logger.info("Handshake starting")
@@ -125,6 +129,7 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
         task: asyncio.Task = loop.create_task(self.receive_and_execute(connection))
         callback = TaskCallback(self.logger, task)
         task.add_done_callback(callback)
+        self.task_list.append(task)
 
     def timeout_handler(self):  
         """
@@ -154,6 +159,7 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
                 error_response = schemas.ResponseData(error=str(e), exit_status=1, url=self.url, active_username=self.username)
                 await connection.send(error_response)
                 self.logger.warning(str(e))
+                self.cancel_tasks()
                 self.server.close()
                 loop = asyncio.get_event_loop()
                 loop.stop()
@@ -182,6 +188,7 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
                 await self.server.serve_forever()
         except KeyboardInterrupt:
             self.server.close()
+            self.cancel_tasks()
             sys.exit(0)
 
 

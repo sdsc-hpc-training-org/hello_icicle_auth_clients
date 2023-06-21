@@ -65,7 +65,8 @@ class ls(baseCommand.BaseCommand):
     command_opt = [CHECK_PWD(('file_path',))]
     required_arguments = [
         Argument('systemId', size_limit=(1, 80)),
-        Argument('file_path', positional=True)
+        Argument('file_path', positional=True),
+        Argument('connection', arg_type='silent')
     ]
     async def run(self, *args, **kwargs) -> str: # lists files available on a tapis account
         file_list = self.t.files.listFiles(systemId=kwargs['systemId'], path=kwargs['file_path'])
@@ -80,7 +81,8 @@ class cd(baseCommand.BaseCommand):
     command_opt = [CHECK_PWD(('file_path',))]
     required_arguments = [
         Argument('systemId', size_limit=(1, 80)),
-        Argument('file_path', positional=True)
+        Argument('file_path', positional=True),
+        Argument('connection', arg_type='silent')
     ]
     async def run(self, *args, **kwargs):
         self.t.files.listFiles(systemId=kwargs['systemId'], path=kwargs['file_path'])
@@ -266,7 +268,8 @@ class upload(baseCommand.BaseCommand):
     required_arguments = [
         Argument('source_file'),
         Argument('destination_file'),
-        Argument('systemId', size_limit=(1, 80))
+        Argument('systemId', size_limit=(1, 80)),
+        Argument('connection', arg_type='silent')
     ]
     async def run(self, *args, **kwargs) -> str: # upload a file from local to remote using tapis. Takes source and destination paths
         if not kwargs['destination_file']:
@@ -286,7 +289,8 @@ class download(baseCommand.BaseCommand):
     required_arguments = [
         Argument('source_file'),
         Argument('destination_file'),
-        Argument('systemId', size_limit=(1, 80))
+        Argument('systemId', size_limit=(1, 80)),
+        Argument('connection', arg_type='silent')
     ]
     async def run(self, *args, **kwargs) -> str: # download a remote file using tapis, operates basically the same as upload
         if not kwargs["source_file"]:

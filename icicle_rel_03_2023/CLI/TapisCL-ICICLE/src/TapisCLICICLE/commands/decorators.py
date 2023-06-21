@@ -23,7 +23,7 @@ class BaseRequirementDecorator(abc.ABC):
     password: typing.Optional[str] = None
 
     @abc.abstractmethod
-    async def __call__(self, command: typing.Type[object], connection: socket.socket, *args, **kwargs):
+    async def __call__(self, input_ommand: typing.Type[object], connection: socket.socket, *args, **kwargs):
         pass
 
 
@@ -32,7 +32,7 @@ class Auth(BaseRequirementDecorator):
     used for secure authentication from the client. Requires that the function has a username and password parameter for credentials. sends request for credentials from 
     the client, and checks those credentials against the stored credentials in the server.
     """
-    async def __call__(self, command, *args, **kwargs):
+    async def __call__(self, input_command, *args, **kwargs):
         connection = kwargs['connection']
         requires_username = True
         if connection:
@@ -47,26 +47,26 @@ class Auth(BaseRequirementDecorator):
                 raise ValueError("The provided password does not match the stored password")
             if auth_data.request_content['username'] != self.username:
                 raise ValueError("The provided username does not match the stored username")
-            return await command.run(**kwargs)
-        return await command.run(**kwargs)
+            return await input_command.run(**kwargs)
+        return await input_command.run(**kwargs)
 
 
 class NeedsConfirmation(BaseRequirementDecorator):
     """
     add to functions that you want user confirmation to exit. If you accidentally enter a command to delete a pod, this will not let you until you confirm
     """
-    async def __call__(self, command, *args, **kwargs):
+    async def __call__(self, input_command, *args, **kwargs):
         connection = kwargs['connection']
         if connection:
             connection = connection
-            confirmation_request = schemas.FormRequest(message={"message":f"YOU REQUESTED TO {command.__class__.__name__.upper()}. THIS MIGHT CAUSE DATA LOSS! Please confirm (y/n)"},
+            confirmation_request = schemas.FormRequest(message={"message":f"YOU REQUESTED TO {input_command.__class__.__name__.upper()}. THIS MIGHT CAUSE DATA LOSS! Please confirm (y/n)"},
                                                        request_content={"confirmation":argument.Argument('confirm', arg_type='confirmation')})
             await connection.send(confirmation_request)
             confirmation_reply: schemas.FormResponse = await connection.receive()
             confirmed = confirmation_reply.request_content['confirmation']
             if not confirmed:
-                raise exceptions.NoConfirmationError(command)
-        return await command.run(**kwargs)
+                raise exceptions.NoConfirmationError(input_command)
+        return await input_command.run(**kwargs)
 
 
 DECORATOR_LIST = [

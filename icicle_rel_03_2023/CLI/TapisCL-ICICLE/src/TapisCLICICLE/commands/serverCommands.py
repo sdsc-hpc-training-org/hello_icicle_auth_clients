@@ -16,7 +16,8 @@ class switch_service(baseCommand.BaseCommand):
     """
     required_arguments=[
         Argument('link', size_limit=80),
-        Argument('auth', choices=['password', 'device_code', 'federated'])
+        Argument('auth', choices=['password', 'device_code', 'federated']),
+        Argument('connection', arg_type='silent')
     ]
     async def run(self, *args, **kwargs):  # link is the baseURL
         auth = kwargs['auth']
@@ -64,7 +65,7 @@ class get_args(baseCommand.BaseCommand):
     @help: get the list of possible arguments 
     """
     async def run(self, *args, **kwargs):
-        return kwargs['server'].arguments
+        return self.server.arguments
     
 
 class whereami(baseCommand.BaseCommand):
@@ -72,4 +73,4 @@ class whereami(baseCommand.BaseCommand):
     @help: get the URI of current tapis tenant
     """
     async def run(self, *args, **kwargs):
-        return kwargs['server'].url
+        return self.server.url

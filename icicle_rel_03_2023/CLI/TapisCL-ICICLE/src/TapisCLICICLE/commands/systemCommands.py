@@ -125,7 +125,8 @@ class create_system(baseCommand.BaseCommand, SystemAuth):
         Argument('systemType', choices=["LINUX", "S3", "IRODS", "GLOBUS"]),
         Argument('host', size_limit=(1, 256)),
         Argument('defaultAuthnMethod', choices=['PASSWORD', "PKI_KEYS", "ACCESS_KEY", "TOKEN", "CERT"]),
-        Argument('canExec', action='store_true')
+        Argument('canExec', action='store_true'),
+        Argument('connection', arg_type='silent')
     ]
     optional_arguments=[
         Argument('description', arg_type='str_input', size_limit=(0, 2048)),
@@ -215,7 +216,8 @@ class system(baseCommand.BaseCommand):
     @help: set the system to run operations on by default. Running this will put you "in" the system so that you dont have to specify system ID for each command
     """
     required_arguments=[
-        Argument('systemId', size_limit=(1, 80))
+        Argument('systemId', size_limit=(1, 80)),
+        Argument('connection', arg_type='silent')
     ]
     async def run(self, *args, **kwargs):
         system_info = self.t.systems.getSystem(systemId=kwargs['systemId'])
@@ -228,6 +230,9 @@ class exit_system(baseCommand.BaseCommand):
     """
     @help: exit the default system
     """
+    required_arguments = [
+        Argument('connection', arg_type='silent')
+    ]
     async def run(self, *args, **kwargs):
         kwargs['connection'].system = ''
         kwargs['connection'].pwd = ''

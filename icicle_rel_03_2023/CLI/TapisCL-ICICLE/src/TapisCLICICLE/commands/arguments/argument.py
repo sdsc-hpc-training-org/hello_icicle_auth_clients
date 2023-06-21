@@ -2,7 +2,7 @@ import typing
 import abc
 
 
-ALLOWED_ARG_TYPES = typing.Literal['secure', 'expression', 'input_list', 'input_dict', 'form', 'str_input', 'confirmation']
+ALLOWED_ARG_TYPES = typing.Literal['silent', 'secure', 'expression', 'input_list', 'input_dict', 'form', 'str_input', 'confirmation']
 ALLOWED_DATA_TYPES = typing.Literal['string', 'int']
 ALLOWED_ACTIONS = typing.Literal['store', 'store_true', 'store_false']
 
@@ -19,7 +19,18 @@ class AbstractArgument(abc.ABC):
         pass
 
 
+def cast_int(data):
+    return int(data)
+
+def cast_string(data):
+    return str(data)
+
+
 class Argument(AbstractArgument):
+    type_map = {
+        'int':cast_int,
+        'string':cast_string
+    }
     def __init__(self, argument: str,
                  data_type: ALLOWED_DATA_TYPES | typing.Type[AbstractArgument] = 'string',
                  arg_type: ALLOWED_ARG_TYPES | typing.Literal['standard']='standard',
@@ -48,7 +59,25 @@ class Argument(AbstractArgument):
         self.size_limit=size_limit
 
         self.truncated_arg = None
-        self.full_arg = None
+        self.full_arg = f"--{self.argument}"
+
+    def verify_standard_value(self, value):
+        if self.arg_type == "standard":
+            min_, max_ = self.size_limit
+            try:
+                value = self.type_map[self.data_type](value)
+            except:
+                raise ValueError(f"The argument {self.argument} requires a datatype {self.data_type}")
+            if type(value) == int:
+                if value >= max_ or value < min_:
+                    raise ValueError(f"The argument {self.argument} must be a value in the range {self.size_limit}")
+            elif type(value) == str and len(value) >= max_ or len(value) < min_:
+                raise ValueError(f"The argument {self.argument} must be between the sizes {self.size_limit}")
+            elif self.choices and value not in self.choices:
+                raise ValueError(f"The value for argument {self.argument} must be in the list {self.choices}")
+            elif value == None and self.default_value:
+                value = self.default_value
+        return value
 
     def json(self):
         json = {
@@ -69,6 +98,25 @@ class Argument(AbstractArgument):
         else:
             json['data_type'] = self.data_type.json()
         return json
+    
+    def help_message(self):
+        return {"name":self.argument,
+                "syntax":f"{self.truncated_arg}/{self.full_arg} <{self.argument}>",
+                "description":f"{self.description}"}
+    
+    def check_for_copy_data(self):
+        return {
+            'name':self.argument,
+            'action':self.action,
+        }
+    
+    def str(self):
+        help_str = f"{self.truncated_arg}/{self.full_arg} "
+        if self.positional:
+            help_str = f"{self.argument} "
+        elif self.action == 'store':
+            help_str += f"<{self.argument}> "
+        return help_str
 
 
 class Form(Argument):
