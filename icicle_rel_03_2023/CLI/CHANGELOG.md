@@ -15,7 +15,7 @@
 3. refactor help generation code
 
 ## ICICONSOLE
-### 0.0.9
+### 0.0.10
 #### 6/15/23
 ##### Changes
 1. improved user interface for select queries. Now, the user can select a query from a list of available queries (help command), and the query will be executed automatically. This works toward an automated process for querying Knowledge Graphs.

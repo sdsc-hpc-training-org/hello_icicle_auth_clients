@@ -177,7 +177,7 @@ def choosePod():
     for pod in t.pods.get_pods():
         # pod.pod_id takes each element of the list, representing each pod, and extracts only the pod id
         # This is done because connecting to a Neo4j pod only requires the pod id.
-        if pod.pod_template == "neo4j":
+        if "neo4j" in pod.pod_template:
             print(str(i) + ". " + pod.pod_id)
             i += 1
     if (i == 1):
