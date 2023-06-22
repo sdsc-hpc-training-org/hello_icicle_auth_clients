@@ -1,30 +1,31 @@
 if __name__ != "__main__":
-    from . import systemCommands, serverCommands, appCommands, podCommands, fileCommands, dataFormatters, baseCommand
+    from . import systemCommands, volumeCommands, serverCommands, appCommands, podCommands, fileCommands, dataFormatters, baseCommand
     from .query import postgres, neo4j
     from utilities import exceptions
     from commands.arguments.argument import Argument
+    from commands.commandOpts import CHECK_EXPLICIT_ID
 
-
-def CHECK_EXPLICIT_SYSTEM(kwargs):
-    if not kwargs['id']:
-        kwargs['id'] = kwargs['connection'].system
-    return kwargs
 
 class Systems(baseCommand.BaseCommandMap):
     """
     @help: run operations on Tapis systems
     """
-    command_opt = [CHECK_EXPLICIT_SYSTEM]
     data_formatter = dataFormatters.DataFormatters.system_formatter
     command_map = {
         'get_systems':systemCommands.get_systems(), # since initialization of commands is separate from __init__, you dont need to specify these as classes anymore
         'get_system_info':systemCommands.get_system_info(),
         'get_scheduler_profiles':systemCommands.get_scheduler_profiles(),
+        'verify_pki_keys':systemCommands.verify_pki_keys(),
         'create_child_system':systemCommands.create_child_system(),
         'create_system':systemCommands.create_system(),
+        'update_system':systemCommands.update_system(),
+        'is_enabled':systemCommands.is_enabled(),
+        'enable_system':systemCommands.enable_system(),
+        'disable_system':systemCommands.disable_system(),
         'system':systemCommands.system(),
         'exit_system':systemCommands.exit_system(),
         'delete_system':systemCommands.delete_system(),
+        'undelete_system':systemCommands.undelete_system()
     }
 
 
@@ -52,6 +53,7 @@ class Pods(baseCommand.BaseCommandMap):
         'get_pods':podCommands.get_pods(),
         'get_pod':podCommands.get_pod(),
         'create_pod':podCommands.create_pod(),
+        'update_pod':podCommands.update_pod(),
         'start_pod':podCommands.start_pod(),
         'restart_pod':podCommands.restart_pod(),
         'delete_pod':podCommands.delete_pod(),
@@ -64,11 +66,35 @@ class Pods(baseCommand.BaseCommandMap):
     }
 
 
+class Volumes(baseCommand.BaseCommandMap):
+    """
+    @help: run operations on tapis volumes and snapshots
+    """
+    command_map = {
+        'get_volumes':volumeCommands.get_volumes(),
+        'create_volume':volumeCommands.create_volume(),
+        'get_volume':volumeCommands.get_volume(),
+        'volume':volumeCommands.volume(),
+        'update_volume':volumeCommands.update_volume(),
+        'delete_volume':volumeCommands.delete_volume(),
+        'dir':volumeCommands.dir(),
+        'upload_volume':volumeCommands.upload_volume(),
+        'set_volume_permission':volumeCommands.set_volume_permission(),
+        'get_volume_permissions':volumeCommands.get_volume_permissions(),
+        'delete_volume_permission':volumeCommands.delete_volume_permission(),
+        'get_snapshots':volumeCommands.get_snapshots(),
+        'create_snapshot':volumeCommands.create_snapshot(),
+        'get_snapshot':volumeCommands.get_snapshot(),
+        'update_snapshot':volumeCommands.update_snapshot(),
+        'delete_snapshot':volumeCommands.delete_snapshot(),
+        'list_snapshot_files':volumeCommands.list_snapshot_files()
+    }
+
+
 class Files(baseCommand.BaseCommandMap):
     """
     @help: run operations on tapis files
     """
-    command_opt = [CHECK_EXPLICIT_SYSTEM]
     command_map = {
         'ls':fileCommands.ls(),
         'cd':fileCommands.cd(),

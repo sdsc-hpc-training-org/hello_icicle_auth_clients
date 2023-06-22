@@ -2,71 +2,18 @@ if __name__ != "__main__":
     from . import baseCommand
     from .arguments import argument
     from . import decorators
+    from . import commandOpts
     Argument = argument.Argument
 
-
-class CHECK_PWD:
-    """
-    support the invocation of relative paths for tapis systems
-    """
-    def __init__(self, dir_simplify_args: tuple):
-        self.dir_simplify_args = dir_simplify_args
-
-    def __go_back_checker(self, index: int, path_list: list):
-        back_count = 0
-        for element in path_list[index:]:
-            if element != "..":
-                break
-            back_count += 1
-        return back_count
-
-    def __simplify_path(self, path: list):
-        index = 0
-        length = len(path)
-        try:
-            while index < length:
-                if path[index] == ".":
-                    path.pop(index)
-                    continue
-                elif path[index] == "..":
-                    back_count = self.__go_back_checker(index, path)
-                    desired_len = len(path) - (2 * back_count)
-                    while len(path) != desired_len:
-                        path.pop(index-back_count)
-                    continue
-                index += 1
-        except IndexError:
-            pass
-        finally:
-            path = "/".join(path)
-            if not path:
-                path = "/"
-        return path
-    
-    def __relative_to_absolute(self, absolute_path: str, relative_path: str):
-        if not relative_path:
-            return absolute_path
-        elif absolute_path[-1] == "/":
-            return f"{absolute_path}{relative_path}"
-        return f"{absolute_path}/{relative_path}"
-
-    def __call__(self, kwargs):
-        for file_argument_name in self.dir_simplify_args:
-            if not kwargs[file_argument_name] or kwargs['connection'].pwd not in kwargs[file_argument_name]:
-                file = self.__relative_to_absolute(kwargs['connection'].pwd, kwargs[file_argument_name])
-                kwargs[file_argument_name] = self.__simplify_path(file.split("/"))
-        return kwargs
-    
 
 class ls(baseCommand.BaseCommand):
     """
     @help: list the files on a system 
     """
-    command_opt = [CHECK_PWD(('file_path',))]
+    command_opt = [commandOpts.CHECK_PWD(('file_path',)), commandOpts.CHECK_EXPLICIT_ID('systemId')]
     required_arguments = [
         Argument('systemId', size_limit=(1, 80)),
         Argument('file_path', positional=True),
-        Argument('connection', arg_type='silent')
     ]
     async def run(self, *args, **kwargs) -> str: # lists files available on a tapis account
         file_list = self.t.files.listFiles(systemId=kwargs['systemId'], path=kwargs['file_path'])
@@ -78,11 +25,10 @@ class cd(baseCommand.BaseCommand):
     """
     @help: change the directory
     """
-    command_opt = [CHECK_PWD(('file_path',))]
+    command_opt = [commandOpts.CHECK_PWD(('file_path',)), commandOpts.CHECK_EXPLICIT_ID('systemId')]
     required_arguments = [
         Argument('systemId', size_limit=(1, 80)),
         Argument('file_path', positional=True),
-        Argument('connection', arg_type='silent')
     ]
     async def run(self, *args, **kwargs):
         self.t.files.listFiles(systemId=kwargs['systemId'], path=kwargs['file_path'])
@@ -94,10 +40,10 @@ class showme(baseCommand.BaseCommand):
     """
     @help: display file metadata
     """
-    command_opt = [CHECK_PWD(('file_path',))]
+    command_opt = [commandOpts.CHECK_PWD(('file_path',)), commandOpts.CHECK_EXPLICIT_ID('systemId')]
     required_arguments = [
         Argument('systemId', size_limit=(1, 80)),
-        Argument('file_path', positional=True)
+        Argument('file_path', positional=True),
     ]
     async def run(self, *args, **kwargs):
         return_data = str(self.t.files.getStatInfo(systemId=kwargs['systemId'], path=kwargs['file_path']))
@@ -108,7 +54,7 @@ class cat(baseCommand.BaseCommand):
     """
     @help: display small files directly to the terminal
     """
-    command_opt = [CHECK_PWD(('file_path',))]
+    command_opt = [commandOpts.CHECK_PWD(('file_path',)), commandOpts.CHECK_EXPLICIT_ID('systemId')]
     required_arguments = [
         Argument('systemId', size_limit=(1, 80)),
         Argument('file_path', positional=True)
@@ -127,7 +73,7 @@ class mkdir(baseCommand.BaseCommand):
     """
     @help: create a new directory at the selected path
     """
-    command_opt = [CHECK_PWD(('file_path',))]
+    command_opt = [commandOpts.CHECK_PWD(('file_path',)), commandOpts.CHECK_EXPLICIT_ID('systemId')]
     required_arguments = [
         Argument('systemId', size_limit=(1, 80)),
         Argument('file_path', positional=True)
@@ -141,7 +87,7 @@ class mv(baseCommand.BaseCommand):
     """
     @help: move a file from a source directory to a destination directory within a system's file structure
     """
-    command_opt = [CHECK_PWD(('source_file', 'destination_file'))]
+    command_opt = [commandOpts.CHECK_PWD(('source_file', 'destination_file'))], commandOpts.CHECK_EXPLICIT_ID('systemId')
     required_arguments = [
         Argument('systemId', size_limit=(1, 80)),
         Argument('source_file'),
@@ -156,7 +102,7 @@ class cp(baseCommand.BaseCommand):
     """
     @help: copy a file from a source directory to another directory
     """
-    command_opt = [CHECK_PWD(('source_file', 'destination_file'))]
+    command_opt = [commandOpts.CHECK_PWD(('source_file', 'destination_file')), commandOpts.CHECK_EXPLICIT_ID('systemId')]
     required_arguments = [
         Argument('systemId', size_limit=(1, 80)),
         Argument('source_file'),
@@ -172,7 +118,7 @@ class rm(baseCommand.BaseCommand):
     @help: delete a selected file
     """
     decorator=decorators.NeedsConfirmation()
-    command_opt = [CHECK_PWD(('file_path',))]
+    command_opt = [commandOpts.CHECK_PWD(('file_path',)), commandOpts.CHECK_EXPLICIT_ID('systemId')]
     required_arguments = [
         Argument('systemId', size_limit=(1, 80)),
         Argument('file_path', positional=True)
@@ -195,7 +141,7 @@ class create_postit(baseCommand.BaseCommand):
     """
     @help: create a postit to easily share file with other users
     """
-    command_opt = [CHECK_PWD(('file_path',))]
+    command_opt = [commandOpts.CHECK_PWD(('file_path',)), commandOpts.CHECK_EXPLICIT_ID('systemId')]
     required_arguments = [
         Argument('systemId', size_limit=(1, 80)),
         Argument('file_path', positional=True)
@@ -264,7 +210,7 @@ class upload(baseCommand.BaseCommand):
     @todo: make it so that this doesnt need to take both source and destination files, but have it so it retrieves the current file location on the tapis system
     and sets that file location to be the upload point. Do the same for downloads but in reverse
     """
-    command_opt = [CHECK_PWD(('destination_file',))]
+    command_opt = [commandOpts.CHECK_PWD(('destination_file',))]
     required_arguments = [
         Argument('source_file'),
         Argument('destination_file'),
@@ -285,7 +231,7 @@ class download(baseCommand.BaseCommand):
     @help: download a file from the system
     the source and destination files must both be in the file argument, respectively, separated by a comma
     """
-    command_opt = [CHECK_PWD(('source_file',))]
+    command_opt = [commandOpts.CHECK_PWD(('source_file',))]
     required_arguments = [
         Argument('source_file'),
         Argument('destination_file'),
@@ -301,3 +247,5 @@ class download(baseCommand.BaseCommand):
         with open(kwargs['destination_file'], 'w') as f:
             f.write(file_info)
         return f'successfully downloaded {kwargs["source_file"]} to {kwargs["destination_file"]}'
+    
+
