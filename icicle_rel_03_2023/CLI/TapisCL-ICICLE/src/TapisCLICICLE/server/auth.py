@@ -39,6 +39,7 @@ class ServerSideAuth:
                 self.t = Tapis(f"https://{link}",
                                username=username,
                                password=password)
+                print(self.t.base_url)
                 self.t.get_tokens()
                 break
             except exceptions.ClientSideError as e:
@@ -80,6 +81,8 @@ class ServerSideAuth:
         await connection.send(payload)
         webbrowser.open(authentication_information.verification_uri)
         confirmation = await connection.receive()
+        if not confirmation.request_content['entered_confirm']:
+            raise RuntimeError(f"User indicated that device code auth failed") # get rid of this feature and switch to polling
         start_time = time.time()
         while True:
             try:

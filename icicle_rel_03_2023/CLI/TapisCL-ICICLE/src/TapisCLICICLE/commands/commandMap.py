@@ -166,6 +166,7 @@ class AggregateCommandMap(baseCommand.CommandContainer, ArgsGenerator):
         'Files': Files(),
         #'Apps': Apps(),
         'Query': Query(),
+        'Volumes':Volumes()
     }
     def __init__(self):
         truncated_arguments = self.generate_truncated_arguments(self.arguments)

@@ -87,7 +87,7 @@ class mv(baseCommand.BaseCommand):
     """
     @help: move a file from a source directory to a destination directory within a system's file structure
     """
-    command_opt = [commandOpts.CHECK_PWD(('source_file', 'destination_file'))], commandOpts.CHECK_EXPLICIT_ID('systemId')
+    command_opt = [commandOpts.CHECK_PWD(('source_file', 'destination_file')), commandOpts.CHECK_EXPLICIT_ID('systemId')]
     required_arguments = [
         Argument('systemId', size_limit=(1, 80)),
         Argument('source_file'),

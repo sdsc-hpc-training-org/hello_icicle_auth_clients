@@ -14,7 +14,7 @@ if __name__ != "__main__":
     from . import baseCommand, decorators
     from .arguments import argument
     from . import commandOpts
-    from ..socketopts import schemas
+    from socketopts import schemas
     Argument = argument.Argument
 
 

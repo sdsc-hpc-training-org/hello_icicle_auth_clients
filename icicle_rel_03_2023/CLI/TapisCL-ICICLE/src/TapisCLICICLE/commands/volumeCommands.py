@@ -8,7 +8,7 @@ if __name__ != "__main__":
     Argument = argument.Argument
 
 
-class get_volumes(baseCommand):
+class get_volumes(baseCommand.BaseCommand):
     """
     @help: get a list of volumes registered to your account
     """
@@ -16,7 +16,7 @@ class get_volumes(baseCommand):
         return self.t.pods.get_volumes()
     
 
-class create_volume(baseCommand):
+class create_volume(baseCommand.BaseCommand):
     """
     @help: create a new volume on which to store files to be used by Tapis pods. This allows several pods to share the same persistent files
     """
@@ -25,14 +25,14 @@ class create_volume(baseCommand):
         Argument('volume_id')
     ]
     optional_arguments = [
-        Argument('description'),
+        Argument('description', arg_type='str_input'),
         Argument('size_limit', data_type='int', default_value=1024)
     ]
     async def run(self, *args, **kwargs):
         return self.t.pods.create_volume(**kwargs)
     
 
-class get_volume(baseCommand):
+class get_volume(baseCommand.BaseCommand):
     """
     @help: get information on a specific volume
     """
@@ -44,7 +44,7 @@ class get_volume(baseCommand):
         return self.t.pods.get_volume(**kwargs)
     
 
-class volume(baseCommand):
+class volume(baseCommand.BaseCommand):
     """
     @help: enter the volume to interact with its files more directly
     """
@@ -52,7 +52,7 @@ class volume(baseCommand):
     required_arguments = [
         Argument('volume_id')
     ]
-    def run(self, *args, **kwargs):
+    async def run(self, *args, **kwargs):
         volume_info = self.t.pods.get_volume(volume_id=kwargs['volume_id'])
         kwargs['connection'].system = volume_info
         kwargs['connection'].pwd = "/"
@@ -69,7 +69,7 @@ class update_volume(create_volume):
         return self.t.pods.update_volume(**kwargs)
     
 
-class delete_volume(baseCommand):
+class delete_volume(baseCommand.BaseCommand):
     """
     @help: delete a volume
     """
@@ -82,7 +82,7 @@ class delete_volume(baseCommand):
         return self.t.pods.delete_volume_files(**kwargs)
 
 
-class dir(baseCommand):
+class dir(baseCommand.BaseCommand):
     """
     @help: list all files in the selected volume
     """
@@ -94,7 +94,7 @@ class dir(baseCommand):
         return self.t.pods.list_volume_files(**kwargs)
     
 
-class upload_volume(baseCommand):
+class upload_volume(baseCommand.BaseCommand):
     """
     @help: upload a file from your local machine to the volume
     """
@@ -108,7 +108,7 @@ class upload_volume(baseCommand):
         return self.t.pods.upload_to_volume(**kwargs)
     
 
-class set_volume_permission(baseCommand):
+class set_volume_permission(baseCommand.BaseCommand):
     """
     @help: set the permission for a user on a volume
     """
@@ -124,7 +124,7 @@ class set_volume_permission(baseCommand):
         return self.t.pods.set_volume_permission(**kwargs)
 
 
-class get_volume_permissions(baseCommand):
+class get_volume_permissions(baseCommand.BaseCommand):
     """
     @help: set the permission for a user on a volume
     """
@@ -136,7 +136,7 @@ class get_volume_permissions(baseCommand):
         return self.t.pods.get_volume_permission(**kwargs)
     
 
-class delete_volume_permission(baseCommand):
+class delete_volume_permission(baseCommand.BaseCommand):
     """
     @help: delete the persmission for a user on a volume
     """
@@ -152,7 +152,7 @@ class delete_volume_permission(baseCommand):
         return self.t.pods.delete_volume_permission(**kwargs)
     
 
-class get_snapshots(baseCommand):
+class get_snapshots(baseCommand.BaseCommand):
     """
     @help: get a list of snapshots on the tenant you have access to
     """
@@ -160,7 +160,7 @@ class get_snapshots(baseCommand):
         return self.t.pods.get_snapshots()
     
 
-class create_snapshot(baseCommand):
+class create_snapshot(baseCommand.BaseCommand):
     """
     @help: create a backup of the volume selected or specific files in the volume
     """
@@ -182,7 +182,7 @@ class create_snapshot(baseCommand):
         return self.t.pods.create_snapshot(**kwargs)
     
 
-class get_snapshot(baseCommand):
+class get_snapshot(baseCommand.BaseCommand):
     required_arguments = [
         Argument('snapshot_id')
     ]
@@ -190,7 +190,7 @@ class get_snapshot(baseCommand):
         return self.t.pods.get_snapshot(**kwargs)
     
 
-class update_snapshot(baseCommand):
+class update_snapshot(baseCommand.BaseCommand):
     supports_config_file=True
     required_arguments = [
         Argument('snapshot_id')
@@ -205,7 +205,7 @@ class update_snapshot(baseCommand):
         return self.t.pods.update_snapshot(**kwargs)
     
 
-class delete_snapshot(baseCommand):
+class delete_snapshot(baseCommand.BaseCommand):
     decorator=decorators.NeedsConfirmation()
     required_arguments = [
         Argument('snapshot_id')
@@ -214,7 +214,7 @@ class delete_snapshot(baseCommand):
         return self.t.pods.delete_snapshot(**kwargs)
     
 
-class list_snapshot_files(baseCommand):
+class list_snapshot_files(baseCommand.BaseCommand):
     required_arguments = [
         Argument('snapshot_id')
     ]

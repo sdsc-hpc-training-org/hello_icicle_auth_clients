@@ -31,6 +31,7 @@ class ClientSideConnection(socketOpts.ClientSocketOpts, handlers.Handlers):
 
 
 class CLI(handlers.Handlers):
+    debug=False
     """
     Receive user input, either direct from bash environment or from the custom interface, then parse these commands and send them to the server to be executed. 
     """
@@ -50,7 +51,8 @@ class CLI(handlers.Handlers):
             self.connection.send(setup_message)
         except (KeyboardInterrupt, Exception) as e:
             error_str = traceback.format_exc()
-            print(error_str)
+            if self.debug:
+                print(error_str)
             print(e)
             setup_message.error = str(e)
             setup_message.request_content['setup_success'] = False
@@ -70,7 +72,6 @@ class CLI(handlers.Handlers):
         parser.error = self.parser_error
 
         for arg_name, arg in arguments.items():
-            print(arg['truncated_arg'])
             parser.add_argument(f"-{arg['truncated_arg']}", arg['full_arg'],
                                 action=arg['action'])
         return parser
@@ -97,7 +98,7 @@ class CLI(handlers.Handlers):
                 os._exit(0)
             try:
                 self.connection.connect((self.ip, self.port)) 
-                self.connection = ClientSideConnection(self.connection)
+                self.connection = ClientSideConnection(self.connection, debug=self.debug)
                 if startup_flag:
                     startup.kill()
                 break
@@ -192,9 +193,11 @@ class CLI(handlers.Handlers):
                 print("Invalid command")
             except Exception as e:
                 error_str = traceback.format_exc()
-                print(error_str)
-                error_message = schemas.CommandData(error=str(e))
+                if self.debug:
+                    print(error_str)
+                error_message = schemas.ResponseData(error=str(e))
                 self.connection.send(error_message)
+        
 
     def main(self):
         if len(sys.argv) > 1: # checks if any command line arguments were provided. Does not open CLI

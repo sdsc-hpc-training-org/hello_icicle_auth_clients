@@ -32,11 +32,12 @@ class ServerConnection(socketOpts.ServerSocketOpts):
         
 
 class TaskCallback:
-    def __init__(self, logger, task: asyncio.Task):
+    def __init__(self, logger, task: asyncio.Task, task_list: list):
+        self.task_list = task_list
         self.logger, self.task = logger, task
-        print("DOING THE INIT")
 
     def __call__(self, result):
+        self.task_list.remove(self.task)
         print(result)
         result = self.task.result()
         self.logger.info(result)
@@ -47,6 +48,7 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
     Receives commands from the client and executes Tapis operations
     """
     SESSION_TIME = 1200
+    debug=True
     def __init__(self, IP: str, PORT: int):
         super().__init__()
         self.initial = True
@@ -97,7 +99,7 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
         accept connection request and initialize communication with the client
         """  
         self.num_connections += 1
-        connection = ServerConnection(f"CON-{self.num_connections}", reader=reader, writer=writer, debug=True)
+        connection = ServerConnection(f"CON-{self.num_connections}", reader=reader, writer=writer, debug=self.debug)
         self.timeout_handler()
         ip, port= writer.transport.get_extra_info('socket').getsockname()
         if ip != socket.gethostbyname(socket.gethostname()):
@@ -127,7 +129,7 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
 
         loop = asyncio.get_event_loop()
         task: asyncio.Task = loop.create_task(self.receive_and_execute(connection))
-        callback = TaskCallback(self.logger, task)
+        callback = TaskCallback(self.logger, task, self.task_list)
         task.add_done_callback(callback)
         self.task_list.append(task)
 

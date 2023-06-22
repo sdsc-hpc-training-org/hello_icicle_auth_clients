@@ -63,6 +63,7 @@ class Argument(AbstractArgument):
 
     def verify_standard_value(self, value):
         if self.arg_type == "standard":
+            print(type(self.size_limit))
             min_, max_ = self.size_limit
             try:
                 value = self.type_map[self.data_type](value)

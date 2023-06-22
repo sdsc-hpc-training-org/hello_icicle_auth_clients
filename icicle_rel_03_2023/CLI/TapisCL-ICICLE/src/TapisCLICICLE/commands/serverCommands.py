@@ -15,7 +15,7 @@ class switch_service(baseCommand.BaseCommand):
     @todo: upgrade to federated auth
     """
     required_arguments=[
-        Argument('link', size_limit=80),
+        Argument('link', size_limit=(0, 80)),
         Argument('auth', choices=['password', 'device_code', 'federated']),
         Argument('connection', arg_type='silent')
     ]
@@ -31,6 +31,8 @@ class switch_service(baseCommand.BaseCommand):
             results = await self.server.federated_grant(link, kwargs['connection'])
         else:
             results = None
+        self.server.configure_decorators(self.server.username, self.server.password)
+        self.server.update_credentials(self.server.t, self.server.username, self.server.password)
         return results
       
 

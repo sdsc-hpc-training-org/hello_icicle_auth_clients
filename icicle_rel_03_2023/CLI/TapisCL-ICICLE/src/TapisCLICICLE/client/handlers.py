@@ -160,10 +160,14 @@ class Handlers(Formatters):
                             answer = prompt(f"{attrs['name']}: ", validator=self.validator)
                         case 'confirmation':
                             answer = self.confirmation_handler()
+                        case 'silent':
+                            continue
                         case _:
                             raise AttributeError(f"There is not argument type {arg_type}")
                     response[field] = answer
                     break
+                except KeyboardInterrupt:
+                    raise RuntimeError('Form cancelled, command execution stopped')
                 except Exception as e:
                     with open(saved_command, 'w') as f:
                         f.write(json.dumps(response))

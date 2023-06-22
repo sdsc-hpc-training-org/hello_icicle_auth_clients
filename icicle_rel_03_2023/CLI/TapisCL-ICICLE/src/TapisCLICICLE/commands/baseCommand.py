@@ -118,7 +118,7 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
             self.optional_arguments = {argument.argument:argument for argument in self.optional_arguments}
             self.arguments.update(**self.optional_arguments)
         self.positional_arguments = [arg_name for arg_name, arg in self.required_arguments.items() if arg.positional]
-        self.form_arguments = [arg_name for arg_name, arg in self.arguments.items() if arg.arg_type != 'standard']
+        self.form_arguments = [arg_name for arg_name, arg in self.arguments.items() if arg.arg_type not in  ('standard', 'silent')]
         self.help: dict[dict[str, list[dict[str, str]]]] = dict()
 
         self.command_execution_sequence = [self.verify_argument_rules_followed]
