@@ -112,6 +112,7 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
         self.arguments = dict()
         if isinstance(self.required_arguments, list):
             self.required_arguments = {argument.argument:argument for argument in self.required_arguments}
+            self.required_arguments['connection'] = Argument('connection', arg_type='silent')
             self.arguments.update(**self.required_arguments)
         if isinstance(self.optional_arguments, list):  
             self.optional_arguments = {argument.argument:argument for argument in self.optional_arguments}
@@ -140,13 +141,11 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
         return kwargs
 
     async def filter_kwargs(self, kwargs):
-        print(f"BEFORE FILTER {kwargs}")
         filtered_kwargs = dict()
         for arg, value in kwargs.items():
             if arg in self.arguments and value != None:
                 if (self.arguments[arg].arg_type in typing.get_args(ALLOWED_ARG_TYPES) and kwargs[arg]) or self.arguments[arg].arg_type == 'standard':
                     filtered_kwargs[arg] = value
-        print(f"AFTER FILTER {filtered_kwargs}")
         return filtered_kwargs
 
     async def handle_config_file(self, kwargs):
