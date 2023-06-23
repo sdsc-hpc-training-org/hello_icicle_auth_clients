@@ -5,6 +5,7 @@ import sys
 import os
 import time
 import traceback
+import subprocess
 
 import pyfiglet
 from blessed import Terminal
@@ -83,7 +84,7 @@ class CLI(handlers.Handlers):
         if 'win' in sys.platform:
             os.system(rf"pythonw {server_path}")
         else: # unix based
-            os.system(f"python {server_path} &")
+            subprocess.Popen(['nohup', 'python3', server_path, '&'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
     #@decorators.AnimatedLoading
     def connection_initialization(self):
