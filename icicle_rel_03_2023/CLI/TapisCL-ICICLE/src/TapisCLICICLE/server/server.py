@@ -48,7 +48,7 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
     Receives commands from the client and executes Tapis operations
     """
     SESSION_TIME = 1200
-    debug=True
+    debug=False
     def __init__(self, IP: str, PORT: int):
         super().__init__()
         self.initial = True
