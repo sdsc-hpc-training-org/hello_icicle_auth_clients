@@ -8,6 +8,7 @@ def client_start():
 
 
 if __name__ == "__main__":
+    print("The server takes a bit of time to start. Please Wait")
     client_start()
 
 # server = Server(socket.gethostbyname(socket.gethostname()), 30000)
