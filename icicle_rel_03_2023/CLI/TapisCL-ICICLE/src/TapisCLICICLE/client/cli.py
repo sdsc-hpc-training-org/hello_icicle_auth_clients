@@ -18,7 +18,7 @@ if __name__ != "__main__":
 
 __location__ = os.path.realpath(
     os.path.join(os.getcwd(), os.path.dirname(f"{__file__}")))
-server_path = os.path.join(__location__, r'..\serverRun.py')
+server_path = os.path.join(__location__, r'../serverRun.py')
     
 
 class ClientSideConnection(socketOpts.ClientSocketOpts, handlers.Handlers):

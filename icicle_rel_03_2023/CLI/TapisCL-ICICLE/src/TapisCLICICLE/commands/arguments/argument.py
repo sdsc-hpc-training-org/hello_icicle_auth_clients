@@ -101,9 +101,15 @@ class Argument(AbstractArgument):
         return json
     
     def help_message(self):
-        return {"name":self.argument,
-                "syntax":f"{self.truncated_arg}/{self.full_arg} <{self.argument}>",
-                "description":f"{self.description}"}
+        help = {"name":self.argument,
+                    "description":f"{self.description}"}
+        if self.action == 'store':
+            help['syntax'] = f"{self.truncated_arg}/{self.full_arg} <{self.argument}>"
+        elif self.positional:
+            help['syntax'] = f"<{self.argument}>"
+        elif self.action != 'store':
+            help['syntax'] = f"{self.truncated_arg}/{self.full_arg}"
+        return help
     
     def check_for_copy_data(self):
         return {
