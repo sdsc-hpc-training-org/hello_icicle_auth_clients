@@ -1,12 +1,12 @@
 {
-  "id":"tacc-sample-app-ad1616",
+  "id":"hello-icicle-testing-app",
   "version":"0.1",
-  "description":"AD1616 sample application",
+  "description":"Testing application for job submission.",
   "runtime":"DOCKER",
   "containerImage":"docker.io/hello-world:latest",
   "jobType":"FORK",
   "jobAttributes": {
     "description": "default job description",
-    "execSystemId": "mkyzubr.testing4"
+    "execSystemId": "hello_icicle_dev"
   }
 }
