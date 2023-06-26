@@ -1,0 +1,12 @@
+{
+  "id":"tacc-sample-app-ad1616",
+  "version":"0.1",
+  "description":"AD1616 sample application",
+  "runtime":"DOCKER",
+  "containerImage":"docker.io/hello-world:latest",
+  "jobType":"FORK",
+  "jobAttributes": {
+    "description": "default job description",
+    "execSystemId": "mkyzubr.testing4"
+  }
+}
