@@ -52,6 +52,9 @@ class get_systems(baseCommand.BaseCommand):
     @help: Gets and returns the list of systems the current Tapis service and account have access to
     @doc: this is an example of the doc segment of the docstring. not included in help message
     """
+    required_arguments= [
+        Argument('listType', choices=['OWNED', 'SHARED_PUBLIC', 'ALL'])
+    ]
     async def run(self, *args, **kwargs):
         systems = self.t.systems.getSystems()
         return systems
@@ -211,16 +214,13 @@ class create_system(baseCommand.BaseCommand):
                              "IRODS":{"TOKEN":self.token_auth}}
 
     async def password_auth(self, **kwargs):
-        userName = self.username
-        if self.server.auth_type == 'password':
-            password = self.password
-        else:
-            request = schemas.FormRequest(request_content={"password":Argument('password', arg_type='secure')},
-                                          message=f"Please enter the credentials you entered on the web portal {self.server.url}")
-            await kwargs['connection'].send(request)
-            response = await kwargs['connection'].receive()
-            response_content = response.request_content
-            password = response_content['password']
+        request = schemas.FormRequest(request_content={'username':Argument('username', arg_type='str_input'), "password":Argument('password', arg_type='secure')},
+                                        message=f"Enter your credentials to the select host specified in the system creation")
+        await kwargs['connection'].send(request)
+        response = await kwargs['connection'].receive()
+        response_content = response.request_content
+        password = response_content['password']
+        userName = response_content['username']
         cred_return_value = self.t.systems.createUserCredential(systemId=kwargs['id'],
                             userName=userName,
                             password=password)
@@ -342,3 +342,31 @@ class create_child_system(baseCommand.BaseCommand):
     """
     async def run(self, *args, **kwargs):
         return "UNFINISHED FEATURE"
+    
+
+class get_user_perms(baseCommand.BaseCommand):
+    """
+    @help: list perms for the user on a select system
+    """
+    required_arguments = [
+        Argument('systemId'),
+        Argument('userName')
+    ]
+    async def run(self, *args, **kwargs):
+        return self.t.systems.getUserPerms(**kwargs)
+    
+
+class grant_user_perms(baseCommand.BaseCommand):
+    """
+    @help: assign a perm for a user on the select system
+    """
+    required_arguments = [
+        Argument('systemId'),
+        Argument('userName'),
+        Argument('permissions', arg_type='input_list', data_type=Argument('permission', choices=['READ', 'MODIFY', 'EXECUTE'], arg_type='str_input'))
+    ]
+    async def run(self, *args, **kwargs):
+        return self.t.grantUserPerms(**kwargs)
+    
+
+class 

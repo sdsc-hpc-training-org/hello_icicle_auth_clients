@@ -47,7 +47,7 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
     """
     Receives commands from the client and executes Tapis operations
     """
-    SESSION_TIME = 1200
+    SESSION_TIME = 1300
     debug=False
     def __init__(self, IP: str, PORT: int):
         super().__init__()
@@ -69,9 +69,13 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.bind((self.ip, self.port))
         self.sock.listen(1)
+
+        self.timeout_lock = asyncio.Lock()
         self.end_time = time.time() + self.SESSION_TIME # start the countdown on the timeout
 
         self.task_list: list[asyncio.Task] = []
+
+        self.loop = asyncio.get_event_loop()
 
         self.server = None
         self.num_connections = 0
@@ -81,6 +85,22 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
     def cancel_tasks(self):
         for task in self.task_list:
             task.cancel()
+
+    def server_shutdown(self):
+        self.cancel_tasks()
+        self.server.close()
+        self.loop.stop()
+        self.loop.close()
+        sys.exit(0)
+
+    async def check_timeout(self):
+        while True:
+            async with self.timeout_lock:
+                if time.time() >= self.end_time:
+                    self.logger.info("Timeout, shutting down")
+                    self.server_shutdown()
+                    return None
+            await asyncio.sleep(10)
 
     async def handshake(self, connection):
         self.logger.info("Handshake starting")
@@ -99,8 +119,8 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
         accept connection request and initialize communication with the client
         """  
         self.num_connections += 1
+        self.end_time += self.SESSION_TIME
         connection = ServerConnection(f"CON-{self.num_connections}", reader=reader, writer=writer, debug=self.debug)
-        self.timeout_handler()
         ip, port= writer.transport.get_extra_info('socket').getsockname()
         if ip != socket.gethostbyname(socket.gethostname()):
             raise exceptions.UnauthorizedAccessError(ip)
@@ -127,18 +147,18 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
             self.logger.warning(f"The setup of the connection {connection.name} failed")
             return
 
-        loop = asyncio.get_event_loop()
-        task: asyncio.Task = loop.create_task(self.receive_and_execute(connection))
+        task: asyncio.Task = self.loop.create_task(self.receive_and_execute(connection))
         callback = TaskCallback(self.logger, task, self.task_list)
         task.add_done_callback(callback)
         self.task_list.append(task)
 
-    def timeout_handler(self):  
+    async def timeout_handler(self):  
         """
         checks if the timeout has been exceeded
         """
-        if time.time() > self.end_time: 
-            raise exceptions.TimeoutError
+        async with self.timeout_lock:
+            if time.time() > self.end_time: 
+                raise exceptions.TimeoutError
 
     async def receive_and_execute(self, connection):
         """
@@ -147,7 +167,6 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
         while True:
             try:
                 message = await connection.receive()
-                self.timeout_handler()  
                 kwargs = message.request_content
                 result = await self.run_command(connection, kwargs)
                 response = schemas.ResponseData(message={"message":result}, url=self.url, active_username=self.username)
@@ -161,12 +180,7 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
                 error_response = schemas.ResponseData(error=str(e), exit_status=1, url=self.url, active_username=self.username)
                 await connection.send(error_response)
                 self.logger.warning(str(e))
-                self.cancel_tasks()
-                self.server.close()
-                loop = asyncio.get_event_loop()
-                loop.stop()
-                loop.close()
-                sys.exit(0)
+                self.server_shutdown()
             except exceptions.Exit as e:
                 self.logger.info("user exit initiated")
                 error_response = schemas.ResponseData(error=str(e), exit_status=1, url=self.url, active_username=self.username)
@@ -187,7 +201,8 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
         self.server = await asyncio.start_server(self.accept, sock=self.sock)
         try:
             async with self.server:
-                await self.server.serve_forever()
+                results = await asyncio.gather(self.server.serve_forever(), self.check_timeout(), return_exceptions=True)
+                self.logger.info(str(results))
         except KeyboardInterrupt:
             self.server.close()
             self.cancel_tasks()

@@ -20,6 +20,15 @@ if __name__ != "__main__":
 __location__ = os.path.realpath(
     os.path.join(os.getcwd(), os.path.dirname(f"{__file__}")))
 server_path = os.path.join(__location__, r'../serverRun.py')
+
+ENTRANCE_MESSAGE = \
+"""
+Welcome to TapisCLICICLE
+The server takes a bit of time to start. Please Wait.
+If you have VPN enabled and startup fails, disable your VPN
+If issues persist, try restarting your computer.
+If you find any issues, please create a new issue here: https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients/issues
+"""
     
 
 class ClientSideConnection(socketOpts.ClientSocketOpts, handlers.Handlers):
@@ -40,6 +49,7 @@ class CLI(handlers.Handlers):
         super().__init__()
 
         self.term = Terminal()
+        print(f"{self.term.color_rgb(0, 0, 255)}{ENTRANCE_MESSAGE}{self.term.normal}")
         self.ip, self.port = IP, PORT
         self.connection = socket.socket(socket.AF_INET, socket.SOCK_STREAM) 
 
@@ -50,6 +60,9 @@ class CLI(handlers.Handlers):
         try:
             self.username, self.url = self.connect()
             self.connection.send(setup_message)
+        except ConnectionAbortedError:
+            print("Server timed out during authentication. Try again")
+            os._exit(0)
         except (KeyboardInterrupt, Exception) as e:
             error_str = traceback.format_exc()
             if self.debug:
@@ -173,8 +186,7 @@ class CLI(handlers.Handlers):
     def cli_window(self):
         title = pyfiglet.figlet_format("-----------\nTapisCLICICLE\n-----------", font="slant") # print the title when CLI is accessed
         print(title)
-        print(r"""If you find any issues, please create a new issue here: https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients/issues
-                Enter 'exit' to exit the client
+        print(r"""Enter 'exit' to exit the client
                 Enter 'shutdown' to shut down the client and server
                 Enter 'Help' to show command options""")
         while True:
@@ -196,6 +208,7 @@ class CLI(handlers.Handlers):
                 error_str = traceback.format_exc()
                 if self.debug:
                     print(error_str)
+                print(e)
                 error_message = schemas.ResponseData(error=str(e))
                 self.connection.send(error_message)
         
