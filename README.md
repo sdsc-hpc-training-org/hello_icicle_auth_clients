@@ -42,7 +42,7 @@ This software was developed as part of the [SDSC/UCSD Smmer 2022 REHS Project](h
    * Sahil Samar, Del Norte High School, San Diego, CA, sahilsamar031@gmail.com
    * Mia Chen, Westview High School, San Diego, CA, mialunachen@gmail.com
    * Jack Karpinski, San Diego High School, San Diego, CA, USA, jackadoo4@gmail.com
-   * Michael Ray, JSerra Catholic High School, San Juan Capistrano, CA, michael.ray@jserra.org
+   * Michael Ray, JSerra Catholic High School, San Juan Capistrano, CA, m.ray37990@gmail.com
    * Archita Sarin, Mission San Jose High School, Fremont, CA, archita.sarin@gmail.com
 * Collaborators/Mentors:
    * Christian Garcia, Engineering Scientist Associate (Texas Advanced Computing Center [5]).
