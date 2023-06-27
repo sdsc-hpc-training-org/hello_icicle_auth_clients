@@ -27,7 +27,7 @@ Allows you to work with all major Tapis services: Pods, Systems, Files, and Apps
 
 Alternatively, if you do not want to enter the actual command line environment of the TapisCL-ICICLE application, you can run commands directly from the command line like this:
 
-`python -m TapisCLICICLE pods -c help`
+`python -m TapisCLICICLE help -v`
 
 this may still ask you for authentication, however once you are logged in once, you do not need to enter your credentials again unless the 5 minute timeout period passes, in which case the application shuts itself off.
 
