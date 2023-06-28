@@ -4,7 +4,7 @@ from TapisCLICICLE.client.cli import CLI
 
 
 def client_start():
-    client_object = CLI(socket.gethostbyname(socket.gethostname()), 30000)
+    client_object = CLI('127.0.0.1', 30000)
     client_object.main()
 
 

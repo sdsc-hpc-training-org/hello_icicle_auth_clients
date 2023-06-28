@@ -48,7 +48,7 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
     Receives commands from the client and executes Tapis operations
     """
     SESSION_TIME = 1300
-    debug=False
+    debug=True
     def __init__(self, IP: str, PORT: int):
         super().__init__()
         self.initial = True
@@ -122,8 +122,6 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
         self.end_time += self.SESSION_TIME
         connection = ServerConnection(f"CON-{self.num_connections}", reader=reader, writer=writer, debug=self.debug)
         ip, port= writer.transport.get_extra_info('socket').getsockname()
-        if ip != socket.gethostbyname(socket.gethostname()):
-            raise exceptions.UnauthorizedAccessError(ip)
         self.logger.info("Received connection request")
         try:
             await self.handshake(connection)
@@ -201,8 +199,8 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
         self.server = await asyncio.start_server(self.accept, sock=self.sock)
         try:
             async with self.server:
-                results = await asyncio.gather(self.server.serve_forever(), self.check_timeout(), return_exceptions=True)
-                self.logger.info(str(results))
+                await self.server.serve_forever()#, self.check_timeout(), return_exceptions=True)
+                #self.logger.info(str(results))
         except KeyboardInterrupt:
             self.server.close()
             self.cancel_tasks()
@@ -210,5 +208,5 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
 
 
 if __name__ == '__main__':
-    server = Server(socket.gethostbyname(socket.gethostname()), 30000)
+    server = Server(socket.gethostbyname('127.0.0.1', 30000)) # what the hell you were thinking??? plaintext passwords over network!?!?!
     asyncio.run(server.main())

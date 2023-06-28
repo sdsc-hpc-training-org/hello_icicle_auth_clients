@@ -369,4 +369,4 @@ class grant_user_perms(baseCommand.BaseCommand):
         return self.t.grantUserPerms(**kwargs)
     
 
-class 
+#class 
