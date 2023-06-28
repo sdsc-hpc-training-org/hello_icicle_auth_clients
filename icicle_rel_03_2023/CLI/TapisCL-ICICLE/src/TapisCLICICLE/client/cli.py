@@ -62,7 +62,7 @@ class CLI(handlers.Handlers):
             self.connection.send(setup_message)
         except ConnectionAbortedError:
             print("Server timed out during authentication. Try again")
-            os._exit(0)
+            sys.exit(0)
         except (KeyboardInterrupt, Exception) as e:
             error_str = traceback.format_exc()
             if self.debug:
@@ -71,7 +71,7 @@ class CLI(handlers.Handlers):
             setup_message.error = str(e)
             setup_message.request_content['setup_success'] = False
             self.connection.send(setup_message)
-            os._exit(0)
+            sys.exit(0)
 
         self.pwd = ""
         self.current_system = ""
@@ -109,7 +109,7 @@ class CLI(handlers.Handlers):
         while True:
             if time.time() > timeout_time: # connection timeout condition
                 sys.stdout.write("\r[-] Connection timeout")
-                os._exit(0)
+                sys.exit(0)
             try:
                 self.connection.connect((self.ip, self.port)) 
                 self.connection = ClientSideConnection(self.connection, debug=self.debug)
@@ -166,7 +166,7 @@ class CLI(handlers.Handlers):
                 self.pwd, self.current_system = command_response.pwd, command_response.system
                 if command_response.exit_status:
                     print("Exit initiated")
-                    os._exit(0)
+                    sys.exit(0)
             handled_response, repeat = self.universal_message_handler(command_response, self.term)
             if not handled_response:
                 break
@@ -178,10 +178,10 @@ class CLI(handlers.Handlers):
             kwargs = self.parser.parse_args()
         except:
             print("Invalid Arguments")
-            os._exit(0)
+            sys.exit(0)
         kwargs = vars(kwargs)
         self.interface(kwargs)
-        os._exit(0)
+        sys.exit(0)
 
     def cli_window(self):
         title = pyfiglet.figlet_format("-----------\nTapisCLICICLE\n-----------", font="slant") # print the title when CLI is accessed
@@ -198,7 +198,7 @@ class CLI(handlers.Handlers):
                 continue
             except (ConnectionAbortedError, ConnectionResetError):
                 print("Server shutdown, exiting")
-                os._exit(0)
+                sys.exit(0)
             except (TypeError, argparse.ArgumentError, argparse.ArgumentTypeError) as e:
                 print(e)
                 error_str = traceback.format_exc()

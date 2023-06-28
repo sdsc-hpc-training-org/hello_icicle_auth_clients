@@ -156,7 +156,7 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
         async with self.timeout_lock:
             if time.time() > self.end_time: 
                 raise exceptions.TimeoutError
-
+            
     async def receive_and_execute(self, connection: ServerConnection):
         """
         receive and process commands
