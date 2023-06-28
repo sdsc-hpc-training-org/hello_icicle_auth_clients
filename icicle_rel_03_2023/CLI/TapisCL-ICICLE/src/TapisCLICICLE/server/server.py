@@ -36,11 +36,8 @@ class TaskCallback:
         self.task_list = task_list
         self.logger, self.task = logger, task
 
-    def __call__(self, result):
+    def __call__(self):
         self.task_list.remove(self.task)
-        print(result)
-        result = self.task.result()
-        self.logger.info(result)
 
 
 class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.DecoratorSetup, auth.ServerSideAuth):
@@ -48,7 +45,7 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
     Receives commands from the client and executes Tapis operations
     """
     SESSION_TIME = 1300
-    debug=True
+    debug=False
     def __init__(self, IP: str, PORT: int):
         super().__init__()
         self.initial = True
@@ -70,12 +67,12 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
         self.sock.bind((self.ip, self.port))
         self.sock.listen(1)
 
+        self.loop = asyncio.get_event_loop()
+
         self.timeout_lock = asyncio.Lock()
         self.end_time = time.time() + self.SESSION_TIME # start the countdown on the timeout
 
         self.task_list: list[asyncio.Task] = []
-
-        self.loop = asyncio.get_event_loop()
 
         self.server = None
         self.num_connections = 0
@@ -146,9 +143,11 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
             return
 
         task: asyncio.Task = self.loop.create_task(self.receive_and_execute(connection))
+        print("TASK CREATED")
         callback = TaskCallback(self.logger, task, self.task_list)
         task.add_done_callback(callback)
         self.task_list.append(task)
+        print(self.task_list)
 
     async def timeout_handler(self):  
         """
@@ -158,10 +157,11 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
             if time.time() > self.end_time: 
                 raise exceptions.TimeoutError
 
-    async def receive_and_execute(self, connection):
+    async def receive_and_execute(self, connection: ServerConnection):
         """
         receive and process commands
         """
+        self.logger.info(f"{connection.name} is now running")
         while True:
             try:
                 message = await connection.receive()
@@ -199,7 +199,7 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
         self.server = await asyncio.start_server(self.accept, sock=self.sock)
         try:
             async with self.server:
-                await self.server.serve_forever()#, self.check_timeout(), return_exceptions=True)
+                result = await self.server.serve_forever()#, self.check_timeout(), return_exceptions=True)
                 #self.logger.info(str(results))
         except KeyboardInterrupt:
             self.server.close()
