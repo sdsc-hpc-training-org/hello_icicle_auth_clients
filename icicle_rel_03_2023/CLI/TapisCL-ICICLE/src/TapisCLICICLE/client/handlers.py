@@ -97,8 +97,11 @@ class Handlers(Formatters):
                 expression += line
         return expression
     
-    def confirmation_handler(self):
-        print("are you sure?")
+    def confirmation_handler(self, argument):
+        if argument['description']:
+            print(argument['description'])
+        else:
+            print("are you sure?")
         while True:
             decision = str(input("(y/n)"))
             if decision == 'y':
@@ -177,7 +180,7 @@ class Handlers(Formatters):
                                 print(attrs['description'])
                             answer = prompt(f"{attrs['name']}: ", validator=self.validator)
                         case 'confirmation':
-                            answer = self.confirmation_handler()
+                            answer = self.confirmation_handler(attrs)
                         case 'silent':
                             continue
                         case _:
