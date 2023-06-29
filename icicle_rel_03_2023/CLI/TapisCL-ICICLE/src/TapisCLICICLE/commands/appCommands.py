@@ -3,20 +3,27 @@ import json
 
 if __name__ != "__main__":
     from . import baseCommand, decorators
+    from .arguments import argument
+    Argument = argument.Argument
 
 
 class create_app(baseCommand.BaseCommand):
     """
     @help: create an app. You must have a properly configured app config file. 
     See a template at https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients/blob/main/icicle_rel_04_2023/CLI/TapisCL-ICICLE/tapis-config-files/app-config.json
-    @todo: add a system where the class can say whether or not the config file of the app exists, and if it does not, open up a form to get system information. Maybe 
-    be able to run RequiresForm as something other than a decorator?
     """
-    async def run(self, file: str, *args, **kwargs) -> str: # create a tapis app taking a json descriptor file path
-        with open(file, 'r') as f:
-            app_def = json.loads(f.read())
-        url = self.t.apps.createAppVersion(**app_def)
-        return f"App created successfully\nID: {app_def['id']}\nVersion: {app_def['version']}\nURL: {url}\n"
+    supports_config_file=True
+    required_arguments = [
+        Argument('id'),
+        Argument('version')
+    ]
+    optional_arguments = [
+        Argument('description', arg_type='str_input'),
+        Argument('owner')
+    ]
+    async def run(self, *args, **kwargs) -> str: # create a tapis app taking a json descriptor file path
+        url = self.t.apps.createAppVersion(**kwargs)
+        return f"App created successfully\nID: {kwargs['id']}\nVersion: {kwargs['version']}\nURL: {url}\n"
 
 
 class get_apps(baseCommand.BaseCommand):
