@@ -67,9 +67,8 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
         self.sock.bind((self.ip, self.port))
         self.sock.listen(1)
 
-        self.loop = asyncio.get_event_loop()
+        loop = asyncio.get_event_loop()
 
-        self.timeout_lock = asyncio.Lock()
         self.end_time = time.time() + self.SESSION_TIME # start the countdown on the timeout
 
         self.task_list: list[asyncio.Task] = []
@@ -84,10 +83,11 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
             task.cancel()
 
     def server_shutdown(self):
+        loop = asyncio.get_event_loop()
         self.cancel_tasks()
         self.server.close()
-        self.loop.stop()
-        self.loop.close()
+        loop.stop()
+        loop.close()
         sys.exit(0)
 
     async def check_timeout(self):
@@ -142,13 +142,15 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
             self.logger.warning(f"The setup of the connection {connection.name} failed")
             return
 
-        task: asyncio.Task = self.loop.create_task(self.receive_and_execute(connection))
+        loop = asyncio.get_event_loop()
+        task: asyncio.Task = loop.create_task(self.receive_and_execute(connection))
         print("TASK CREATED")
         callback = TaskCallback(self.logger, task, self.task_list)
         task.add_done_callback(callback)
         self.task_list.append(task)
         print(self.task_list)
 
+<<<<<<< HEAD
     async def timeout_handler(self):  
         """
         checks if the timeout has been exceeded
@@ -157,6 +159,8 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
             if time.time() > self.end_time: 
                 raise exceptions.TimeoutError
             
+=======
+>>>>>>> 12cf634b535d8f57079ab1cf85ae4d63c6f9000f
     async def receive_and_execute(self, connection: ServerConnection):
         """
         receive and process commands

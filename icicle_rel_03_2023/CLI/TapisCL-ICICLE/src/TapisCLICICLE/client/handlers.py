@@ -55,7 +55,7 @@ class ParserTypeLenEnforcer:
 
         def update_data_type(self, d_type_str):
             try:
-                self.data_type = self.type_map[d_type_str]
+                self.data_type = self.type_map[d_type_str] # THIS IS STILL NOT WORKING 
             except KeyError:
                 self.data_type = None
 

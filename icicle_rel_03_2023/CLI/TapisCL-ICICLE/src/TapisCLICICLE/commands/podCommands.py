@@ -32,6 +32,7 @@ class get_pod(baseCommand.BaseCommand):
 class create_pod(baseCommand.BaseCommand):
     """
     @help: create a new pod on the selected Tapis service
+    @doc: fix the pod updating, make sure non selected optional vaiables do not overwrite. Why description appending???
     """
     supports_config_file=True
     required_arguments=[
@@ -214,7 +215,8 @@ class get_pod_logs(baseCommand.BaseCommand):
     ]
     async def run(self, *args, **kwargs):
         logs = self.t.pods.get_pod_logs(pod_id=kwargs['pod_id'])
-        file = kwargs['destination_file']
+        if 'destination_file' in kwargs:
+            file = kwargs['destination_file']
         if file:
             with open(file, 'w') as f:
                 f.write(logs)
