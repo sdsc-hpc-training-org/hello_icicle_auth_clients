@@ -149,13 +149,17 @@ class ArgsGenerator:
             truncation_dict[argument_name] = truncated_argument
         return truncation_dict
             
-    def __generate_truncated_argument(self, argument, truncated_arguments_dict, attempt=1):
-        if argument[attempt-1] in ('_', '-'):
-            attempt += 1
-        truncated_argument = argument[:attempt]
-        if truncated_argument in list(truncated_arguments_dict.values()):
-            return self.__generate_truncated_argument(argument, truncated_arguments_dict, attempt=attempt+1)
-        return truncated_argument
+    def __generate_truncated_argument(self, argument, truncated_arguments_dict, attempts=1):
+        if argument[attempts-1] in ('_', '-'):
+            argument += 1
+        abbreviation = argument[:attempts]
+        for index, letter in enumerate(argument):
+            if letter.isupper() or not (argument[index-1].isnumeric() or argument[index-1].isalpha()):
+                abbreviation += letter.lower()
+
+        if abbreviation.lower() in list(truncated_arguments_dict.values()):
+            abbreviation = self.__generate_truncated_argument(argument, truncated_arguments_dict, attempts=attempts+1)
+        return abbreviation.lower()
     
 
 class AggregateCommandMap(baseCommand.CommandContainer, ArgsGenerator):

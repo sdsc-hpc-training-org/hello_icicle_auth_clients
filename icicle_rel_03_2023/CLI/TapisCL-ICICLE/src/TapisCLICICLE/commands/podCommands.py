@@ -41,32 +41,32 @@ class create_pod(baseCommand.BaseCommand):
     ]
     optional_arguments=[
         Argument('description', arg_type='str_input', size_limit=(0, 2048)),
-        Argument('command', arg_type='input_list'),
-        Argument('environment_variables', arg_type='input_dict'),
-        Argument('data_request', arg_type='input_list'),
-        Argument('roles_required', arg_type='input_list'),
+        Argument('command', arg_type='input_list', data_type=argument.Argument('command', arg_type='str_input')),
+        Argument('environment_variables', arg_type='input_dict', data_type=argument.Argument('environment_variable', arg_type='str_input')),
+        Argument('data_request', arg_type='input_list', data_type=argument.Argument('data_request', arg_type='str_input')),
+        Argument('roles_required', arg_type='input_list', data_type=argument.Argument('required_role', arg_type='str_input')),
         Argument('time_to_stop_default', data_type='int'),
         Argument('time_to_stop_instance', data_type='int'),
         Argument('volume_mounts', arg_type='input_dict', data_type=argument.Form(
-            'property_name', arguments_list = [
-                Argument('type'),
+            'volume_mount', arguments_list = [
+                Argument('type', choices=['tapisvolume', 'tapissnapshot', 'pvc']),
                 Argument("mount_path"),
                 Argument('sub_path')
             ]
         )),
         Argument('networking', arg_type='input_dict', data_type=argument.Form(
-            'property_name', arguments_list = [
+            'network', arguments_list = [
                 Argument('protocol'),
-                Argument('port'),
+                Argument('port', data_type='int'),
                 Argument('url')
             ]
         )),
         Argument('resources', arg_type='input_dict', data_type=argument.Form(
-            'property_name', arguments_list = [
-                Argument('cpu_request'),
-                Argument('cpu_limit'),
-                Argument('mem_request'),
-                Argument('mem_limit'),
+            'resource', arguments_list = [
+                Argument('cpu_request', data_type='int'),
+                Argument('cpu_limit', data_type='int'),
+                Argument('mem_request', data_type='int'),
+                Argument('mem_limit', data_type='int'),
             ]
         ))
     ]
@@ -93,6 +93,7 @@ class update_pod(create_pod):
         Argument('pod_id'),
     ]
     async def run(self, *args, **kwargs):
+        print(kwargs)
         pod_information = self.t.pods.update_pod(**kwargs)
         return pod_information
 

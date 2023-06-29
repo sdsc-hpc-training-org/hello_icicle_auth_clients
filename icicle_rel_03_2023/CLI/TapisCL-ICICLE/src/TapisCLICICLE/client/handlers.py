@@ -38,37 +38,26 @@ class Formatters:
             print("\n")
 
 
-def cast_int(data):
-    return int(data)
-
-def cast_string(data):
-    return str(data)
-
-
 class ParserTypeLenEnforcer:
-        type_map = {'int':cast_int, 'string':cast_string}
         def __init__(self, name: str=str(), size: tuple=(0, 0), data_type: str='string', choices: list=list()):
             self.arg_name = name
-            self.update_data_type(data_type)
+            self.data_type = data_type
             self.lower_size_limit, self.upper_size_limit = size
             self.choices = choices
 
-        def update_data_type(self, d_type_str):
-            try:
-                self.data_type = self.type_map[d_type_str] # THIS IS STILL NOT WORKING 
-            except KeyError:
-                self.data_type = None
-
         def update_constraints(self, name=None, data_type=None, choices=None, size_limit=None, **kwargs):
             self.arg_name = name
-            self.data_type = self.update_data_type(data_type)
+            self.data_type = data_type
             self.choices = choices
             self.lower_size_limit, self.upper_size_limit = size_limit
 
         def __call__(self, data):
             if self.data_type:
                 try:
-                    self.data_type(data)
+                    if self.data_type == 'string':
+                        str(data)
+                    elif self.data_type == 'int':
+                        int(data)
                 except Exception as e:
                     raise ValidationError(message=str(e) + self.data_type, cursor_position=0)
             if self.data_type == int:
@@ -124,7 +113,7 @@ class Handlers(Formatters):
     
     def form_handler(self, form_request: dict, term: Terminal):
         response = dict()
-        repeat = False
+        repeat = True
         for field, attrs in form_request.items():
             while True:
                 arg_type = attrs['arg_type']
@@ -138,25 +127,54 @@ class Handlers(Formatters):
                                 print(f"Enter expression input for the {attrs['name']} argument.")
                                 answer = self.__expression_input()
                         case 'form':
-                            answer = self.form_handler(attrs['arguments_list'], term)
+                            answer, repeat = self.form_handler(attrs['arguments_list'], term)
+                            print(f"ANSWER: {answer}")
                         case 'input_list':
                             repeat = True
                             answer = []
                             with term.fullscreen():
-                                print(f"You are now entering data for the {attrs['args']} field")
+                                print(f"You are now entering data for {attrs['name']}")
                                 while repeat:
-                                    sub_answer, repeat = self.form_handler(attrs['data_type'], term)
-                                    answer.append(sub_answer)
+                                    presentable_dict = {str(index+1):value for index, value in enumerate(answer)}
+                                    print(f"{term.clear}reserved names: exit (enter these for special action). Enter index of an existing variable name to delete it\n{presentable_dict}")
+                                    sub_answer, repeat = self.form_handler({str(len(answer)+1):attrs['data_type']}, term)
+                                    index, value = list(sub_answer.items())[0]
+                                    if value in presentable_dict:
+                                        answer.pop(int(value)-1)
+                                    elif value.lower() == 'exit':
+                                        break
+                                    else:
+                                        answer.append(value)
                         case 'input_dict':
                             repeat = True
+                            mode = 'create'
                             answer = dict()
-                            with term.fullscreen():
-                                print(f"You are now entering data for the {attrs['args']} field")
+                            default_name = attrs['data_type']['name']
+                            with open(r'C:\Users\ahuma\Desktop\programming\python_programs\hello_icicle_auth_clients\icicle_rel_03_2023\CLI\TapisCL-ICICLE\src\TapisCLICICLE\client\__init__.py', 'r'):#term.fullscreen():
+                                print(f"You are now entering data for {attrs['name']}")
                                 while repeat:
-                                    name = str(input(f"enter the {attrs['data_type']['name']} for the instance of {attrs['name']}"))
-                                    sub_answer, repeat = self.form_handler(attrs['data_type'], term)
-                                    answer[name] = sub_answer
+                                    print(f"{'term.clear'}reserved names: create, delete, exit (enter these for special action)\n{answer}\nmode: {mode}")
+                                    attrs['data_type']['name'] = default_name
+                                    name = str(input(f"enter the name for the instance of your {attrs['data_type']['name']}: "))
+                                    if name.lower() in ('delete', 'create'):
+                                        mode = name
+                                        continue
+                                    if name.lower() == 'exit':
+                                        break
+                                    if mode == 'create':
+                                        mode = 'create'
+                                        attrs['data_type']['name'] = name
+                                        sub_answer, repeat = self.form_handler({name:attrs['data_type']}, term)
+                                        answer.update(**sub_answer)
+                                    elif mode == 'delete':
+                                        mode = 'delete'
+                                        try:
+                                            answer.pop(name)
+                                        except KeyError:
+                                            pass
                         case 'str_input':
+                            if 'description' in attrs and attrs['description']:
+                                print(attrs['description'])
                             answer = prompt(f"{attrs['name']}: ", validator=self.validator)
                         case 'confirmation':
                             answer = self.confirmation_handler()

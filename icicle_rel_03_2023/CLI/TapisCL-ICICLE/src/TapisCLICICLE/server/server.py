@@ -36,7 +36,7 @@ class TaskCallback:
         self.task_list = task_list
         self.logger, self.task = logger, task
 
-    def __call__(self):
+    def __call__(self, data):
         self.task_list.remove(self.task)
 
 
@@ -45,7 +45,7 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
     Receives commands from the client and executes Tapis operations
     """
     SESSION_TIME = 1300
-    debug=False
+    debug=True
     def __init__(self, IP: str, PORT: int):
         super().__init__()
         self.initial = True
@@ -150,17 +150,6 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
         self.task_list.append(task)
         print(self.task_list)
 
-<<<<<<< HEAD
-    async def timeout_handler(self):  
-        """
-        checks if the timeout has been exceeded
-        """
-        async with self.timeout_lock:
-            if time.time() > self.end_time: 
-                raise exceptions.TimeoutError
-            
-=======
->>>>>>> 12cf634b535d8f57079ab1cf85ae4d63c6f9000f
     async def receive_and_execute(self, connection: ServerConnection):
         """
         receive and process commands

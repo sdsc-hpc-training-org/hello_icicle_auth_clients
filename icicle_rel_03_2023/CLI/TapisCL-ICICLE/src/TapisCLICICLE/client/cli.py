@@ -41,7 +41,7 @@ class ClientSideConnection(socketOpts.ClientSocketOpts, handlers.Handlers):
 
 
 class CLI(handlers.Handlers):
-    debug=False
+    debug=True
     """
     Receive user input, either direct from bash environment or from the custom interface, then parse these commands and send them to the server to be executed. 
     """
@@ -85,6 +85,8 @@ class CLI(handlers.Handlers):
         parser.add_argument('positionals', nargs='*', default='default1')
         parser.error = self.parser_error
 
+        for arg in arguments.values():
+            print(arg['truncated_arg'])
         for arg_name, arg in arguments.items():
             parser.add_argument(f"-{arg['truncated_arg']}", arg['full_arg'],
                                 action=arg['action'])
@@ -118,7 +120,7 @@ class CLI(handlers.Handlers):
                 break
             except Exception as e:
                 if not startup_flag:
-                    startup = killableThread.KillableThread(target=self.initialize_server) # run the server setup on a separate thread
+                    startup = killableThread.KillableThread(target=self.initialize_server, daemon=True) # run the server setup on a separate thread
                     startup.start() 
                     startup_flag = True # set the flag to true so the thread runs only once
                     continue

@@ -203,7 +203,7 @@ class create_system(baseCommand.BaseCommand):
                 Argument('value')
             ]
         )),
-        Argument('tags', arg_type='input_list'),
+        Argument('tags', arg_type='input_list', data_type=Argument('tag', arg_type='str_input')),
         Argument('notes', arg_type='str_input'),
         Argument('importRefId')
     ]

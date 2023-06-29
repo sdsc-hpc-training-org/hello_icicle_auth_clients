@@ -183,6 +183,9 @@ class create_snapshot(baseCommand.BaseCommand):
     
 
 class get_snapshot(baseCommand.BaseCommand):
+    """
+    @help: get snapshot information
+    """
     required_arguments = [
         Argument('snapshot_id')
     ]
@@ -191,6 +194,9 @@ class get_snapshot(baseCommand.BaseCommand):
     
 
 class update_snapshot(baseCommand.BaseCommand):
+    """
+    @help: update snapshot information
+    """
     supports_config_file=True
     required_arguments = [
         Argument('snapshot_id')
@@ -206,6 +212,9 @@ class update_snapshot(baseCommand.BaseCommand):
     
 
 class delete_snapshot(baseCommand.BaseCommand):
+    """
+    @help: delete snapshot information
+    """
     decorator=decorators.NeedsConfirmation()
     required_arguments = [
         Argument('snapshot_id')
@@ -215,6 +224,9 @@ class delete_snapshot(baseCommand.BaseCommand):
     
 
 class list_snapshot_files(baseCommand.BaseCommand):
+    """
+    @help: list the files in a snapshot
+    """
     required_arguments = [
         Argument('snapshot_id')
     ]

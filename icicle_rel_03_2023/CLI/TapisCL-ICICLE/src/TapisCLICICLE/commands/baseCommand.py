@@ -217,6 +217,10 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
                 "Optional Arguments":self.help['optional']['verbose']})
         return help_dict
     
+    def brief_help(self):
+        return {"Command":self.__class__.__name__,
+                "Description":self.help_string_retriever()}
+    
     @abstractmethod
     async def run(self, *args, **kwargs):
         pass
@@ -321,9 +325,9 @@ class BaseCommandMap(CommandContainer, HelpStringRetriever, metaclass=CommandMap
                 raise ValueError(f"Found two instances of the argument {arg.argument} that had different attributes.\n\n{command.__class__.__name__}: {arg.check_for_copy_data()}\n\nvs\n\n{self.arguments[name].check_for_copy_data()}")
 
     def __help_gen(self):
-        verbose_help = dict()
+        verbose_help = list()
         for command in self.command_map.values():
-            verbose_help.update({command.__class__.__name__:command.help})
+            verbose_help.append(command.brief_help())
         return verbose_help
     
     def __brief_help_gen(self):

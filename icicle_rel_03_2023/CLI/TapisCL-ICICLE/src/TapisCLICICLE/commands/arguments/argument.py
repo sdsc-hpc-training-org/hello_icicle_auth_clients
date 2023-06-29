@@ -135,7 +135,22 @@ class Form(Argument):
         self.arguments_list = {argument.argument:argument for argument in arguments_list}
 
     def json(self):
-        return {argument_name:argument.json() for argument_name, argument in self.arguments_list.items()}
+        fields = {argument_name:argument.json() for argument_name, argument in self.arguments_list.items()}
+        json = {
+            'name':self.argument,
+            'arg_type':self.arg_type,
+            'data_type':self.data_type,
+            'choices':self.choices,
+            'action':self.action,
+            'description':self.description,
+            'positional':self.positional,
+            'default_value':self.default_value,
+            'size_limit':self.size_limit,
+            'truncated_arg':self.truncated_arg,
+            'full_arg':self.full_arg,
+            'arguments_list':fields
+        }
+        return json
     
 
 class RequestHandler:
