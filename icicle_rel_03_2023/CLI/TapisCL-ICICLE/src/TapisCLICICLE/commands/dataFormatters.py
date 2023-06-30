@@ -52,7 +52,7 @@ class DataFormatters:
     def pod_formatter(self, return_data, verbose):
         if return_data:
             return_data = DataFormatters.json_serializer(return_data)
-            if not verbose:
+            if not verbose and not isinstance(return_data, str):
                 return DataFormatters.base_formatter(self, return_data, desired_data=DataFormatters.pod_data)
             return return_data
         return "No data found"
@@ -61,7 +61,7 @@ class DataFormatters:
     def system_formatter(self, return_data, verbose):
         if return_data:
             return_data = DataFormatters.json_serializer(return_data)
-            if not verbose:
+            if not verbose and not isinstance(return_data, str):
                 return DataFormatters.base_formatter(self, return_data, desired_data=DataFormatters.system_data)
             return return_data
         return "No data found"
@@ -70,13 +70,23 @@ class DataFormatters:
     def app_formatter(self, return_data, verbose):
         if return_data:
             return_data = DataFormatters.json_serializer(return_data)
-            if not verbose:
+            if not verbose and not isinstance(return_data, str):
                 return DataFormatters.base_formatter(self, return_data, desired_data=DataFormatters.app_data)
             return return_data
         return "No data found"
     
     @staticmethod
     def server_formatter(self, return_data, verbose):
+        if return_data:
+            try:
+                json.dumps(return_data)
+                return return_data
+            except:
+                return str(return_data)
+        return "No data found"
+    
+    @staticmethod
+    def general_formatter(self, return_data, verbose):
         if return_data:
             try:
                 json.dumps(return_data)

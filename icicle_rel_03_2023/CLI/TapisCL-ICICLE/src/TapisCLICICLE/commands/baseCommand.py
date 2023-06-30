@@ -310,7 +310,8 @@ class BaseCommandMap(CommandContainer, HelpStringRetriever, metaclass=CommandMap
         self.brief_help = self.__brief_help_gen()
         self.verbose_help = self.__help_gen()
         for name, command in self.command_map.items():
-            command.return_formatter = self.data_formatter
+            if self.data_formatter:
+                command.return_formatter = self.data_formatter
             self.aggregate_command_map.update({name:command})
             if command.required_arguments or command.optional_arguments:
                 self.__contribute_to_arguments(command)

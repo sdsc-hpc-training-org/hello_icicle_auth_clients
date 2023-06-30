@@ -38,6 +38,7 @@ class TaskCallback:
 
     def __call__(self, data):
         self.task_list.remove(self.task)
+        return data
 
 
 class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.DecoratorSetup, auth.ServerSideAuth):
@@ -72,6 +73,10 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
         self.end_time = time.time() + self.SESSION_TIME # start the countdown on the timeout
 
         self.task_list: list[asyncio.Task] = []
+        timeout_task = loop.create_task(self.check_timeout())
+        timeout_task.add_done_callback(TaskCallback(self.logger, timeout_task, self.task_list))
+
+        self.task_list.append(timeout_task)
 
         self.server = None
         self.num_connections = 0
@@ -80,15 +85,19 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
 
     def cancel_tasks(self):
         for task in self.task_list:
-            task.cancel()
+            result = task.cancel()
+            self.logger.info(str(result))
 
     def server_shutdown(self):
-        loop = asyncio.get_event_loop()
-        self.cancel_tasks()
-        self.server.close()
-        loop.stop()
-        loop.close()
-        sys.exit(0)
+        try:
+            loop = asyncio.get_event_loop()
+            self.cancel_tasks()
+            self.server.close()
+            loop.stop()
+            loop.close()
+            sys.exit(0)
+        except RuntimeError:
+            sys.exit(0)
 
     async def check_timeout(self):
         while True:

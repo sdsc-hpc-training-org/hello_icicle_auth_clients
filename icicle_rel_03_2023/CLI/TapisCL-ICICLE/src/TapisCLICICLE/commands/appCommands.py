@@ -34,6 +34,20 @@ class create_app(baseCommand.BaseCommand):
     async def run(self, *args, **kwargs) -> str: # create a tapis app taking a json descriptor file path
         url = self.t.apps.createAppVersion(**kwargs)
         return f"App created successfully\nID: {kwargs['id']}\nVersion: {kwargs['version']}\nURL: {url}\n"
+    
+
+class update_app(create_app):
+    """
+    @help: update app with the select attributes
+    """
+    supports_config_file = True
+    required_arguments = [
+        Argument('appId', size_limit=(1, 80)),
+        Argument('appVersion', size_limit=(1, 64))
+    ]
+    async def run(self, *args, **kwargs):
+        self.t.apps.patchApp(**kwargs)
+        return f'updated app {kwargs["appId"]} successfully'
 
 
 class assign_default_job_attributes(baseCommand.BaseCommand):
@@ -46,7 +60,7 @@ class assign_default_job_attributes(baseCommand.BaseCommand):
         Argument('appVersion', size_limit=(1, 64))
     ]
     optional_arguments = [
-        Argument('description'),
+        Argument('description', arg_type='str_input'),
         Argument('dynamicExecSystem', arg_type='confirmation', description="System is dynamic?"),
         Argument('execSystemConstraints', arg_type='input_list', data_type=Argument('constraint', size_limit=(3, 4096))),
         Argument('execSystemId', size_limit=(1, 80)),
@@ -58,7 +72,7 @@ class assign_default_job_attributes(baseCommand.BaseCommand):
         Argument('archivesystemDir', size_limit=(1, 4096)),
         Argument('archiveOnAppError', arg_type='confirmation', description='archive on error?'),
         Argument("isMpi", arg_type='confirmation', description="is mpi?"),
-        Argument('mpiCmd', size_limit=(1, 126)),
+        Argument('mpiCmd', size_limit=(1, 126), arg_type='str_input'),
         Argument('cmdPrefix', size_limit=(1, 126)),
         argument.Form('parameterSet', arguments_list=[
             Argument('appArgs', arg_type='input_list', data_type=argument.Form('appArg', arguments_list=[
@@ -97,7 +111,7 @@ class assign_default_job_attributes(baseCommand.BaseCommand):
             Argument('name', size_limit=(1, 80)),
             Argument('description', size_limit=(1, 8096)),
             Argument('inputMode', choices=['REQUIRED', 'OPTIONAL', 'FIXED']),
-            Argument('sourceUrls', arg_type='input_list', data_type=Argument('sourceUrl', arg_type='str_input')),
+            Argument('sourceUrls', arg_type='input_list', data_type=Argument('sourceUrl')),
             Argument('targetPath')
         ])),
         Argument('nodeCount', data_type='int'),
@@ -116,7 +130,9 @@ class assign_default_job_attributes(baseCommand.BaseCommand):
         ]))
     ]
     async def run(self, *args, **kwargs):
-        self.t.apps.patchApp(jobAttributes=kwargs)
+        appId = kwargs.pop('appId')
+        appVersion = kwargs.pop('appVersion')
+        self.t.apps.patchApp(appId=appId, appVersion=appVersion, jobAttributes=kwargs)
         return 'updated job attributes successfully'
     
 
@@ -135,7 +151,7 @@ class get_apps(baseCommand.BaseCommand):
         ])
     ]
     async def run(self, *args, **kwargs):
-        return self.t.getApps(**kwargs)
+        return self.t.apps.getApps(**kwargs)
     
 
 class get_app(baseCommand.BaseCommand):
@@ -150,12 +166,12 @@ class get_app(baseCommand.BaseCommand):
     ]
     async def run(self, *args, **kwargs):
         if 'appVersion' not in kwargs:
-            version = self.t.getAppLatestVersion(**kwargs).version
+            version = self.t.apps.getAppLatestVersion(**kwargs).version
             kwargs['appVersion'] = version
-        return self.t.getApp(**kwargs)
+        return self.t.apps.getApp(**kwargs)
     
 
-class is_enabled(baseCommand.BaseCommand):
+class is_app_enabled(baseCommand.BaseCommand):
     """
     @help: check if the app is enabled
     """
@@ -166,7 +182,7 @@ class is_enabled(baseCommand.BaseCommand):
         return self.t.apps.isEnabled(**kwargs)
     
 
-class enable_app(is_enabled):
+class enable_app(is_app_enabled):
     """
     @help: enable the app
     """
@@ -174,7 +190,7 @@ class enable_app(is_enabled):
         return self.t.apps.enableApp(**kwargs)
     
 
-class disable_app(is_enabled):
+class disable_app(is_app_enabled):
     """
     @help: disable the app
     """
@@ -182,7 +198,7 @@ class disable_app(is_enabled):
         return self.t.apps.disableApp(**kwargs)
     
 
-class delete_app(is_enabled):
+class delete_app(is_app_enabled):
     """
     @help: delete the app
     """
@@ -191,12 +207,20 @@ class delete_app(is_enabled):
         return self.t.apps.disableApp(**kwargs)
     
 
-class undelete_app(is_enabled):
+class undelete_app(is_app_enabled):
     """
     @help: undo a deletion of an app
     """
     async def run(self, *args, **kwargs):
         return self.t.apps.undeleteApp(**kwargs)
+    
+
+class get_app_history(is_app_enabled):
+    """
+    @help: get the history of changes to an application
+    """
+    async def run(self, *args, **kwargs):
+        return str(self.t.apps.getAppHistory(**kwargs))
     
 
 class get_app_user_perms(baseCommand.BaseCommand):
@@ -208,7 +232,7 @@ class get_app_user_perms(baseCommand.BaseCommand):
         Argument('userName', size_limit=(1, 80))
     ]
     async def run(self, *args, **kwargs):
-        return self.t.apps.getUserPerms
+        return str(self.t.apps.getUserPerms)
     
 
 class grant_app_user_perms(baseCommand.BaseCommand):

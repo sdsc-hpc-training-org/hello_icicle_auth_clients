@@ -19,7 +19,7 @@ class Systems(baseCommand.BaseCommandMap):
         'create_child_system':systemCommands.create_child_system(),
         'create_system':systemCommands.create_system(),
         'update_system':systemCommands.update_system(),
-        'is_enabled':systemCommands.is_enabled(),
+        'is_system_enabled':systemCommands.is_system_enabled(),
         'enable_system':systemCommands.enable_system(),
         'disable_system':systemCommands.disable_system(),
         'system':systemCommands.system(),
@@ -29,7 +29,7 @@ class Systems(baseCommand.BaseCommandMap):
     }
 
 
-class Server(baseCommand.BaseCommandMap):
+class General(baseCommand.BaseCommandMap):
     """
     @help: run config operations on the 
     """
@@ -60,7 +60,7 @@ class Pods(baseCommand.BaseCommandMap):
         'set_pod_perms':podCommands.set_pod_perms(),
         'stop_pod':podCommands.stop_pod(),
         'delete_pod_perms':podCommands.delete_pod_perms(),
-        'get_perms':podCommands.get_perms(),
+        'get_pod_perms':podCommands.get_pod_perms(),
         'copy_pod_password':podCommands.copy_pod_password(),
         'get_pod_logs':podCommands.get_pod_logs(),
     }
@@ -70,11 +70,13 @@ class Volumes(baseCommand.BaseCommandMap):
     """
     @help: run operations on tapis volumes and snapshots
     """
+    data_formatter = dataFormatters.DataFormatters.general_formatter
     command_map = {
         'get_volumes':volumeCommands.get_volumes(),
         'create_volume':volumeCommands.create_volume(),
         'get_volume':volumeCommands.get_volume(),
         'volume':volumeCommands.volume(),
+        'exit_volume':volumeCommands.exit_volume(),
         'update_volume':volumeCommands.update_volume(),
         'delete_volume':volumeCommands.delete_volume(),
         'dir':volumeCommands.dir(),
@@ -95,9 +97,11 @@ class Files(baseCommand.BaseCommandMap):
     """
     @help: run operations on tapis files
     """
+    data_formatter = dataFormatters.DataFormatters.general_formatter
     command_map = {
         'ls':fileCommands.ls(),
         'cd':fileCommands.cd(),
+        'pwd':fileCommands.pwd(),
         'showme':fileCommands.showme(),
         'cat':fileCommands.cat(),
         'mkdir':fileCommands.mkdir(),
@@ -122,14 +126,16 @@ class Apps(baseCommand.BaseCommandMap):
     data_formatter = dataFormatters.DataFormatters.app_formatter
     command_map = {
         'create_app':appCommands.create_app(),
+        'update_app':appCommands.update_app(),
         'get_apps':appCommands.get_apps(),
         'delete_app':appCommands.delete_app(),
         'get_app':appCommands.get_app(),
         'assign_default_job_attributes':appCommands.assign_default_job_attributes(),
-        'is_enabled':appCommands.is_enabled(),
+        'is_app_enabled':appCommands.is_app_enabled(),
         'enable_app':appCommands.enable_app(),
         'disable_app':appCommands.disable_app(),
         'undelete_app':appCommands.undelete_app(),
+        'get_app_history':appCommands.get_app_history(),
         'get_app_user_perms':appCommands.get_app_user_perms(),
         'grant_app_user_perms':appCommands.grant_app_user_perms(),
         'revoke_app_user_perms':appCommands.revoke_app_user_perms()
@@ -152,7 +158,6 @@ class ArgsGenerator:
         for argument_name in arg_dict.keys():
             truncated_argument = self.__generate_truncated_argument(argument_name, truncation_dict)
             truncation_dict[argument_name] = truncated_argument
-            print(truncated_argument)
         return truncation_dict
             
     def __generate_truncated_argument(self, argument, truncated_arguments_dict, attempts=1):
@@ -171,10 +176,10 @@ class ArgsGenerator:
 class AggregateCommandMap(baseCommand.CommandContainer, ArgsGenerator):
     groups = {
         'Systems': Systems(),
-        'Server': Server(),
+        'General': General(),
         'Pods': Pods(),
         'Files': Files(),
-        #'Apps': Apps(),
+        'Apps': Apps(),
         'Query': Query(),
         'Volumes':Volumes()
     }

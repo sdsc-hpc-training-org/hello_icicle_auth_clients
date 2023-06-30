@@ -133,7 +133,7 @@ class stop_pod(baseCommand.BaseCommand):
     ]
     async def run(self, *args, **kwargs):
         return_information = self.t.pods.stop_pod(pod_id=kwargs['pod_id'])
-        return return_information
+        return str(return_information)
 
 
 class delete_pod(baseCommand.BaseCommand):
@@ -146,7 +146,7 @@ class delete_pod(baseCommand.BaseCommand):
     ]
     async def run(self, *args, **kwargs) -> str: 
         return_information = self.t.pods.delete_pod(pod_id=kwargs['pod_id'])
-        return return_information
+        return str(return_information)
     
 
 class set_pod_perms(baseCommand.BaseCommand):
@@ -160,7 +160,7 @@ class set_pod_perms(baseCommand.BaseCommand):
     ]
     async def run(self, *args, **kwargs) -> str: # set pod permissions, given a pod pod_id, user, and permission level
         return_information = self.t.pods.set_pod_permission(pod_id=kwargs['pod_id'], user=kwargs['username'], level=kwargs['level'])
-        return return_information
+        return str(return_information)
 
 
 class delete_pod_perms(baseCommand.BaseCommand):
@@ -174,10 +174,10 @@ class delete_pod_perms(baseCommand.BaseCommand):
     ]
     async def run(self, *args, **kwargs) -> str: # take away someones perms if they are being malicious, or something
         return_information = self.t.pods.delete_pod_perms(pod_id=kwargs['pod_id'], user=kwargs['username'])
-        return return_information
+        return str(return_information)
 
 
-class get_perms(baseCommand.BaseCommand):
+class get_pod_perms(baseCommand.BaseCommand):
     """
     @help: get the permissions list for the selected pod
     """
@@ -186,7 +186,7 @@ class get_perms(baseCommand.BaseCommand):
     ]
     async def run(self, *args, **kwargs) -> str: # return a list of permissions on a given pod
         return_information = self.t.pods.get_pod_permissions(pod_id=kwargs['pod_id'])
-        return return_information
+        return str(return_information)
 
 
 class copy_pod_password(baseCommand.BaseCommand):
@@ -218,10 +218,12 @@ class get_pod_logs(baseCommand.BaseCommand):
         logs = self.t.pods.get_pod_logs(pod_id=kwargs['pod_id'])
         if 'destination_file' in kwargs:
             file = kwargs['destination_file']
+        else:
+            file = None
         if file:
             with open(file, 'w') as f:
                 f.write(logs)
             return f"Log saved at {file}"
-        return logs
+        return str(logs)
     
 

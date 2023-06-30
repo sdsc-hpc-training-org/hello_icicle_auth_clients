@@ -34,7 +34,14 @@ class cd(baseCommand.BaseCommand):
         self.t.files.listFiles(systemId=kwargs['systemId'], path=kwargs['file_path'])
         kwargs['connection'].pwd = kwargs['file_path']
         return kwargs['connection'].pwd
+    
 
+class pwd(baseCommand.BaseCommand):
+    """
+    @help: get the current directory
+    """
+    async def run(self, *args, **kwargs):
+        return kwargs['connection'].pwd
 
 class showme(baseCommand.BaseCommand):
     """

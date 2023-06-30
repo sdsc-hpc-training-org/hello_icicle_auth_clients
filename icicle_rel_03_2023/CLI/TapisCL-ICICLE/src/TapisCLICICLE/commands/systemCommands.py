@@ -120,7 +120,7 @@ class create_system(baseCommand.BaseCommand):
     """
     supports_config_file=True
     required_arguments=[
-        Argument('systemId', size_limit=(1, 80)),
+        Argument('id', size_limit=(1, 80)),
         Argument('systemType', choices=["LINUX", "S3", "IRODS", "GLOBUS"], description=
                                     """LINUX is a standard linux kernel
                                     S3 refers to an AWS S3 Bucket
@@ -215,7 +215,7 @@ class create_system(baseCommand.BaseCommand):
 
     async def password_auth(self, **kwargs):
         request = schemas.FormRequest(request_content={'username':Argument('username', arg_type='str_input'), "password":Argument('password', arg_type='secure')},
-                                        message=f"Enter your credentials to the select host specified in the system creation")
+                                        message={'message':f"Enter your credentials to the select host specified in the system creation"})
         await kwargs['connection'].send(request)
         response = await kwargs['connection'].receive()
         response_content = response.request_content
@@ -228,7 +228,7 @@ class create_system(baseCommand.BaseCommand):
     
     async def token_auth(self, **kwargs):
         session_details = self.systems.getGlobusAuthUrl()
-        request = schemas.FormRequest(message=f"travel to the url {session_details.url} if the page doesnt open on its own, and enter your credentials. Then paste the code displayed to this app",
+        request = schemas.FormRequest(message={"message":f"travel to the url {session_details.url} if the page doesnt open on its own, and enter your credentials. Then paste the code displayed to this app"},
                                       request_content={'Auth_code':Argument('code', arg_type='str_input')})
         webbrowser.open(session_details.url)
         await kwargs['connection'].send(request)
@@ -238,7 +238,7 @@ class create_system(baseCommand.BaseCommand):
         return str(token_info)
     
     async def access_key_auth(self, **kwargs):
-        request = schemas.FormRequest(message=f"Retrieve the access key and access secret from your S3 bucket",
+        request = schemas.FormRequest(message={"message":f"Retrieve the access key and access secret from your S3 bucket"},
                                       request_content={'access_key':Argument('access_key', arg_type='str_input'), 'access_secret':Argument('access_secret', arg_type='secure')})
         await kwargs['connection'].send(request)
         response = await kwargs['connection'].receive()
@@ -248,7 +248,7 @@ class create_system(baseCommand.BaseCommand):
         return cred_return_value
     
     async def pki_keys_auth(self, **kwargs):
-        request = schemas.FormRequest(message=
+        request = schemas.FormRequest(message= {"message":
                                       f"""Follow these steps to manually register PKI keys with the system
                                       1. ssh into the host you are creating your system on, {kwargs['host']}
                                       2. navigate into the .ssh folder of the host. If there are not pre-generated keys, run ssh-keygen -t rsa -b 4096 -m PEM
@@ -256,7 +256,7 @@ class create_system(baseCommand.BaseCommand):
                                       4. ensure the private key is not in openSSH format (that is it has the begin and end headers)
                                       5. download both to your local machine using scp
                                       6. run the verify_pki_keys command and submit the system id {kwargs['id']} and the file path of the public and private keys
-                                      7. you should be able to access the system now""",
+                                      7. you should be able to access the system now"""},
                                       request_content={"continue":Argument("continue", arg_type='confirmation')})
         await kwargs['connection'].send(request)
         await kwargs['connection'].receive()
@@ -267,7 +267,7 @@ class create_system(baseCommand.BaseCommand):
         if kwargs['defaultAuthnMethod'] not in self.sys_auth_map[kwargs['systemType']]:
             raise ValueError(f"The system type {kwargs['systemType']} does not support {kwargs['defaultAuthnMethod']} authentication.")
         else:
-            auth_result = self.sys_auth_map[kwargs['systemType']]['defaultAuthnMethod'](**kwargs)
+            auth_result = await self.sys_auth_map[kwargs['systemType']][kwargs['defaultAuthnMethod']](**kwargs)
         return system_creation_info
     
 
@@ -280,11 +280,11 @@ class update_system(create_system):
         Argument('systemId', size_limit=(1, 80))
     ]
     async def run(self, *args, **kwargs):
-        result = self.t.putSystem(**kwargs)
+        result = self.t.systems.putSystem(**kwargs)
         return result
     
 
-class is_enabled(baseCommand.BaseCommand):
+class is_system_enabled(baseCommand.BaseCommand):
     """
     @help: check to see if a system is enabled
     """
@@ -296,7 +296,7 @@ class is_enabled(baseCommand.BaseCommand):
         return self.t.systems.isEnabled(**kwargs)
 
 
-class enable_system(is_enabled):
+class enable_system(is_system_enabled):
     """
     @help: enable a system
     """
@@ -304,7 +304,7 @@ class enable_system(is_enabled):
         return self.t.systems.enableSystem(**kwargs)
     
 
-class disable_system(is_enabled):
+class disable_system(is_system_enabled):
     """
     @help: disable a system
     """

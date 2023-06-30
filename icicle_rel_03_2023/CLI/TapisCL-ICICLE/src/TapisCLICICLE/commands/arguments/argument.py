@@ -3,7 +3,7 @@ import abc
 
 
 ALLOWED_ARG_TYPES = typing.Literal['silent', 'secure', 'expression', 'input_list', 'input_dict', 'form', 'str_input', 'confirmation']
-ALLOWED_DATA_TYPES = typing.Literal['string', 'int']
+ALLOWED_DATA_TYPES = typing.Literal['string', 'int', 'bool']
 ALLOWED_ACTIONS = typing.Literal['store', 'store_true', 'store_false']
 
 
@@ -25,11 +25,15 @@ def cast_int(data):
 def cast_string(data):
     return str(data)
 
+def cast_bool(data):
+    return bool(data)
+
 
 class Argument(AbstractArgument):
     type_map = {
         'int':cast_int,
-        'string':cast_string
+        'string':cast_string,
+        'bool':cast_bool
     }
     def __init__(self, argument: str,
                  data_type: ALLOWED_DATA_TYPES | typing.Type[AbstractArgument] = 'string',
@@ -46,6 +50,10 @@ class Argument(AbstractArgument):
             raise ValueError(f"The data type argument provided to the argument {self.__class__.__name__} must be in the list {ALLOWED_DATA_TYPES}, or must be a subclass of AbstractArgument")
         if action not in typing.get_args(ALLOWED_ACTIONS):
             raise ValueError(f"Action {action} not in the list {ALLOWED_ACTIONS}, in argument {self.__class__.__name__}")
+        if arg_type in ('input_list', 'input_dict') and isinstance(data_type, Argument) and data_type.arg_type == 'standard':
+            data_type.arg_type = 'str_input'
+        if action != 'store':
+            data_type = 'bool'
         self.argument = argument
         self.arg_type = arg_type
         self.data_type = data_type
@@ -62,8 +70,7 @@ class Argument(AbstractArgument):
         self.full_arg = f"--{self.argument}"
 
     def verify_standard_value(self, value):
-        if self.arg_type == "standard":
-            print(type(self.size_limit))
+        if self.arg_type == "standard" and value:
             min_, max_ = self.size_limit
             try:
                 value = self.type_map[self.data_type](value)
@@ -72,12 +79,14 @@ class Argument(AbstractArgument):
             if type(value) == int:
                 if value >= max_ or value < min_:
                     raise ValueError(f"The argument {self.argument} must be a value in the range {self.size_limit}")
-            elif type(value) == str and len(value) >= max_ or len(value) < min_:
+            elif type(value) == str and (len(value) >= max_ or len(value) < min_):
                 raise ValueError(f"The argument {self.argument} must be between the sizes {self.size_limit}")
             elif self.choices and value not in self.choices:
                 raise ValueError(f"The value for argument {self.argument} must be in the list {self.choices}")
             elif value == None and self.default_value:
                 value = self.default_value
+        if not value and self.default_value:
+            value = self.default_value
         return value
 
     def json(self):
@@ -94,7 +103,7 @@ class Argument(AbstractArgument):
             'truncated_arg':self.truncated_arg,
             'full_arg':self.full_arg
         }
-        if self.data_type in ('string', 'int'):
+        if self.data_type in ('string', 'int', 'bool'):
             json['data_type'] = self.data_type
         else:
             json['data_type'] = self.data_type.json()
@@ -107,8 +116,10 @@ class Argument(AbstractArgument):
             help['syntax'] = f"{self.truncated_arg}/{self.full_arg} <{self.argument}>"
         elif self.positional:
             help['syntax'] = f"<{self.argument}>"
-        elif self.action != 'store':
+        else:
             help['syntax'] = f"{self.truncated_arg}/{self.full_arg}"
+            if self.arg_type != 'standard':
+                help['syntax'] = help['syntax'] + " (f)"
         return help
     
     def check_for_copy_data(self):

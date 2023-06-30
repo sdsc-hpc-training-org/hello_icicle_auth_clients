@@ -25,6 +25,4 @@ class neo4j(baseCommand.BaseQuery):
         elif str(return_value) == '(No data)':
             return f'[-][{kwargs["id"]}@pods.{self.t.base_url.split("https://")[1]}:443] KG is empty'
 
-        print(return_value)
-        print(type(return_value))
-        return str(f'[+][{kwargs["id"]}] {return_value}')
+        return return_value

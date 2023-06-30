@@ -54,9 +54,23 @@ class volume(baseCommand.BaseCommand):
     ]
     async def run(self, *args, **kwargs):
         volume_info = self.t.pods.get_volume(volume_id=kwargs['volume_id'])
-        kwargs['connection'].system = volume_info
+        kwargs['connection'].system = volume_info.volume_id
         kwargs['connection'].pwd = "/"
         return f"successfully entered the volume {kwargs['connection'].system}"
+    
+
+class exit_volume(baseCommand.BaseCommand):
+    """
+    @help: exit the volume you are currently in 
+    """
+    command_opt = [commandOpts.CHECK_EXPLICIT_ID('volume_id')]
+    required_arguments = [
+        Argument('volume_id')
+    ]
+    async def run(self, *args, **kwargs):
+        kwargs['connection'].system = ""
+        kwargs['connection'].pwd = ""
+        return f"successfully exited the volume {kwargs['volume_id']}"
     
 
 class update_volume(create_volume):

@@ -114,9 +114,54 @@ class Handlers(Formatters):
                 print("Enter valid response")
         return decision
     
+    def input_dict_handler(self, term: Terminal, attrs: dict):
+        mode = 'create'
+        answer = dict()
+        default_name = attrs['data_type']['name']
+        with term.fullscreen():
+            print(f"You are now entering data for {attrs['name']}")
+            while True:
+                print(f"{term.clear}{attrs['name']}\nreserved names: create, delete, exit (enter these for special action)\n{answer}\nmode: {mode}")
+                attrs['data_type']['name'] = default_name
+                name = str(input(f"enter the name for the instance of your {attrs['data_type']['name']}: "))
+                if name.lower() in ('delete', 'create'):
+                    mode = name
+                    continue
+                if name.lower() == 'exit':
+                    return answer
+                if mode == 'create':
+                    mode = 'create'
+                    attrs['data_type']['name'] = name
+                    sub_answer = self.form_handler({name:attrs['data_type']}, term)
+                    answer.update(**sub_answer)
+                elif mode == 'delete':
+                    mode = 'delete'
+                    try:
+                        answer.pop(name)
+                    except KeyError:
+                        pass
+
+    def input_list(self, term: Terminal, attrs: dict):
+        answer = []
+        with term.fullscreen():
+            print(f"You are now entering data for {attrs['name']}")
+            while True:
+                presentable_dict = {str(index+1):value for index, value in enumerate(answer)}
+                print(f"{term.clear}{attrs['name']}\nreserved names: exit, new (enter these for special action). Enter index of an existing variable name to delete it\n{presentable_dict}")
+                decision = input("Enter special operation: ")
+                if decision.lower() == 'exit':
+                    return answer
+                elif decision.lower() == 'new':
+                    continue
+                elif decision.isdigit():
+                    answer.pop(int(decision)-1)
+                    continue
+                sub_answer = self.form_handler({str(len(answer)+1):attrs['data_type']}, term)
+                index, value = list(sub_answer.items())[0]
+                answer.append(value)
+    
     def form_handler(self, form_request: dict, term: Terminal):
         response = dict()
-        repeat = True
         for field, attrs in form_request.items():
             while True:
                 arg_type = attrs['arg_type']
@@ -130,55 +175,15 @@ class Handlers(Formatters):
                                 print(f"Enter expression input for the {attrs['name']} argument.")
                                 answer = self.__expression_input()
                         case 'form':
-                            answer, repeat = self.form_handler(attrs['arguments_list'], term)
-                            print(f"ANSWER: {answer}")
+                            answer = self.form_handler(attrs['arguments_list'], term)
                         case 'input_list':
-                            repeat = True
-                            answer = []
-                            with term.fullscreen():
-                                print(f"You are now entering data for {attrs['name']}")
-                                while repeat:
-                                    presentable_dict = {str(index+1):value for index, value in enumerate(answer)}
-                                    print(f"{term.clear}reserved names: exit (enter these for special action). Enter index of an existing variable name to delete it\n{presentable_dict}")
-                                    sub_answer, repeat = self.form_handler({str(len(answer)+1):attrs['data_type']}, term)
-                                    index, value = list(sub_answer.items())[0]
-                                    if value in presentable_dict:
-                                        answer.pop(int(value)-1)
-                                    elif value.lower() == 'exit':
-                                        break
-                                    else:
-                                        answer.append(value)
+                            answer = self.input_list(term, attrs)
                         case 'input_dict':
-                            repeat = True
-                            mode = 'create'
-                            answer = dict()
-                            default_name = attrs['data_type']['name']
-                            with term.fullscreen():
-                                print(f"You are now entering data for {attrs['name']}")
-                                while repeat:
-                                    print(f"{term.clear}reserved names: create, delete, exit (enter these for special action)\n{answer}\nmode: {mode}")
-                                    attrs['data_type']['name'] = default_name
-                                    name = str(input(f"enter the name for the instance of your {attrs['data_type']['name']}: "))
-                                    if name.lower() in ('delete', 'create'):
-                                        mode = name
-                                        continue
-                                    if name.lower() == 'exit':
-                                        break
-                                    if mode == 'create':
-                                        mode = 'create'
-                                        attrs['data_type']['name'] = name
-                                        sub_answer, repeat = self.form_handler({name:attrs['data_type']}, term)
-                                        answer.update(**sub_answer)
-                                    elif mode == 'delete':
-                                        mode = 'delete'
-                                        try:
-                                            answer.pop(name)
-                                        except KeyError:
-                                            pass
+                            answer = self.input_dict_handler(term, attrs)
                         case 'str_input':
                             if 'description' in attrs and attrs['description']:
                                 print(attrs['description'])
-                            answer = prompt(f"{attrs['name']}: ", validator=self.validator)
+                            answer = prompt(f"{attrs['name']}: ", validator=self.validator, wrap_lines=True)
                         case 'confirmation':
                             answer = self.confirmation_handler(attrs)
                         case 'silent':
@@ -194,16 +199,16 @@ class Handlers(Formatters):
                         f.write(json.dumps(response))
                         print(f"Argument input failure, command data written to file {saved_command}")
                         raise e
-        return response, repeat
+        return response
     
     def universal_message_handler(self, message: schemas.BaseSchema, term: Terminal):
         self.print_response(message.message)
         if message.error:
             self.print_response(message.error)
         if message.request_content:
-            filled_form, repeat = self.form_handler(message.request_content, term)
-            return filled_form, repeat
-        return None, None
+            filled_form = self.form_handler(message.request_content, term)
+            return filled_form
+        return None
         
     def environment_cli_response_stream_handler(self, response):
         if response.schema_type == 'ResponseData' and response.exit_status: # if the command was a shutdown or exit, close the program

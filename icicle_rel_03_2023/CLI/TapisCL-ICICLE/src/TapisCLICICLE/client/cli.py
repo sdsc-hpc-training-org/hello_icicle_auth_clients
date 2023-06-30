@@ -82,7 +82,7 @@ class CLI(handlers.Handlers):
     def configure_parser(self, arguments):
         parser = argparse.ArgumentParser(description="Command Line Argument Parser", exit_on_error=False, usage=argparse.SUPPRESS, add_help=False, conflict_handler='resolve')
         parser.add_argument('command_selection')
-        parser.add_argument('positionals', nargs='*', default='default1')
+        parser.add_argument('positionals', nargs='*')
         parser.error = self.parser_error
 
         for arg in arguments.values():
@@ -134,7 +134,7 @@ class CLI(handlers.Handlers):
             elif server_auth_request.auth_request_type == "success":
                 self.print_response(server_auth_request.message)
                 return server_auth_request.message['username'], server_auth_request.message['url']
-            form_response, repeat = self.universal_message_handler(server_auth_request, self.term)
+            form_response = self.universal_message_handler(server_auth_request, self.term)
             if not form_response:
                 break
             client_response_request = schemas.AuthRequest(auth_request_type=server_auth_request.auth_request_type, request_content=form_response)
@@ -169,7 +169,7 @@ class CLI(handlers.Handlers):
                 if command_response.exit_status:
                     print("Exit initiated")
                     sys.exit(0)
-            handled_response, repeat = self.universal_message_handler(command_response, self.term)
+            handled_response = self.universal_message_handler(command_response, self.term)
             if not handled_response:
                 break
             handled_response = schemas.FormResponse(request_content=handled_response)
