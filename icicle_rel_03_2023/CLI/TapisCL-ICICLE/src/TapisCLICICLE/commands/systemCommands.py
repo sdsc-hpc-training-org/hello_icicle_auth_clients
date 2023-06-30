@@ -276,6 +276,9 @@ class update_system(create_system):
     @help: update a system with new information
     """
     command_opt = [commandOpts.CHECK_EXPLICIT_ID('systemId')]
+    required_arguments = [
+        Argument('systemId', size_limit=(1, 80))
+    ]
     async def run(self, *args, **kwargs):
         result = self.t.putSystem(**kwargs)
         return result

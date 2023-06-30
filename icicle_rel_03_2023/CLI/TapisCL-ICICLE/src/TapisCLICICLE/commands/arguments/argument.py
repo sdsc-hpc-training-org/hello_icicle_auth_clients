@@ -107,8 +107,6 @@ class Argument(AbstractArgument):
             help['syntax'] = f"{self.truncated_arg}/{self.full_arg} <{self.argument}>"
         elif self.positional:
             help['syntax'] = f"<{self.argument}>"
-        elif self.arg_type in typing.get_args(ALLOWED_ARG_TYPES):
-            help['syntax'] = f"{self.truncated_arg}/{self.full_arg}(f)"
         elif self.action != 'store':
             help['syntax'] = f"{self.truncated_arg}/{self.full_arg}"
         return help

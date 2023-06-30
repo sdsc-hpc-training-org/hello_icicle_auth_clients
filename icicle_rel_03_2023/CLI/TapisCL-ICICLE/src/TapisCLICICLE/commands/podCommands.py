@@ -61,14 +61,14 @@ class create_pod(baseCommand.BaseCommand):
                 Argument('url')
             ]
         )),
-        Argument('resources', arg_type='input_dict', data_type=argument.Form(
-            'resource', arguments_list = [
+        argument.Form(
+            'resources', arguments_list = [
                 Argument('cpu_request', data_type='int'),
                 Argument('cpu_limit', data_type='int'),
                 Argument('mem_request', data_type='int'),
                 Argument('mem_limit', data_type='int'),
             ]
-        ))
+        )
     ]
     async def run(self, *args, **kwargs) -> str:
         template_name = kwargs['pod_template']
@@ -85,7 +85,7 @@ class create_pod(baseCommand.BaseCommand):
         return pod_information
     
 
-class update_pod(create_pod):
+class update_pod(create_pod): # make it so the command retrieves current settings and sends them over so forms can append and edit instead of just overwrite
     """
     @help: update a pod. Must be restarted to stage changes
     """

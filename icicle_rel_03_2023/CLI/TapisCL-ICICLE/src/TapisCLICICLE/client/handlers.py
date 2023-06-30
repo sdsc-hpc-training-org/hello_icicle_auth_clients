@@ -156,7 +156,7 @@ class Handlers(Formatters):
                             with term.fullscreen():
                                 print(f"You are now entering data for {attrs['name']}")
                                 while repeat:
-                                    print(f"{'term.clear'}reserved names: create, delete, exit (enter these for special action)\n{answer}\nmode: {mode}")
+                                    print(f"{term.clear}reserved names: create, delete, exit (enter these for special action)\n{answer}\nmode: {mode}")
                                     attrs['data_type']['name'] = default_name
                                     name = str(input(f"enter the name for the instance of your {attrs['data_type']['name']}: "))
                                     if name.lower() in ('delete', 'create'):
