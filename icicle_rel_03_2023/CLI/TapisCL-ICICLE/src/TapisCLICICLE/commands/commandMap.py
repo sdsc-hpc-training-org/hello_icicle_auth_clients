@@ -125,9 +125,14 @@ class Apps(baseCommand.BaseCommandMap):
         'get_apps':appCommands.get_apps(),
         'delete_app':appCommands.delete_app(),
         'get_app':appCommands.get_app(),
-        'run_job':appCommands.run_job(),
-        'get_job_status':appCommands.get_job_status(),
-        'download_job_output':appCommands.download_job_output(),
+        'assign_default_job_attributes':appCommands.assign_default_job_attributes(),
+        'is_enabled':appCommands.is_enabled(),
+        'enable_app':appCommands.enable_app(),
+        'disable_app':appCommands.disable_app(),
+        'undelete_app':appCommands.undelete_app(),
+        'get_app_user_perms':appCommands.get_app_user_perms(),
+        'grant_app_user_perms':appCommands.grant_app_user_perms(),
+        'revoke_app_user_perms':appCommands.revoke_app_user_perms()
     }
 
 
