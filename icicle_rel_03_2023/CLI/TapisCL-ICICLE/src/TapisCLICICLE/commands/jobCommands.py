@@ -55,4 +55,5 @@ class download_job_output(baseCommand.BaseCommand):
         return self.t.jobs.getJobOutputDownload(**kwargs)
     
 
-class get_job_output_list
+class get_job_output_list:
+    pass

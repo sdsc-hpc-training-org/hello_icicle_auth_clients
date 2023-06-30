@@ -41,7 +41,7 @@ class ClientSideConnection(socketOpts.ClientSocketOpts, handlers.Handlers):
 
 
 class CLI(handlers.Handlers):
-    debug=True
+    debug=False
     """
     Receive user input, either direct from bash environment or from the custom interface, then parse these commands and send them to the server to be executed. 
     """
