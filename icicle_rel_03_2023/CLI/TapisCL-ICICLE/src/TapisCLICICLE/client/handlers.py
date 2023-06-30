@@ -153,7 +153,7 @@ class Handlers(Formatters):
                             mode = 'create'
                             answer = dict()
                             default_name = attrs['data_type']['name']
-                            with open(r'C:\Users\ahuma\Desktop\programming\python_programs\hello_icicle_auth_clients\icicle_rel_03_2023\CLI\TapisCL-ICICLE\src\TapisCLICICLE\client\__init__.py', 'r'):#term.fullscreen():
+                            with term.fullscreen():
                                 print(f"You are now entering data for {attrs['name']}")
                                 while repeat:
                                     print(f"{'term.clear'}reserved names: create, delete, exit (enter these for special action)\n{answer}\nmode: {mode}")

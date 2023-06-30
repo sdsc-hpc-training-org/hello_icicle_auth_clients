@@ -161,7 +161,6 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
                 await kwargs['connection'].send(request)
                 response: schemas.FormResponse = await kwargs['connection'].receive()
                 kwargs.update(**response.request_content)
-        print(kwargs)
         return kwargs
     
     async def handle_arg_opts(self, kwargs):

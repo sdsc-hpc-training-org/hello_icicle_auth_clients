@@ -152,6 +152,7 @@ class ArgsGenerator:
         for argument_name in arg_dict.keys():
             truncated_argument = self.__generate_truncated_argument(argument_name, truncation_dict)
             truncation_dict[argument_name] = truncated_argument
+            print(truncated_argument)
         return truncation_dict
             
     def __generate_truncated_argument(self, argument, truncated_arguments_dict, attempts=1):

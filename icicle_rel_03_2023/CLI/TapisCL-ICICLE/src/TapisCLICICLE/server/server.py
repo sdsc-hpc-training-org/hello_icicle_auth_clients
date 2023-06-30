@@ -45,7 +45,7 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
     Receives commands from the client and executes Tapis operations
     """
     SESSION_TIME = 1300
-    debug=False
+    debug=True
     def __init__(self, IP: str, PORT: int):
         super().__init__()
         self.initial = True
@@ -201,5 +201,5 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
 
 
 if __name__ == '__main__':
-    server = Server(socket.gethostbyname('127.0.0.1', 30000)) # what the hell you were thinking??? plaintext passwords over network!?!?!
+    server = Server(socket.gethostbyname('127.0.0.1', 30000)) 
     asyncio.run(server.main())
