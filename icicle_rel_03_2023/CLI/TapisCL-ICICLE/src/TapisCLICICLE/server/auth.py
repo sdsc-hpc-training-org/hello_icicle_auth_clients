@@ -11,6 +11,7 @@ from tapipy.tapis import Tapis
 from tapipy import tapis
 from federatedTenantAuthAPI.get import get_client_code
 import requests
+import pyperclip
 
 
 from socketopts import schemas
@@ -71,31 +72,33 @@ class ServerSideAuth:
         client_id = get_client_code(link)
         if not client_id:
             raise exceptions.NoTenantClient(link)
-        print(client_id)
         authentication_information = self.t.authenticator.generate_device_code(client_id=client_id)
         payload = schemas.AuthRequest(auth_request_type='device_code',
-                                      message={"message":"Go to the URL if it doesnt open automatically and enter the user code to authenticate. Then click y when you enter the code", 
+                                      message={"message":"Go to the URL if it doesnt open automatically and enter the user code to authenticate. Then click y when you enter the code\nUser code copied to clipboard", 
                                                "url":authentication_information.verification_uri, 
                                                "user_code": authentication_information.user_code},
-                                      request_content={'entered_confirm':argument.Argument('entered_confirm', arg_type='confirmation')})
+                                      request_content={'Entered User Code':argument.Argument('Entered User Code', arg_type='confirmation')})
         await connection.send(payload)
+        pyperclip.copy(authentication_information.user_code)
         webbrowser.open(authentication_information.verification_uri)
         confirmation = await connection.receive()
-        if not confirmation.request_content['entered_confirm']:
+        if not confirmation.request_content['Entered User Code']:
             raise RuntimeError(f"User indicated that device code auth failed") # get rid of this feature and switch to polling
         start_time = time.time()
         while True:
             try:
                 access_info = self.t.authenticator.create_token(grant_type="device_code", device_code=authentication_information.device_code, client_id=client_id)
                 break
-            except:
+            except Exception as e:
+                print(e)
                 time.sleep(1)
-                if time.time() - start_time > 500:
-                    raise Exception("Timeout while polling for authenticator token")
+                if time.time() - start_time > 60:
+                    raise RuntimeError("Timeout while polling for authenticator token")
 
         self.t = Tapis(f"https://{link}",
                        access_token=access_info.access_token.access_token,
-                       refresh_token=access_info.refresh_token.refresh_token)
+                       refresh_token=access_info.refresh_token.refresh_token,
+                       resource_set="dev")
         
         self.username = self.t.authenticator.get_userinfo().username
         self.url = link
@@ -114,14 +117,14 @@ class ServerSideAuth:
                                           "url":auth_link
                                             }, 
                                       request_content={
-                                          "user_code":argument.Argument('user_code', arg_type='str_input')
+                                          "access_token":argument.Argument('access_token', arg_type='str_input')
                                           })
         await connection.send(payload)
         webbrowser.open(auth_link)
         response_code_message: schemas.AuthRequest = await connection.receive()
         
         self.t = Tapis(f"https://{link}",
-                       access_token=response_code_message.request_content['user_code'].strip())
+                       access_token=response_code_message.request_content['access_token'].strip())
 
         self.username = self.t.authenticator.get_userinfo().username
         self.url = link
@@ -132,7 +135,7 @@ class ServerSideAuth:
         return f"Successfully initialized tapis service on {self.url}"
 
     async def auth_startup(self, connection):
-        session_auth_type_request = schemas.AuthRequest(request_content={"uri":argument.Argument('uri', arg_type='str_input'), "auth_type":argument.Argument('auth_type', choices=['password', 'device_code', 'federated'], arg_type='str_input')},
+        session_auth_type_request = schemas.AuthRequest(request_content={"Tenant URI":argument.Argument('Tenant URI', arg_type='str_input'), "auth_type":argument.Argument('auth_type', choices=['password', 'device_code', 'federated'], arg_type='str_input')},
                                                         auth_request_type="requested",
                                                         message={"message":"Enter the URI of the Tapis tenant you wish to connect to, then select your auth type from the options below",
                                                                  "grant options":['password', 'device_code', 'federated']})
@@ -144,8 +147,8 @@ class ServerSideAuth:
                 if auth_type not in ('password', 'device_code', 'federated'):
                     raise exceptions.InvalidCredentialsReceived()
                 self.auth_type = auth_type
-                link = session_auth_type_response.request_content['uri']
-                self.t = Tapis(f"https://{link}", resource_set='dev')
+                link = session_auth_type_response.request_content['Tenant URI']
+                self.t = Tapis(f"https://{link}")#, resource_set='dev')
                 break
             except exceptions.InvalidCredentialsReceived:
                 session_auth_type_request.error = "Invalid auth type received"
@@ -173,7 +176,7 @@ class ServerSideAuth:
                 else:
                     await self.password_grant(link, connection)
                 break
-            except (exceptions.ClientSideError, exceptions.InvalidCredentialsReceived, exceptions.NoTenantClient) as e:
+            except (exceptions.ClientSideError, exceptions.InvalidCredentialsReceived, exceptions.NoTenantClient, RuntimeError) as e:
                 raise e
             except Exception as e:
                 error_str = traceback.format_exc()

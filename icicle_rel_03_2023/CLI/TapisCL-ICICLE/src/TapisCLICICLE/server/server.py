@@ -1,7 +1,5 @@
-import sys
 import time
 import socket
-import os
 import asyncio
 import traceback
 
@@ -23,33 +21,24 @@ class ServerConnection(socketOpts.ServerSocketOpts):
     def __init__(self, name, reader, writer, debug=False):
         super().__init__(name, debug=debug)
         self.name = name
-        self.reader = reader
+        self.reader: asyncio.StreamReader = reader
         self.writer = writer
 
     async def close(self):
         self.writer.close()
         await self.writer.wait_closed()
-        
-
-class TaskCallback:
-    def __init__(self, logger, task: asyncio.Task, task_list: list):
-        self.task_list = task_list
-        self.logger, self.task = logger, task
-
-    def __call__(self, data):
-        self.task_list.remove(self.task)
-        return data
 
 
 class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.DecoratorSetup, auth.ServerSideAuth):
     """
     Receives commands from the client and executes Tapis operations
     """
-    SESSION_TIME = 1300
+    SESSION_TIME = 5000
     debug=False
     def __init__(self, IP: str, PORT: int):
         super().__init__()
         self.initial = True
+        self.running = True
 
         self.t = None
         self.url = None
@@ -73,10 +62,7 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
         self.end_time = time.time() + self.SESSION_TIME # start the countdown on the timeout
 
         self.task_list: list[asyncio.Task] = []
-        timeout_task = loop.create_task(self.check_timeout())
-        timeout_task.add_done_callback(TaskCallback(self.logger, timeout_task, self.task_list))
-
-        self.task_list.append(timeout_task)
+        self.connections_list: list[ServerConnection] = []
 
         self.server = None
         self.num_connections = 0
@@ -85,28 +71,36 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
 
     def cancel_tasks(self):
         for task in self.task_list:
-            result = task.cancel()
-            self.logger.info(str(result))
+            task.cancel()
+        time.sleep(1)
+        print(self.task_list)
 
-    def server_shutdown(self):
-        try:
-            loop = asyncio.get_event_loop()
-            self.cancel_tasks()
-            self.server.close()
-            loop.stop()
-            loop.close()
-            sys.exit(0)
-        except RuntimeError:
-            sys.exit(0)
+    async def close_connections(self):
+        for connection in self.connections_list:
+            await connection.close()
+
+    async def close(self):
+        self.cancel_tasks()
+        while self.task_list:
+            time.sleep(1)
+        await self.close_connections()
+        self.server.close()
+        raise exceptions.Shutdown()
 
     async def check_timeout(self):
-        while True:
-            async with self.timeout_lock:
-                if time.time() >= self.end_time:
-                    self.logger.info("Timeout, shutting down")
-                    self.server_shutdown()
-                    return None
+        while self.running:
+            if time.time() >= self.end_time:
+                self.logger.info("Timeout, shutting down")
+                self.running = False
+                return None
             await asyncio.sleep(10)
+    
+    async def check_shutdown(self):
+        while self.running:
+            await asyncio.sleep(1)
+        await self.close()
+        self.logger.info("The server shutdown.")
+        return None
 
     async def handshake(self, connection):
         self.logger.info("Handshake starting")
@@ -125,9 +119,10 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
         accept connection request and initialize communication with the client
         """  
         self.num_connections += 1
-        self.end_time += self.SESSION_TIME
+        self.end_time = time.time() + self.SESSION_TIME
         connection = ServerConnection(f"CON-{self.num_connections}", reader=reader, writer=writer, debug=self.debug)
-        ip, port= writer.transport.get_extra_info('socket').getsockname()
+        self.connections_list.append(connection)
+        ip, port = writer.transport.get_extra_info('socket').getsockname()
         self.logger.info("Received connection request")
         try:
             await self.handshake(connection)
@@ -153,18 +148,15 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
 
         loop = asyncio.get_event_loop()
         task: asyncio.Task = loop.create_task(self.receive_and_execute(connection))
-        print("TASK CREATED")
-        callback = TaskCallback(self.logger, task, self.task_list)
-        task.add_done_callback(callback)
         self.task_list.append(task)
-        print(self.task_list)
+        task.add_done_callback(self.task_list.remove)
 
     async def receive_and_execute(self, connection: ServerConnection):
         """
         receive and process commands
         """
         self.logger.info(f"{connection.name} is now running")
-        while True:
+        while self.running:
             try:
                 message = await connection.receive()
                 kwargs = message.request_content
@@ -180,17 +172,20 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
                 error_response = schemas.ResponseData(error=str(e), exit_status=1, url=self.url, active_username=self.username)
                 await connection.send(error_response)
                 self.logger.warning(str(e))
-                self.server_shutdown()
+                self.running = False
+                return
             except exceptions.Exit as e:
                 self.logger.info("user exit initiated")
                 error_response = schemas.ResponseData(error=str(e), exit_status=1, url=self.url, active_username=self.username)
                 await connection.send(error_response)
                 await connection.close()
                 return
-                #self.accept()  # wait for CLI to reconnect
             except OSError:
                 self.logger.info("connection was lost, waiting to reconnect")
                 await connection.close()
+            except asyncio.CancelledError:
+                self.logger.info('task cancelled')
+                return
             except (exceptions.CommandNotFoundError, exceptions.NoConfirmationError, exceptions.InvalidCredentialsReceived, Exception) as e:
                 error_str = traceback.format_exc()
                 error_response = schemas.ResponseData(error=str(e), url=self.url, active_username=self.username)
@@ -201,14 +196,16 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
         self.server = await asyncio.start_server(self.accept, sock=self.sock)
         try:
             async with self.server:
-                result = await self.server.serve_forever()#, self.check_timeout(), return_exceptions=True)
-                #self.logger.info(str(results))
-        except KeyboardInterrupt:
-            self.server.close()
-            self.cancel_tasks()
-            sys.exit(0)
+                result = await asyncio.gather(self.server.serve_forever(), self.check_timeout(), self.check_shutdown(),return_exceptions=True)#, self.check_timeout(), return_exceptions=True)
+                self.logger.info(str(result))
+        except (KeyboardInterrupt, exceptions.Shutdown):
+            self.running = False
 
 
 if __name__ == '__main__':
+    loop = asyncio.get_event_loop()
     server = Server(socket.gethostbyname('127.0.0.1', 30000)) 
-    asyncio.run(server.main())
+    try:
+        asyncio.run(server.main())
+    finally:
+        loop.close()

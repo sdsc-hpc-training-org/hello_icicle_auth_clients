@@ -121,23 +121,29 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
         self.form_arguments = [arg_name for arg_name, arg in self.arguments.items() if arg.arg_type not in  ('standard', 'silent')]
         self.help: dict[dict[str, list[dict[str, str]]]] = dict()
 
-        self.command_execution_sequence = [self.verify_argument_rules_followed]
-        if self.supports_config_file:
-            self.command_execution_sequence.append(self.handle_config_file)
-        if self.form_arguments:
-            self.command_execution_sequence.append(self.handle_form_input)
+        self.command_execution_sequence = []
         if self.positional_arguments:
             self.command_execution_sequence.append(self.check_for_positionals)
         if self.command_opt:
             self.command_execution_sequence.append(self.handle_arg_opts)
+        self.command_execution_sequence.append(self.verify_argument_rules_followed)
+        if self.supports_config_file:
+            self.command_execution_sequence.append(self.handle_config_file)
+        if self.form_arguments:
+            self.command_execution_sequence.append(self.handle_form_input)
+        self.command_execution_sequence.append(self.verify_argument_rules_followed)
         self.command_execution_sequence.append(self.filter_kwargs)
 
     async def verify_argument_rules_followed(self, kwargs):
-        for name, value in kwargs.items():
-            if name in self.optional_arguments and value and name not in self.form_arguments:
-                kwargs[name] = self.optional_arguments[name].verify_standard_value(value)
-            elif name in self.required_arguments:
-                kwargs[name] = self.required_arguments[name].verify_standard_value(value)
+        for name, value in self.arguments.items():
+            if name in self.required_arguments and not kwargs[name]:
+                raise Exception(f"The argument {name} is required by the command {self.__class__.__name__}")
+            elif name in self.optional_arguments and not kwargs[name]:
+                continue
+            elif name in kwargs and name in self.required_arguments:
+                kwargs[name] = self.required_arguments[name].verify_standard_value(kwargs[name])
+            elif name in kwargs and name in self.optional_arguments and kwargs[name] and name not in self.form_arguments:
+                kwargs[name] = self.optional_arguments[name].verify_standard_value(kwargs[name])
         return kwargs
 
     async def filter_kwargs(self, kwargs):
@@ -228,7 +234,10 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
         command = kwargs.pop('command_selection')
 
         if self.decorator:
-            return_value = await self.decorator(input_command=self, **kwargs)
+            try:
+                return_value = await self.decorator(input_command=self, **kwargs)
+            except (ValueError, exceptions.NoConfirmationError) as e:
+                return f"Command execution failed due to {e}"
         
         verbose = kwargs.pop('verbose')
         help = kwargs.pop('help')

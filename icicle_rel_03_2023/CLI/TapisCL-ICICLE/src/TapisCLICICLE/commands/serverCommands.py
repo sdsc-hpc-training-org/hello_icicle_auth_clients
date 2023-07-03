@@ -15,20 +15,20 @@ class switch_service(baseCommand.BaseCommand):
     @todo: upgrade to federated auth
     """
     required_arguments=[
-        Argument('link', size_limit=(0, 80)),
+        Argument('tenant_uri', size_limit=(0, 80)),
         Argument('auth', choices=['password', 'device_code', 'federated']),
         Argument('connection', arg_type='silent')
     ]
-    async def run(self, *args, **kwargs):  # link is the baseURL
+    async def run(self, *args, **kwargs):  # tenant_uri is the baseURL
         auth = kwargs['auth']
-        link = kwargs['link']
+        tenant_uri = kwargs['tenant_uri']
         self.server.auth_type = auth
         if auth == "password":
-            results = await self.server.password_grant(link, kwargs['connection'])
+            results = await self.server.password_grant(tenant_uri, kwargs['connection'])
         elif auth == "device_code":
-            results = await self.server.device_code_grant(link, kwargs['connection'])
+            results = await self.server.device_code_grant(tenant_uri, kwargs['connection'])
         elif auth == "federated":
-            results = await self.server.federated_grant(link, kwargs['connection'])
+            results = await self.server.federated_grant(tenant_uri, kwargs['connection'])
         else:
             results = None
         self.server.configure_decorators(self.server.username, self.server.password)

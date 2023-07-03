@@ -82,6 +82,8 @@ class Argument(AbstractArgument):
             elif type(value) == str and (len(value) >= max_ or len(value) < min_):
                 raise ValueError(f"The argument {self.argument} must be between the sizes {self.size_limit}")
             elif self.choices and value not in self.choices:
+                print(value)
+                print(self.choices)
                 raise ValueError(f"The value for argument {self.argument} must be in the list {self.choices}")
             elif value == None and self.default_value:
                 value = self.default_value

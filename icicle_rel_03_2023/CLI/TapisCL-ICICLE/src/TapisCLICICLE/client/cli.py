@@ -84,9 +84,7 @@ class CLI(handlers.Handlers):
         parser.add_argument('command_selection')
         parser.add_argument('positionals', nargs='*')
         parser.error = self.parser_error
-
-        for arg in arguments.values():
-            print(arg['truncated_arg'])
+        
         for arg_name, arg in arguments.items():
             parser.add_argument(f"-{arg['truncated_arg']}", arg['full_arg'],
                                 action=arg['action'])

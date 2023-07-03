@@ -52,11 +52,11 @@ class get_systems(baseCommand.BaseCommand):
     @help: Gets and returns the list of systems the current Tapis service and account have access to
     @doc: this is an example of the doc segment of the docstring. not included in help message
     """
-    required_arguments= [
+    optional_arguments = [
         Argument('listType', choices=['OWNED', 'SHARED_PUBLIC', 'ALL'])
     ]
     async def run(self, *args, **kwargs):
-        systems = self.t.systems.getSystems()
+        systems = self.t.systems.getSystems(**kwargs)
         return systems
     
 
@@ -64,6 +64,7 @@ class get_system_info(baseCommand.BaseCommand):
     """
     @help: get information on a selected system
     """
+    command_opt = [commandOpts.CHECK_EXPLICIT_ID('systemId')]
     required_arguments=[
         Argument('systemId', size_limit=(1, 80))
     ]
