@@ -1,0 +1,14 @@
+# TapisCLICICLE
+## 0.0.60
+### 6/15/23
+### Changes
+* added Tapis federated authentication, and device code authentication grant types to allow for more flexible access to Tapis resources. Full revamp of the whole authentication workflow to achieve this
+* overhaul of user interface and command entry to provide better interactivity with commands that previously required config files to execute properly
+* added forms to allow easier input for complex datatypes when creating and updating tapis services like systems.
+* More effective command line argument validation to sanitize data input
+overhaul of files and systems to grant user access to additional tapis resources (WIP). Files and systems strive to emulate linux bash command line, using commands like cd and ls.
+* support for tapis postits added
+  
+### Planned Changes
+* upgrade app commands and eventually implement intuitive job submission
+* refactor help generation code

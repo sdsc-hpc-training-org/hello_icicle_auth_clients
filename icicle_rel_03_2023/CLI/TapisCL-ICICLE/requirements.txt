@@ -1,6 +1,6 @@
 pydantic==1.10.4
 pyfiglet==0.8.post1
-tapipy==1.2.20
+tapipy
 pyperclip==1.8.2
 py2neo==2021.2.3
 psycopg2-binary==3.1.8
