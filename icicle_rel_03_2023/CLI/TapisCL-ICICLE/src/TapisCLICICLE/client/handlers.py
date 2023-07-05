@@ -148,13 +148,16 @@ class Handlers(Formatters):
             while True:
                 presentable_dict = {str(index+1):value for index, value in enumerate(answer)}
                 print(f"{term.clear}{attrs['name']}\nreserved names: exit, new (enter these for special action). Enter index of an existing variable name to delete it\n{presentable_dict}")
-                decision = input("Enter special operation: ")
+                decision = input("Enter 'new' or 'exit': ")
                 if decision.lower() == 'exit':
                     return answer
                 elif decision.lower() == 'new':
-                    continue
+                    pass
                 elif decision.isdigit():
-                    answer.pop(int(decision)-1)
+                    try:
+                        answer.pop(int(decision)-1)
+                    except IndexError:
+                        continue
                     continue
                 sub_answer = self.form_handler({str(len(answer)+1):attrs['data_type']}, term)
                 index, value = list(sub_answer.items())[0]
@@ -163,42 +166,40 @@ class Handlers(Formatters):
     def form_handler(self, form_request: dict, term: Terminal):
         response = dict()
         for field, attrs in form_request.items():
-            while True:
-                arg_type = attrs['arg_type']
-                self.validator.enforcer.update_constraints(**attrs)
-                try:
-                    match arg_type:
-                        case 'secure':
-                            answer = prompt(f"{attrs['name']}: ", validator=self.validator, is_password=True)
-                        case 'expression':
-                            with term.fullscreen():
-                                print(f"Enter expression input for the {attrs['name']} argument.")
-                                answer = self.__expression_input()
-                        case 'form':
-                            answer = self.form_handler(attrs['arguments_list'], term)
-                        case 'input_list':
-                            answer = self.input_list(term, attrs)
-                        case 'input_dict':
-                            answer = self.input_dict_handler(term, attrs)
-                        case 'str_input':
-                            if 'description' in attrs and attrs['description']:
-                                print(attrs['description'])
-                            answer = prompt(f"{attrs['name']}: ", validator=self.validator, wrap_lines=True)
-                        case 'confirmation':
-                            answer = self.confirmation_handler(attrs)
-                        case 'silent':
-                            continue
-                        case _:
-                            raise AttributeError(f"There is not argument type {arg_type}")
-                    response[field] = answer
-                    break
-                except KeyboardInterrupt:
-                    raise RuntimeError('Form cancelled, command execution stopped')
-                except Exception as e:
-                    with open(saved_command, 'w') as f:
-                        f.write(json.dumps(response))
-                        print(f"Argument input failure, command data written to file {saved_command}")
-                        raise e
+            arg_type = attrs['arg_type']
+            self.validator.enforcer.update_constraints(**attrs)
+            try:
+                match arg_type:
+                    case 'secure':
+                        answer = prompt(f"{attrs['name']}: ", validator=self.validator, is_password=True)
+                    case 'expression':
+                        with term.fullscreen():
+                            print(f"Enter expression input for the {attrs['name']} argument.")
+                            answer = self.__expression_input()
+                    case 'form':
+                        answer = self.form_handler(attrs['arguments_list'], term)
+                    case 'input_list':
+                        answer = self.input_list(term, attrs)
+                    case 'input_dict':
+                        answer = self.input_dict_handler(term, attrs)
+                    case 'str_input':
+                        if 'description' in attrs and attrs['description']:
+                            print(attrs['description'])
+                        answer = prompt(f"{attrs['name']}: ", validator=self.validator, wrap_lines=True)
+                    case 'confirmation':
+                        answer = self.confirmation_handler(attrs)
+                    case 'silent':
+                        continue
+                    case _:
+                        raise AttributeError(f"There is not argument type {arg_type}")
+                response[field] = answer
+            except KeyboardInterrupt:
+                raise RuntimeError('Form cancelled, command execution stopped')
+            except Exception as e:
+                with open(saved_command, 'a') as f:
+                    f.write(json.dumps(response))
+                    print(f"Argument input failure, command data written to file {saved_command}")
+                    raise e
         return response
     
     def universal_message_handler(self, message: schemas.BaseSchema, term: Terminal):

@@ -87,8 +87,6 @@ class Argument(AbstractArgument):
                 raise ValueError(f"The value for argument {self.argument} must be in the list {self.choices}")
             elif value == None and self.default_value:
                 value = self.default_value
-        if not value and self.default_value:
-            value = self.default_value
         return value
 
     def json(self):

@@ -6,11 +6,17 @@ import json
 from typing import Type
 import typing
 from abc import abstractmethod, ABC
+import os
 
 from commands import decorators # I finally understand. Imported at the top level by serverRun, so it can only see packages from that vantage point
 from utilities import exceptions
 from commands.arguments.argument import Argument, DynamicChoiceList, ALLOWED_ARG_TYPES
 from socketopts import schemas
+
+
+__location__ = os.path.realpath(
+    os.path.join(os.getcwd(), os.path.dirname(f"{__file__}")))
+saved_command = os.path.join(__location__, r'entered_command.json')
 
 
 def get_kwargs(function):
@@ -110,9 +116,11 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
         self.password = None
         self.server = None
         self.arguments = dict()
+        self.default_commands()
+        if self.supports_config_file:
+            self.optional_arguments.append(Argument('file'))
         if isinstance(self.required_arguments, list):
             self.required_arguments = {argument.argument:argument for argument in self.required_arguments}
-            self.required_arguments['connection'] = Argument('connection', arg_type='silent')
             self.arguments.update(**self.required_arguments)
         if isinstance(self.optional_arguments, list):  
             self.optional_arguments = {argument.argument:argument for argument in self.optional_arguments}
@@ -122,42 +130,57 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
         self.help: dict[dict[str, list[dict[str, str]]]] = dict()
 
         self.command_execution_sequence = []
+        if self.supports_config_file:
+            self.command_execution_sequence.append(self.handle_config_file)
         if self.positional_arguments:
             self.command_execution_sequence.append(self.check_for_positionals)
         if self.command_opt:
             self.command_execution_sequence.append(self.handle_arg_opts)
+        self.command_execution_sequence.append(self.assign_defaults)
         self.command_execution_sequence.append(self.verify_argument_rules_followed)
-        if self.supports_config_file:
-            self.command_execution_sequence.append(self.handle_config_file)
         if self.form_arguments:
             self.command_execution_sequence.append(self.handle_form_input)
         self.command_execution_sequence.append(self.verify_argument_rules_followed)
         self.command_execution_sequence.append(self.filter_kwargs)
 
+    def default_commands(self):
+        self.required_arguments.append(Argument('connection', arg_type='silent'))
+        self.required_arguments.append(Argument('server', arg_type='silent'))
+        self.optional_arguments.append(Argument('verbose', arg_type='silent'))
+        self.optional_arguments.append(Argument('help', arg_type='silent'))
+
     async def verify_argument_rules_followed(self, kwargs):
         for name, value in self.arguments.items():
             if name in self.required_arguments and not kwargs[name]:
                 raise Exception(f"The argument {name} is required by the command {self.__class__.__name__}")
-            elif name in self.optional_arguments and not kwargs[name]:
+            elif name in self.optional_arguments and kwargs[name] == None:
                 continue
             elif name in kwargs and name in self.required_arguments:
                 kwargs[name] = self.required_arguments[name].verify_standard_value(kwargs[name])
             elif name in kwargs and name in self.optional_arguments and kwargs[name] and name not in self.form_arguments:
                 kwargs[name] = self.optional_arguments[name].verify_standard_value(kwargs[name])
         return kwargs
+    
+    async def assign_defaults(self, kwargs):
+        for name, value in kwargs.items():
+            argument = self.arguments[name]
+            if not value and argument.default_value:
+                kwargs[name] = argument.default_value
+        return kwargs
 
     async def filter_kwargs(self, kwargs):
         filtered_kwargs = dict()
         for arg, value in kwargs.items():
             if arg in self.arguments and value != None:
-                if (self.arguments[arg].arg_type in typing.get_args(ALLOWED_ARG_TYPES) and kwargs[arg]) or self.arguments[arg].arg_type == 'standard':
-                    filtered_kwargs[arg] = value
+                filtered_kwargs[arg] = value
         return filtered_kwargs
 
     async def handle_config_file(self, kwargs):
         if kwargs['file']:
             with open(kwargs['file'], 'r') as f:
                 kwargs = json.loads(f.read)
+        else:
+            kwargs.pop('file')
         return kwargs
     
     async def handle_form_input(self, kwargs):
@@ -231,25 +254,26 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
         pass
 
     async def __call__(self, **kwargs):
-        command = kwargs.pop('command_selection')
-
         if self.decorator:
             try:
                 return_value = await self.decorator(input_command=self, **kwargs)
             except (ValueError, exceptions.NoConfirmationError) as e:
                 return f"Command execution failed due to {e}"
-        
-        verbose = kwargs.pop('verbose')
-        help = kwargs.pop('help')
 
-        if help:
-            return self.__get_help(verbose=verbose)
+        if kwargs['help']:
+            return self.__get_help(verbose=kwargs['verbose'])
         for handler in self.command_execution_sequence:
             kwargs = await handler(kwargs)
         else:
-            return_value = await self.run(**kwargs)
+            try:
+                return_value = await self.run(**kwargs)
+            except Exception as e:
+                with open(saved_command, 'a') as f:
+                    f.write(json.dumps(kwargs))
+                    print(f"Argument input failure, command data written to file {saved_command}")
+                    raise e
         if self.return_formatter:
-            return_value = self.return_formatter(return_value, verbose)
+            return_value = self.return_formatter(return_value, kwargs['verbose'])
         return return_value
     
 

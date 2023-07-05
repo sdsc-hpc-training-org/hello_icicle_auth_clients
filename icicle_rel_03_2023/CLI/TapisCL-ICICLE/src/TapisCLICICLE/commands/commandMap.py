@@ -207,15 +207,16 @@ class AggregateCommandMap(baseCommand.CommandContainer, ArgsGenerator):
         """
         command_name = command_data['command_selection']
 
-        if command_name in list(self.aggregate_command_map.keys()):
+        if command_name in self.aggregate_command_map:
             command = self.aggregate_command_map[command_name]
-            if command.supports_config_file and 'file' in list(command_data.keys()) and command_data['file']:
-                command_data = {'file':command_data['file']}
-
             command_data['connection'] = connection
             command_data['server'] = self
-            return await command(**command_data)
-        elif command_name in list(self.groups.keys()):
+            kwargs = dict()
+            for argument, value in command_data.items():
+                if argument in command.arguments:
+                    kwargs[argument] = value
+            return await command(**kwargs)
+        elif command_name in self.groups:
             return self.groups[command_name]()
         elif command_name == "help":
             return self.help

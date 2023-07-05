@@ -135,9 +135,9 @@ class create_system(baseCommand.BaseCommand):
                                     GLOBUS: TOKEN
                                     IRODS: TOKEN
                                     In the case you choose password, your username and password will either be your TACC account info, or the login info you used with federated/device_code grant"""),
-        Argument('canExec', action='store_true'),
     ]
     optional_arguments=[
+        Argument('canExec', action='store_true', default_value=False),
         Argument('description', arg_type='str_input', size_limit=(0, 2048)),
         Argument('owner'),
         Argument('enabled', action='store_true'),
