@@ -28,7 +28,7 @@ class system(baseCommand.BaseCommand):
     @help: set the system to run operations on by default. Running this will put you "in" the system so that you dont have to specify system ID for each command
     """
     required_arguments=[
-        Argument('systemId', size_limit=(1, 80)),
+        Argument('systemId', size_limit=(1, 80), positional=True),
     ]
     async def run(self, *args, **kwargs):
         system_info = self.t.systems.getSystem(systemId=kwargs['systemId'])
@@ -52,6 +52,7 @@ class get_systems(baseCommand.BaseCommand):
     @help: Gets and returns the list of systems the current Tapis service and account have access to
     @doc: this is an example of the doc segment of the docstring. not included in help message
     """
+    return_fields = ['id', 'systemType', 'host', 'enabled']
     optional_arguments = [
         Argument('listType', choices=['OWNED', 'SHARED_PUBLIC', 'ALL'])
     ]
@@ -64,9 +65,10 @@ class get_system_info(baseCommand.BaseCommand):
     """
     @help: get information on a selected system
     """
+    return_fields = ['id', 'systemType', 'host', 'enabled']
     command_opt = [commandOpts.CHECK_EXPLICIT_ID('systemId')]
     required_arguments=[
-        Argument('systemId', size_limit=(1, 80))
+        Argument('systemId', size_limit=(1, 80), positional=True)
     ]
     async def run(self, *args, **kwargs): 
         system_info = self.t.systems.getSystem(systemId=kwargs['systemId'])
@@ -80,7 +82,7 @@ class verify_pki_keys(baseCommand.BaseCommand):
     """
     command_opt = [commandOpts.CHECK_EXPLICIT_ID('systemId')]
     required_arguments = [
-        Argument('systemId'),
+        Argument('systemId', positional=True),
         Argument('private_key_path'),
         Argument('public_key_path')
     ]
@@ -121,7 +123,7 @@ class create_system(baseCommand.BaseCommand):
     """
     supports_config_file=True
     required_arguments=[
-        Argument('id', size_limit=(1, 80)),
+        Argument('id', size_limit=(1, 80), positional=True),
         Argument('systemType', choices=["LINUX", "S3", "IRODS", "GLOBUS"], description=
                                     """LINUX is a standard linux kernel
                                     S3 refers to an AWS S3 Bucket
@@ -221,9 +223,10 @@ class create_system(baseCommand.BaseCommand):
         response = await kwargs['connection'].receive()
         response_content = response.request_content
         password = response_content['password']
-        userName = response_content['username']
+        loginUserName = response_content['username']
         cred_return_value = self.t.systems.createUserCredential(systemId=kwargs['id'],
-                            userName=userName,
+                            userName=self.username,
+                            loginUser=loginUserName,
                             password=password)
         return cred_return_value
     
@@ -236,7 +239,11 @@ class create_system(baseCommand.BaseCommand):
         response = await kwargs['connection'].receive()
         auth_code = response.request_content['Auth_code']
         token_info = self.t.systems.generateGlobusTokens(systemId=kwargs['id'], userName=self.username, authCode=auth_code, sessionId=session_details.sessionId)
-        return str(token_info)
+        cred_return_value = self.t.systems.createUserCredential(systemId=kwargs['id'],
+                                                                userName=self.username,
+                            accessToken=token_info.access_token,
+                            refreshToken=token_info.refresh_token)
+        return cred_return_value
     
     async def access_key_auth(self, **kwargs):
         request = schemas.FormRequest(message={"message":f"Retrieve the access key and access secret from your S3 bucket"},
@@ -244,6 +251,7 @@ class create_system(baseCommand.BaseCommand):
         await kwargs['connection'].send(request)
         response = await kwargs['connection'].receive()
         cred_return_value = self.t.systems.createUserCredential(systemId=kwargs['id'],
+                                                                userName=self.username,
                             accessKey=response.request_content['access_key'],
                             password=response.request_content['access_secret'])
         return cred_return_value
@@ -262,14 +270,38 @@ class create_system(baseCommand.BaseCommand):
         await kwargs['connection'].send(request)
         await kwargs['connection'].receive()
         return None        
+    
+    async def authenticate(self, kwargs):
+        return await self.sys_auth_map[kwargs['systemType']][kwargs['defaultAuthnMethod']](**kwargs)
 
     async def run(self, *args, **kwargs) -> str: # create a tapius system. Takes a path to a json file with all system information, as well as an ID
-        system_creation_info = self.t.systems.createSystem(**kwargs)
+        return_info = dict()
+        return_info['system_creation_info'] = self.t.systems.createSystem(**kwargs)
         if kwargs['defaultAuthnMethod'] not in self.sys_auth_map[kwargs['systemType']]:
             raise ValueError(f"The system type {kwargs['systemType']} does not support {kwargs['defaultAuthnMethod']} authentication.")
         else:
-            auth_result = await self.sys_auth_map[kwargs['systemType']][kwargs['defaultAuthnMethod']](**kwargs)
-        return system_creation_info
+            try:
+                return_info['auth_result'] = await self.sys_auth_map[kwargs['systemType']][kwargs['defaultAuthnMethod']](**kwargs)
+            except Exception as e:
+                return_info['auth_result'] = f"Authentication for the system {kwargs['id']} failed, maybe you entered something wrong? run the submit_system_credentials command"
+        return return_info
+    
+
+class submit_system_credentials(create_system):
+    """
+    @help: manually submit system credentials
+    """
+    supports_config_file = False
+    required_arguments = [
+        Argument('id', positional=True)
+    ]
+    optional_arguments = []
+    async def run(self, *args, **kwargs):
+        system_info = self.t.systems.getSystem(systemId=kwargs['id'])
+        kwargs['systemType'] = system_info.systemType
+        kwargs['defaultAuthnMethod'] = system_info.defaultAuthnMethod
+        return_info = await self.authenticate(kwargs)
+        return return_info
     
 
 class update_system(create_system):
@@ -278,7 +310,7 @@ class update_system(create_system):
     """
     command_opt = [commandOpts.CHECK_EXPLICIT_ID('systemId')]
     required_arguments = [
-        Argument('systemId', size_limit=(1, 80))
+        Argument('systemId', size_limit=(1, 80), positional=True)
     ]
     async def run(self, *args, **kwargs):
         result = self.t.systems.putSystem(**kwargs)
@@ -291,7 +323,7 @@ class is_system_enabled(baseCommand.BaseCommand):
     """
     command_opt = [commandOpts.CHECK_EXPLICIT_ID('systemId')]
     required_arguments = [
-        Argument('systemId')
+        Argument('systemId', positional=True)
     ]
     async def run(self, *args, **kwargs):
         return self.t.systems.isEnabled(**kwargs)
@@ -321,7 +353,7 @@ class delete_system(baseCommand.BaseCommand):
     decorator=decorators.NeedsConfirmation()
     command_opt = [commandOpts.CHECK_EXPLICIT_ID('systemId')]
     required_arguments=[
-        Argument('systemId', size_limit=(1, 80)),
+        Argument('systemId', size_limit=(1, 80), positional=True),
     ]
     async def run(self, *args, **kwargs) -> str:
         kwargs['connection'].system = ''
@@ -335,7 +367,7 @@ class undelete_system(baseCommand.BaseCommand):
     @help: undo deletion
     """
     required_arguments=[
-        Argument('systemId', size_limit=(1, 80)),
+        Argument('systemId', size_limit=(1, 80), positional=True),
     ]
     async def run(self, *args, **kwargs):
         return self.t.systems.undelete(**kwargs)
@@ -344,8 +376,40 @@ class create_child_system(baseCommand.BaseCommand):
     """
     @help: create a child system which inherits majority attributes from parent
     """
+    required_arguments = [
+        Argument('parentId', positional=True),
+        Argument('rootDir')
+    ]
+    optional_arguments = [
+        Argument('effectiveUserId', default_value=r"${apiUserId}")
+    ]
     async def run(self, *args, **kwargs):
-        return "UNFINISHED FEATURE"
+        return self.t.systems.createChildSystem(**kwargs)
+    
+
+class unlink_child_system(baseCommand.BaseCommand):
+    """
+    @help: make a child system stand alone, so that updates to parent system will not transfer to this child system
+    """
+    required_arguments = [
+        Argument('parentId', positional=True)
+    ]
+    async def run(self, *args, **kwargs):
+        return self.t.systems.unlinkFromParent(**kwargs)
+    
+
+class unlink_children(baseCommand.BaseCommand):
+    """
+    @help: unlink an array of child systems from their parent system. Requires parent system permissions
+    """
+    required_arguments = [
+        Argument('parentId', positional=True),
+        Argument('childSystemIds', arg_type='input_list', data_type=Argument('systemId', size_limit=(1, 80)))
+    ]
+    async def run(self, *args, **kwargs):
+        parent_id = kwargs.pop('parentId')
+        kwargs['parentSystemId'] = parent_id
+        return self.t.systems.unlinkChildren(**kwargs)
     
 
 class get_user_perms(baseCommand.BaseCommand):
@@ -373,4 +437,11 @@ class grant_user_perms(baseCommand.BaseCommand):
         return self.t.grantUserPerms(**kwargs)
     
 
-#class 
+class revoke_user_perms(grant_user_perms):
+    """
+    @help: delete user permissions
+    """
+    async def run(self, *args, **kwargs):
+        return self.t.revokeUserPerms(**kwargs)
+    
+

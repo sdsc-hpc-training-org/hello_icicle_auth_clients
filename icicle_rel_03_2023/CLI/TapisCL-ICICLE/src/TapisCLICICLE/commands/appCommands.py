@@ -14,8 +14,8 @@ class create_app(baseCommand.BaseCommand):
     """
     supports_config_file=True
     required_arguments = [
-        Argument('id'),
-        Argument('version'),
+        Argument('id', positional=True),
+        Argument('version', positional=True),
         Argument('containerImage')
     ]
     optional_arguments = [
@@ -42,8 +42,8 @@ class update_app(create_app):
     """
     supports_config_file = True
     required_arguments = [
-        Argument('appId', size_limit=(1, 80)),
-        Argument('appVersion', size_limit=(1, 64))
+        Argument('appId', size_limit=(1, 80), positional=True),
+        Argument('appVersion', size_limit=(1, 64), positional=True)
     ]
     async def run(self, *args, **kwargs):
         self.t.apps.patchApp(**kwargs)
@@ -56,8 +56,8 @@ class assign_default_job_attributes(baseCommand.BaseCommand):
     """
     supports_config_file=True
     required_arguments = [
-        Argument('appId', size_limit=(1, 80)),
-        Argument('appVersion', size_limit=(1, 64))
+        Argument('appId', size_limit=(1, 80), positional=True),
+        Argument('appVersion', size_limit=(1, 64), positional=True)
     ]
     optional_arguments = [
         Argument('description', arg_type='str_input'),
@@ -140,6 +140,7 @@ class get_apps(baseCommand.BaseCommand):
     """
     @help: get a list of all available apps
     """
+    return_fields = ['id', 'version' 'runtime', 'containerImage']
     optional_arguments = [
         Argument('listType', choices=[
             'OWNED',
@@ -158,8 +159,9 @@ class get_app(baseCommand.BaseCommand):
     """
     @help: get a specific app
     """
+    return_fields = ['id', 'version' 'runtime', 'containerImage']
     required_arguments = [
-        Argument('appId', size_limit=(1, 80)),
+        Argument('appId', size_limit=(1, 80), positional=True),
     ]
     optional_arguments = [
         Argument('appVersion', size_limit=(1, 64))
@@ -176,7 +178,7 @@ class is_app_enabled(baseCommand.BaseCommand):
     @help: check if the app is enabled
     """
     required_arguments = [
-        Argument('appId', size_limit=(1, 80)),
+        Argument('appId', size_limit=(1, 80), positional=True),
     ]
     async def run(self, *args, **kwargs):
         return self.t.apps.isEnabled(**kwargs)
@@ -228,7 +230,7 @@ class get_app_user_perms(baseCommand.BaseCommand):
     @help: get list of user permissions for the app
     """
     required_arguments = [
-        Argument('appId', size_limit=(1, 80)),
+        Argument('appId', size_limit=(1, 80), positional=True),
         Argument('userName', size_limit=(1, 80))
     ]
     async def run(self, *args, **kwargs):
@@ -240,7 +242,7 @@ class grant_app_user_perms(baseCommand.BaseCommand):
     @help: grant user perms for a specific user on an app
     """
     required_arguments = [
-        Argument('appId', size_limit=(1, 80)),
+        Argument('appId', size_limit=(1, 80), positional=True),
         Argument('userName', size_limit=(1, 80)),
         Argument('permissions', arg_type='input_list', data_type=Argument('permission', choices=['READ', 'MODIFY', 'EXECUTE']))
     ]

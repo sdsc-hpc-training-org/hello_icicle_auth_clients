@@ -12,6 +12,7 @@ class get_pods(baseCommand.BaseCommand):
     """
     @help: return a list of pods the current tapis instance has access to
     """
+    return_fields = ['pod_id', 'pod_template', 'status']
     async def run(self, *args, **kwargs) -> str: 
         pods_list = self.t.pods.get_pods()
         return pods_list
@@ -21,8 +22,9 @@ class get_pod(baseCommand.BaseCommand):
     """
     @help: return a specific pod based on pod_id
     """
+    return_fields = ['pod_id', 'pod_template', 'status']
     required_arguments=[
-        Argument('pod_id')
+        Argument('pod_id', positional=True)
     ]
     async def run(self, *args, **kwargs) -> str: 
         pod_data = self.t.pods.get_pod(pod_id=kwargs["pod_id"])
@@ -34,10 +36,11 @@ class create_pod(baseCommand.BaseCommand):
     @help: create a new pod on the selected Tapis service
     @doc: fix the pod updating, make sure non selected optional vaiables do not overwrite. Why description appending???
     """
+    return_fields = ['pod_id', 'pod_template', 'status']
     supports_config_file=True
     required_arguments=[
-        Argument('pod_id'),
-        Argument('pod_template')
+        Argument('pod_id', positional=True),
+        Argument('pod_template', positional=True)
     ]
     optional_arguments=[
         Argument('description', arg_type='str_input', size_limit=(0, 2048)),
@@ -89,8 +92,9 @@ class update_pod(create_pod): # make it so the command retrieves current setting
     """
     @help: update a pod. Must be restarted to stage changes
     """
+    return_fields = ['pod_id', 'pod_template', 'status']
     required_arguments=[
-        Argument('pod_id'),
+        Argument('pod_id', positional=True),
     ]
     async def run(self, *args, **kwargs):
         print(kwargs)
@@ -102,8 +106,9 @@ class start_pod(baseCommand.BaseCommand):
     """
     @help: start the pod specified with pod_id
     """
+    return_fields = ['pod_id', 'pod_template', 'status']
     required_arguments=[
-        Argument('pod_id'),
+        Argument('pod_id', positional=True),
     ]
     async def run(self, *args, **kwargs):
         return_information = self.t.pods.start_pod(pod_id=kwargs['pod_id'])
@@ -114,9 +119,10 @@ class restart_pod(baseCommand.BaseCommand):
     """
     @help: initiate a pod restart
     """
+    return_fields = ['pod_id', 'pod_template', 'status']
     decorator=decorators.NeedsConfirmation()
     required_arguments=[
-        Argument('pod_id'),
+        Argument('pod_id', positional=True),
     ]
     async def run(self, *args, **kwargs) -> str:
         return_information = self.t.pods.restart_pod(pod_id=kwargs['pod_id'])
@@ -127,9 +133,10 @@ class stop_pod(baseCommand.BaseCommand):
     """
     @help: stop a pod's operations
     """
+    return_fields = ['pod_id', 'pod_template', 'status']
     decorator=decorators.NeedsConfirmation()
     required_arguments=[
-        Argument('pod_id'),
+        Argument('pod_id', positional=True),
     ]
     async def run(self, *args, **kwargs):
         return_information = self.t.pods.stop_pod(pod_id=kwargs['pod_id'])
@@ -140,9 +147,10 @@ class delete_pod(baseCommand.BaseCommand):
     """
     @help: delete select pod
     """
+    return_fields = ['pod_id', 'pod_template', 'status']
     decorator=decorators.NeedsConfirmation()
     required_arguments=[
-        Argument('pod_id'),
+        Argument('pod_id', positional=True),
     ]
     async def run(self, *args, **kwargs) -> str: 
         return_information = self.t.pods.delete_pod(pod_id=kwargs['pod_id'])
@@ -153,40 +161,43 @@ class set_pod_perms(baseCommand.BaseCommand):
     """
     @help: set the permissions for the pod selected
     """
+    return_fields = ['permissions']
     required_arguments=[
-        Argument('pod_id'),
+        Argument('pod_id', positional=True),
         Argument('username'),
         Argument('level')
     ]
     async def run(self, *args, **kwargs) -> str: # set pod permissions, given a pod pod_id, user, and permission level
         return_information = self.t.pods.set_pod_permission(pod_id=kwargs['pod_id'], user=kwargs['username'], level=kwargs['level'])
-        return str(return_information)
+        return return_information
 
 
 class delete_pod_perms(baseCommand.BaseCommand):
     """
     @help: delete the selected pod from the pods service you are connected to
     """
+    return_fields = ['permissions']
     decorator=decorators.NeedsConfirmation()
     required_arguments=[
-        Argument('pod_id'),
+        Argument('pod_id', positional=True),
         Argument('username')
     ]
     async def run(self, *args, **kwargs) -> str: # take away someones perms if they are being malicious, or something
         return_information = self.t.pods.delete_pod_perms(pod_id=kwargs['pod_id'], user=kwargs['username'])
-        return str(return_information)
+        return return_information
 
 
 class get_pod_perms(baseCommand.BaseCommand):
     """
     @help: get the permissions list for the selected pod
     """
+    return_fields = ['permissions']
     required_arguments=[
-        Argument('pod_id'),
+        Argument('pod_id', positional=True),
     ]
     async def run(self, *args, **kwargs) -> str: # return a list of permissions on a given pod
         return_information = self.t.pods.get_pod_permissions(pod_id=kwargs['pod_id'])
-        return str(return_information)
+        return return_information
 
 
 class copy_pod_password(baseCommand.BaseCommand):
@@ -195,7 +206,7 @@ class copy_pod_password(baseCommand.BaseCommand):
     """
     decorator=decorators.Auth()
     required_arguments=[
-        Argument('pod_id'),
+        Argument('pod_id', positional=True),
     ]
     async def run(self, *args, **kwargs) -> str: # copies the pod password to clipboard so that the user can access the pod via the neo4j desktop app. Maybe a security risk? not as bad as printing passwords out!
         password = self.t.pods.get_pod_credentials(pod_id=kwargs['pod_id']).user_password
@@ -208,8 +219,9 @@ class get_pod_logs(baseCommand.BaseCommand):
     """
     @help: retrieve the logs of an active pod and either print them to the console, or write them to the specified file
     """
+    return_fields = ['logs']
     required_arguments=[
-        Argument('pod_id')
+        Argument('pod_id', positional=True)
     ]
     optional_arguments=[
         Argument('destination_file')
@@ -224,6 +236,6 @@ class get_pod_logs(baseCommand.BaseCommand):
             with open(file, 'w') as f:
                 f.write(logs)
             return f"Log saved at {file}"
-        return str(logs)
+        return logs
     
 

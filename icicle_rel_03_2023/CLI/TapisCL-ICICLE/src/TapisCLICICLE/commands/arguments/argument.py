@@ -70,7 +70,13 @@ class Argument(AbstractArgument):
         self.full_arg = f"--{self.argument}"
 
     def verify_standard_value(self, value):
-        if self.arg_type == "standard" and value:
+        if self.arg_type == "standard":
+            #print(f"ARGUMENT NAME: {self.argument}\nARGUMENT VALUE: {value}\n")
+            if value == None and self.default_value:
+                value = self.default_value
+                return value
+            elif not value:
+                return value
             min_, max_ = self.size_limit
             try:
                 value = self.type_map[self.data_type](value)
@@ -111,11 +117,13 @@ class Argument(AbstractArgument):
     
     def help_message(self):
         help = {"name":self.argument,
-                    "description":f"{self.description}"}
-        if self.action == 'store':
-            help['syntax'] = f"{self.truncated_arg}/{self.full_arg} <{self.argument}>"
-        elif self.positional:
+                "description":f"{self.description}"}
+        if self.choices:
+            help['choices'] = self.choices
+        if self.positional:
             help['syntax'] = f"<{self.argument}>"
+        elif self.action == 'store':
+            help['syntax'] = f"{self.truncated_arg}/{self.full_arg} <{self.argument}>"
         else:
             help['syntax'] = f"{self.truncated_arg}/{self.full_arg}"
             if self.arg_type != 'standard':
@@ -131,9 +139,11 @@ class Argument(AbstractArgument):
     def str(self):
         help_str = f"{self.truncated_arg}/{self.full_arg} "
         if self.positional:
-            help_str = f"{self.argument} "
+            help_str = f"<{self.argument}> "
         elif self.action == 'store':
             help_str += f"<{self.argument}> "
+        if self.arg_type != 'standard':
+            help_str += ' (f)'
         return help_str
 
 

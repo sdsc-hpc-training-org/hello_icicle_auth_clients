@@ -3,6 +3,7 @@ import os
 import json
 
 from prompt_toolkit.validation import Validator, ValidationError
+from prompt_toolkit.completion import word_completer, WordCompleter
 from prompt_toolkit import prompt
 from blessed import Terminal
 
@@ -98,10 +99,7 @@ class Handlers(Formatters):
         return expression
     
     def confirmation_handler(self, argument):
-        if argument['description']:
-            print(argument['description'])
-        else:
-            print("are you sure?")
+        print(argument['name'])
         while True:
             decision = str(input("(y/n)"))
             if decision == 'y':
@@ -159,6 +157,8 @@ class Handlers(Formatters):
                     except IndexError:
                         continue
                     continue
+                else:
+                    continue
                 sub_answer = self.form_handler({str(len(answer)+1):attrs['data_type']}, term)
                 index, value = list(sub_answer.items())[0]
                 answer.append(value)
@@ -183,9 +183,12 @@ class Handlers(Formatters):
                     case 'input_dict':
                         answer = self.input_dict_handler(term, attrs)
                     case 'str_input':
+                        completer = None
                         if 'description' in attrs and attrs['description']:
                             print(attrs['description'])
-                        answer = prompt(f"{attrs['name']}: ", validator=self.validator, wrap_lines=True)
+                        if 'choices' in attrs and attrs['choices']:
+                            completer = WordCompleter(attrs['choices'])
+                        answer = prompt(f"{attrs['name']}: ", validator=self.validator, wrap_lines=True, completer=completer)
                     case 'confirmation':
                         answer = self.confirmation_handler(attrs)
                     case 'silent':

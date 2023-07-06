@@ -1,5 +1,6 @@
 import json
 import typing
+from pprint import pformat
 
 import pydantic
 
@@ -35,9 +36,9 @@ class BaseSocketOpts(logger.ConnectionLogger):
         if self.debug_state:
             if not isinstance(message, str):
                 self.logger.info(f"""{operation}: {message.schema_type}
-                                    MESSAGE CONTENT:{message.request_content}
-                                    MESSAGE: {message.message}
-                                    ERROR: {message.error}""")
+                                    MESSAGE CONTENT:{pformat(message.request_content)}
+                                    MESSAGE: {pformat(message.message)}
+                                    ERROR: {pformat(message.error)}""")
             else:
                 self.logger.info(message)
 

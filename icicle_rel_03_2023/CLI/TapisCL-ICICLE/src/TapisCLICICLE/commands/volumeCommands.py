@@ -22,7 +22,7 @@ class create_volume(baseCommand.BaseCommand):
     """
     supports_config_file=True
     required_arguments = [
-        Argument('volume_id')
+        Argument('volume_id', positional=True)
     ]
     optional_arguments = [
         Argument('description', arg_type='str_input'),
@@ -38,7 +38,7 @@ class get_volume(baseCommand.BaseCommand):
     """
     command_opt = [commandOpts.CHECK_EXPLICIT_ID('volume_id')]
     required_arguments = [
-        Argument('volume_id')
+        Argument('volume_id', positional=True)
     ]
     async def run(self, *args, **kwargs):
         return self.t.pods.get_volume(**kwargs)
@@ -50,7 +50,7 @@ class volume(baseCommand.BaseCommand):
     """
     command_opt = [commandOpts.CHECK_EXPLICIT_ID('volume_id')]
     required_arguments = [
-        Argument('volume_id')
+        Argument('volume_id', positional=True)
     ]
     async def run(self, *args, **kwargs):
         volume_info = self.t.pods.get_volume(volume_id=kwargs['volume_id'])
@@ -65,7 +65,7 @@ class exit_volume(baseCommand.BaseCommand):
     """
     command_opt = [commandOpts.CHECK_EXPLICIT_ID('volume_id')]
     required_arguments = [
-        Argument('volume_id')
+        Argument('volume_id', positional=True)
     ]
     async def run(self, *args, **kwargs):
         kwargs['connection'].system = ""
@@ -90,7 +90,7 @@ class delete_volume(baseCommand.BaseCommand):
     decorator=decorators.NeedsConfirmation()
     command_opt = [commandOpts.CHECK_EXPLICIT_ID('volume_id')]
     required_arguments = [
-        Argument('volume_id')
+        Argument('volume_id', positional=True)
     ]
     async def run(self, *args, **kwargs):
         return self.t.pods.delete_volume_files(**kwargs)
@@ -102,7 +102,7 @@ class dir(baseCommand.BaseCommand):
     """
     command_opt = [commandOpts.CHECK_EXPLICIT_ID('volume_id')]
     required_arguments = [
-        Argument('volume_id')
+        Argument('volume_id', positional=True)
     ]
     async def run(self, *args, **kwargs):
         return self.t.pods.list_volume_files(**kwargs)
@@ -114,7 +114,7 @@ class upload_volume(baseCommand.BaseCommand):
     """
     command_opt = [commandOpts.CHECK_EXPLICIT_ID('volume_id'), commandOpts.CHECK_PWD('path',)]
     required_arguments = [
-        Argument('volume_id'),
+        Argument('volume_id', positional=True),
         Argument('path'),
         Argument('file')
     ]
@@ -128,7 +128,7 @@ class set_volume_permission(baseCommand.BaseCommand):
     """
     command_opt = [commandOpts.CHECK_EXPLICIT_ID('volume_id')]
     required_arguments = [
-        Argument('volume_id'),
+        Argument('volume_id', positional=True),
         Argument('username'),
         Argument('level')
     ]
@@ -144,7 +144,7 @@ class get_volume_permissions(baseCommand.BaseCommand):
     """
     command_opt = [commandOpts.CHECK_EXPLICIT_ID('volume_id')]
     required_arguments = [
-        Argument('volume_id'),
+        Argument('volume_id', positional=True),
     ]
     async def run(self, *args, **kwargs):
         return self.t.pods.get_volume_permission(**kwargs)
@@ -156,7 +156,7 @@ class delete_volume_permission(baseCommand.BaseCommand):
     """
     decorator=decorators.NeedsConfirmation()
     required_arguments = [
-        Argument('volume_id'),
+        Argument('volume_id', positional=True),
         Argument('username'),
         Argument('level')
     ]
@@ -181,8 +181,8 @@ class create_snapshot(baseCommand.BaseCommand):
     supports_config_file=True
     command_opt = [commandOpts.CHECK_EXPLICIT_ID('source_volume_id'), commandOpts.CHECK_PWD(('source_volume_path', 'destination_path'))]
     required_arguments = [
-        Argument('snapshot_id'),
-        Argument('source_volume_id'),
+        Argument('snapshot_id', positional=True),
+        Argument('source_volume_id', positional=True),
         Argument('source_volume_path')
     ]
     optional_arguments = [
@@ -201,7 +201,7 @@ class get_snapshot(baseCommand.BaseCommand):
     @help: get snapshot information
     """
     required_arguments = [
-        Argument('snapshot_id')
+        Argument('snapshot_id', positional=True)
     ]
     async def run(self, *args, **kwargs):
         return self.t.pods.get_snapshot(**kwargs)
@@ -213,7 +213,7 @@ class update_snapshot(baseCommand.BaseCommand):
     """
     supports_config_file=True
     required_arguments = [
-        Argument('snapshot_id')
+        Argument('snapshot_id', positional=True)
     ]
     optional_arguments = [
         Argument('description', arg_type='str_input'),
@@ -231,7 +231,7 @@ class delete_snapshot(baseCommand.BaseCommand):
     """
     decorator=decorators.NeedsConfirmation()
     required_arguments = [
-        Argument('snapshot_id')
+        Argument('snapshot_id', positional=True)
     ]
     async def run(self, *args, **kwargs):
         return self.t.pods.delete_snapshot(**kwargs)
@@ -242,7 +242,7 @@ class list_snapshot_files(baseCommand.BaseCommand):
     @help: list the files in a snapshot
     """
     required_arguments = [
-        Argument('snapshot_id')
+        Argument('snapshot_id', positional=True)
     ]
     async def run(self, *args, **kwargs):
         return self.t.pods.list_snapshot_files(**kwargs)

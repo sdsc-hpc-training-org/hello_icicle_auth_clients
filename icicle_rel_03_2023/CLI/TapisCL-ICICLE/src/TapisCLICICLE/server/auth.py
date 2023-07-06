@@ -26,6 +26,17 @@ class ServerSideAuth:
         parsed_data = json.loads(response.content.decode())
         return parsed_data['result']['access_token']['access_token'], parsed_data['result']['refresh_token']['refresh_token']
     
+    def get_tenant_uris(self):
+        if not self.t:
+            t = Tapis('https://tacc.tapis.io')
+        else:
+            t = self.t
+        tenants = t.tenants.list_tenants()
+        uri_list = list()
+        for tenant in tenants:
+            uri_list.append(tenant.base_url.split("//")[1])
+        return uri_list
+    
     async def password_grant(self, link: str, connection):
         start = time.time()
         username_password_request = schemas.AuthRequest(auth_request_type='password',
@@ -135,7 +146,7 @@ class ServerSideAuth:
         return f"Successfully initialized tapis service on {self.url}"
 
     async def auth_startup(self, connection):
-        session_auth_type_request = schemas.AuthRequest(request_content={"Tenant URI":argument.Argument('Tenant URI', arg_type='str_input'), "auth_type":argument.Argument('auth_type', choices=['password', 'device_code', 'federated'], arg_type='str_input')},
+        session_auth_type_request = schemas.AuthRequest(request_content={"Tenant URI":argument.Argument('Tenant URI', arg_type='str_input', choices=self.get_tenant_uris()), "auth_type":argument.Argument('auth_type', choices=['password', 'device_code', 'federated'], arg_type='str_input')},
                                                         auth_request_type="requested",
                                                         message={"message":"Enter the URI of the Tapis tenant you wish to connect to, then select your auth type from the options below",
                                                                  "grant options":['password', 'device_code', 'federated']})
@@ -172,7 +183,9 @@ class ServerSideAuth:
                 if auth_type == "federated":
                     await self.federated_grant(link, connection)
                 elif auth_type == "device_code":
+                    connection.set_status_device_authenticating()
                     await self.device_code_grant(link, connection)
+                    connection.set_status_closed()
                 else:
                     await self.password_grant(link, connection)
                 break

@@ -1,5 +1,5 @@
 if __name__ != "__main__":
-    from . import systemCommands, volumeCommands, serverCommands, appCommands, podCommands, fileCommands, dataFormatters, baseCommand
+    from . import systemCommands, volumeCommands, serverCommands, appCommands, podCommands, fileCommands, dataFormatters, baseCommand, jobCommands
     from .query import postgres, neo4j
     from utilities import exceptions
     from commands.arguments.argument import Argument
@@ -10,13 +10,12 @@ class Systems(baseCommand.BaseCommandMap):
     """
     @help: run operations on Tapis systems
     """
-    data_formatter = dataFormatters.DataFormatters.system_formatter
     command_map = {
         'get_systems':systemCommands.get_systems(), # since initialization of commands is separate from __init__, you dont need to specify these as classes anymore
         'get_system_info':systemCommands.get_system_info(),
         'get_scheduler_profiles':systemCommands.get_scheduler_profiles(),
+        'submit_system_credentials':systemCommands.submit_system_credentials(),
         'verify_pki_keys':systemCommands.verify_pki_keys(),
-        'create_child_system':systemCommands.create_child_system(),
         'create_system':systemCommands.create_system(),
         'update_system':systemCommands.update_system(),
         'is_system_enabled':systemCommands.is_system_enabled(),
@@ -25,7 +24,13 @@ class Systems(baseCommand.BaseCommandMap):
         'system':systemCommands.system(),
         'exit_system':systemCommands.exit_system(),
         'delete_system':systemCommands.delete_system(),
-        'undelete_system':systemCommands.undelete_system()
+        'undelete_system':systemCommands.undelete_system(),
+        'create_child_system':systemCommands.create_child_system(),
+        'unlink_child_system':systemCommands.unlink_child_system(),
+        'unlink_children':systemCommands.unlink_children(),
+        'get_user_perms':systemCommands.get_user_perms(),
+        'grant_user_perms':systemCommands.grant_user_perms(),
+        'revoke_user_perms':systemCommands.revoke_user_perms(),
     }
 
 
@@ -33,14 +38,17 @@ class General(baseCommand.BaseCommandMap):
     """
     @help: run config operations on the 
     """
-    data_formatter = dataFormatters.DataFormatters.server_formatter
     command_map = {
+        'get_tenants':serverCommands.get_tenants(),
+        'get_tenant':serverCommands.get_tenant(),
         'whoami':serverCommands.whoami(),
+        'user':serverCommands.user(),
         'whereami':serverCommands.whereami(),
         'exit':serverCommands.exit(),
         'shutdown':serverCommands.shutdown(),
         "get_args":serverCommands.get_args(),
-        'switch_service':serverCommands.switch_service()
+        'switch_service_to':serverCommands.switch_service_to(),
+        'manpages':serverCommands.manpages()
     }
 
 
@@ -48,7 +56,6 @@ class Pods(baseCommand.BaseCommandMap):
     """
     @help: run operations on tapis pods
     """
-    data_formatter = dataFormatters.DataFormatters.pod_formatter
     command_map = {
         'get_pods':podCommands.get_pods(),
         'get_pod':podCommands.get_pod(),
@@ -70,7 +77,6 @@ class Volumes(baseCommand.BaseCommandMap):
     """
     @help: run operations on tapis volumes and snapshots
     """
-    data_formatter = dataFormatters.DataFormatters.general_formatter
     command_map = {
         'get_volumes':volumeCommands.get_volumes(),
         'create_volume':volumeCommands.create_volume(),
@@ -97,7 +103,6 @@ class Files(baseCommand.BaseCommandMap):
     """
     @help: run operations on tapis files
     """
-    data_formatter = dataFormatters.DataFormatters.general_formatter
     command_map = {
         'ls':fileCommands.ls(),
         'cd':fileCommands.cd(),
@@ -108,7 +113,7 @@ class Files(baseCommand.BaseCommandMap):
         'mv':fileCommands.mv(),
         'cp':fileCommands.cp(),
         'rm':fileCommands.rm(),
-        'get_recent_transfers':fileCommands.get_recent_transfers(),
+        #'get_recent_transfers':fileCommands.get_recent_transfers(),
         'create_postit':fileCommands.create_postit(),
         'list_postits':fileCommands.list_postits(),
         'get_postit':fileCommands.get_postit(),
@@ -123,7 +128,6 @@ class Apps(baseCommand.BaseCommandMap):
     """
     @help: Run operations on tapis apps
     """
-    data_formatter = dataFormatters.DataFormatters.app_formatter
     command_map = {
         'create_app':appCommands.create_app(),
         'update_app':appCommands.update_app(),
@@ -139,6 +143,30 @@ class Apps(baseCommand.BaseCommandMap):
         'get_app_user_perms':appCommands.get_app_user_perms(),
         'grant_app_user_perms':appCommands.grant_app_user_perms(),
         'revoke_app_user_perms':appCommands.revoke_app_user_perms()
+    }
+
+
+class Jobs(baseCommand.BaseCommandMap):
+    """
+    @help: run jobs on a tapis system
+    """
+    command_map = {
+        'hide_job':jobCommands.hide_job(),
+        'unhide_job':jobCommands.unhide_job(),
+        'cancel_job':jobCommands.cancel_job(),
+        'get_job':jobCommands.get_job(),
+        'get_job_history':jobCommands.get_job_history(),
+        'get_jobs':jobCommands.get_jobs(),
+        'download_job_output':jobCommands.download_job_output(),
+        'get_job_status':jobCommands.get_job_status(),
+        'resubmit_job':jobCommands.resubmit_job(),
+        'submit_job':jobCommands.submit_job(),
+        'share_job':jobCommands.share_job(),
+        'get_job_share':jobCommands.get_job_share(),
+        'delete_job_share':jobCommands.delete_job_share(),
+        'subscribe_to_job':jobCommands.subscribe_to_job(),
+        'get_subscriptions':jobCommands.get_subscriptions(),
+        'delete_subscriptions':jobCommands.delete_subscriptions()
     }
 
 
@@ -210,7 +238,6 @@ class AggregateCommandMap(baseCommand.CommandContainer, ArgsGenerator):
         if command_name in self.aggregate_command_map:
             command = self.aggregate_command_map[command_name]
             command_data['connection'] = connection
-            command_data['server'] = self
             kwargs = dict()
             for argument, value in command_data.items():
                 if argument in command.arguments:

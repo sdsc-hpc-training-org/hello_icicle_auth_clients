@@ -1,97 +1,41 @@
-import json
+class BaseDataFormatter:
+    def __init__(self, non_verbose_fields: list[list | str] = []):
+        self.non_verbose_fields = non_verbose_fields
 
-from tapipy.tapis import TapisResult
-
-
-HANDLED_TYPES = (TapisResult)
-JSON_SERIALIZABLE = (str, int, dict, list, set, tuple)
+    def obj_to_dict(self, obj):
+        if isinstance(obj, (int, float, str, bool)):
+            return obj 
+        elif isinstance(obj, dict):
+            return {k: self.obj_to_dict(v) for k, v in obj.items()} 
+        elif isinstance(obj, (list, tuple, set)):
+            return type(obj)(self.obj_to_dict(item) for item in obj) 
+        elif obj == None:
+            return None
+        elif isinstance(obj, object):
+            return self.obj_to_dict(obj.__dict__) 
+        return None 
     
-
-class DataFormatters:
-    pod_data = ('pod_id', 'pod_template', 'status')
-    system_data = ('id', 'owner', 'systemType', 'canExec')
-    app_data = ('id', 'owner', 'version', 'runtime')
-    server_data = ('username',)
-
-    @staticmethod
-    def json_serializer(return_data):
-        if isinstance(return_data, list):
-            processed_data = []
-            for data in return_data:
-                processed_data.append(DataFormatters.json_serializer(data))
-            return processed_data
+    def non_verbose_formatter(self, serialized_data, formatted=dict()):
+        if self.non_verbose_fields:
+            for field in self.non_verbose_fields:
+                if isinstance(field, str):
+                    formatted[field] = serialized_data[field]
+                elif isinstance(field, list):
+                    formatted[field] = self.non_verbose_formatter(serialized_data[field])
+            return formatted
+        else:
+            return serialized_data
+    
+    def __call__(self, data, verbose):
+        serialized = self.obj_to_dict(data)
+        if verbose:
+            return serialized
+        if isinstance(serialized, list) and self.non_verbose_fields:
+            return_data = list()
+            for fragment in serialized:
+                return_data.append(self.non_verbose_formatter(fragment))
+            return return_data
+        return self.non_verbose_formatter(serialized)
         
-        elif isinstance(return_data, dict):
-            processed_data = dict()
-            for name, data in return_data.items():
-                processed_data[name] = DataFormatters.json_serializer(data)
-            return processed_data
 
-        elif isinstance(return_data, TapisResult):
-            return DataFormatters.json_serializer(return_data.__dict__)
-        
-        return return_data
-
-    @staticmethod
-    def base_formatter(self, return_data, desired_data=None):
-        filled_data = None
-        if isinstance(return_data, list):
-            filled_data = []
-            for data in return_data:
-                filled_data.append(DataFormatters.base_formatter(self, data, desired_data=desired_data))
-            return filled_data
-        elif isinstance(return_data, dict):
-            filled_data = dict()
-            for name, data in return_data.items():
-                if name in desired_data:
-                    filled_data[name] = data
-            return filled_data
-        return return_data
-    
-    @staticmethod
-    def pod_formatter(self, return_data, verbose):
-        if return_data:
-            return_data = DataFormatters.json_serializer(return_data)
-            if not verbose and not isinstance(return_data, str):
-                return DataFormatters.base_formatter(self, return_data, desired_data=DataFormatters.pod_data)
-            return return_data
-        return "No data found"
-    
-    @staticmethod
-    def system_formatter(self, return_data, verbose):
-        if return_data:
-            return_data = DataFormatters.json_serializer(return_data)
-            if not verbose and not isinstance(return_data, str):
-                return DataFormatters.base_formatter(self, return_data, desired_data=DataFormatters.system_data)
-            return return_data
-        return "No data found"
-    
-    @staticmethod
-    def app_formatter(self, return_data, verbose):
-        if return_data:
-            return_data = DataFormatters.json_serializer(return_data)
-            if not verbose and not isinstance(return_data, str):
-                return DataFormatters.base_formatter(self, return_data, desired_data=DataFormatters.app_data)
-            return return_data
-        return "No data found"
-    
-    @staticmethod
-    def server_formatter(self, return_data, verbose):
-        if return_data:
-            try:
-                json.dumps(return_data)
-                return return_data
-            except:
-                return str(return_data)
-        return "No data found"
-    
-    @staticmethod
-    def general_formatter(self, return_data, verbose):
-        if return_data:
-            try:
-                json.dumps(return_data)
-                return return_data
-            except:
-                return str(return_data)
-        return "No data found"
     

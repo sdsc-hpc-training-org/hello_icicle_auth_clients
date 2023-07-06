@@ -6,6 +6,7 @@ import os
 import time
 import traceback
 import subprocess
+import pprint
 
 import pyfiglet
 from blessed import Terminal
@@ -14,7 +15,7 @@ if __name__ != "__main__":
     from . import handlers
     from ..socketopts import socketOpts, schemas
     from ..commands import decorators
-    from ..utilities import killableThread
+    from ..utilities import killableThread, exceptions
 
 
 __location__ = os.path.realpath(
@@ -86,8 +87,14 @@ class CLI(handlers.Handlers):
         parser.error = self.parser_error
         
         for arg_name, arg in arguments.items():
+            if arg['action'] == 'store_true':
+                default = False
+            elif arg['action'] == 'store_false':
+                default = True
+            else:
+                default = None
             parser.add_argument(f"-{arg['truncated_arg']}", arg['full_arg'],
-                                action=arg['action'])
+                                action=arg['action'], default=default)
         return parser
 
     def initialize_server(self): 
@@ -165,8 +172,7 @@ class CLI(handlers.Handlers):
                 self.url, self.username = command_response.url, command_response.active_username
                 self.pwd, self.current_system = command_response.pwd, command_response.system
                 if command_response.exit_status:
-                    print("Exit initiated")
-                    sys.exit(0)
+                    raise exceptions.Shutdown()
             handled_response = self.universal_message_handler(command_response, self.term)
             if not handled_response:
                 break
@@ -176,12 +182,12 @@ class CLI(handlers.Handlers):
     def terminal_cli(self):
         try:
             kwargs = self.parser.parse_args()
-        except:
-            print("Invalid Arguments")
+            kwargs = vars(kwargs)
+            self.interface(kwargs)
+        except Exception as e:
+            print(e)
+        finally:
             sys.exit(0)
-        kwargs = vars(kwargs)
-        self.interface(kwargs)
-        sys.exit(0)
 
     def cli_window(self):
         title = pyfiglet.figlet_format("-----------\nTapisCLICICLE\n-----------", font="slant") # print the title when CLI is accessed
@@ -196,9 +202,17 @@ class CLI(handlers.Handlers):
                 self.interface(kwargs)
             except KeyboardInterrupt:
                 continue
+            except exceptions.Shutdown:
+                print("Server shutdown, exiting")
+                kwargs = vars(self.parser.parse_args(['shutdown']))
+                response_message = schemas.CommandData(request_content=kwargs)
+                self.connection.send(response_message)
+                self.connection.close()
+                break
             except (ConnectionAbortedError, ConnectionResetError):
                 print("Server shutdown, exiting")
-                sys.exit(0)
+                self.connection.close()
+                break
             except (TypeError, argparse.ArgumentError, argparse.ArgumentTypeError) as e:
                 print(e)
                 error_str = traceback.format_exc()

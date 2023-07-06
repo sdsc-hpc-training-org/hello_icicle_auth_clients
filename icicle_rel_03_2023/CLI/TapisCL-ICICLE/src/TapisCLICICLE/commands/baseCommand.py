@@ -7,11 +7,13 @@ from typing import Type
 import typing
 from abc import abstractmethod, ABC
 import os
+from pprint import pprint
 
 from commands import decorators # I finally understand. Imported at the top level by serverRun, so it can only see packages from that vantage point
 from utilities import exceptions
 from commands.arguments.argument import Argument, DynamicChoiceList, ALLOWED_ARG_TYPES
 from socketopts import schemas
+from commands import dataFormatters
 
 
 __location__ = os.path.realpath(
@@ -105,7 +107,7 @@ class HelpMenu:
 
 class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
     decorator = None
-    return_formatter = None
+    return_fields: list = []
     command_opt: list = None
     supports_config_file: bool = False
     required_arguments: list[Argument] | dict = list()
@@ -116,6 +118,7 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
         self.password = None
         self.server = None
         self.arguments = dict()
+        self.return_formatter: dataFormatters.BaseDataFormatter = dataFormatters.BaseDataFormatter(self.return_fields)
         self.default_commands()
         if self.supports_config_file:
             self.optional_arguments.append(Argument('file'))
@@ -136,7 +139,6 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
             self.command_execution_sequence.append(self.check_for_positionals)
         if self.command_opt:
             self.command_execution_sequence.append(self.handle_arg_opts)
-        self.command_execution_sequence.append(self.assign_defaults)
         self.command_execution_sequence.append(self.verify_argument_rules_followed)
         if self.form_arguments:
             self.command_execution_sequence.append(self.handle_form_input)
@@ -144,34 +146,29 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
         self.command_execution_sequence.append(self.filter_kwargs)
 
     def default_commands(self):
-        self.required_arguments.append(Argument('connection', arg_type='silent'))
-        self.required_arguments.append(Argument('server', arg_type='silent'))
-        self.optional_arguments.append(Argument('verbose', arg_type='silent'))
-        self.optional_arguments.append(Argument('help', arg_type='silent'))
+        default_commands = [Argument('connection', arg_type='silent'),
+                            Argument('verbose', arg_type='silent'),
+                            Argument('help', arg_type='silent'),
+                            Argument('positionals', arg_type='silent')]
+        
+        for command in default_commands:
+            self.required_arguments.append(command)
 
     async def verify_argument_rules_followed(self, kwargs):
+        print("ACTIVATED THE ARGUMENT RULES TESTER")
         for name, value in self.arguments.items():
-            if name in self.required_arguments and not kwargs[name]:
+            if name in self.required_arguments and kwargs[name] == None:
                 raise Exception(f"The argument {name} is required by the command {self.__class__.__name__}")
-            elif name in self.optional_arguments and kwargs[name] == None:
-                continue
-            elif name in kwargs and name in self.required_arguments:
+            elif name in kwargs and name in self.required_arguments and name not in self.form_arguments:
                 kwargs[name] = self.required_arguments[name].verify_standard_value(kwargs[name])
-            elif name in kwargs and name in self.optional_arguments and kwargs[name] and name not in self.form_arguments:
+            elif name in kwargs and name in self.optional_arguments and name not in self.form_arguments:
                 kwargs[name] = self.optional_arguments[name].verify_standard_value(kwargs[name])
-        return kwargs
-    
-    async def assign_defaults(self, kwargs):
-        for name, value in kwargs.items():
-            argument = self.arguments[name]
-            if not value and argument.default_value:
-                kwargs[name] = argument.default_value
         return kwargs
 
     async def filter_kwargs(self, kwargs):
         filtered_kwargs = dict()
         for arg, value in kwargs.items():
-            if arg in self.arguments and value != None:
+            if arg in self.arguments and value or arg in self.required_arguments or (value == False and arg in self.arguments and self.arguments[arg].arg_type == 'standard'):
                 filtered_kwargs[arg] = value
         return filtered_kwargs
 
@@ -179,8 +176,6 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
         if kwargs['file']:
             with open(kwargs['file'], 'r') as f:
                 kwargs = json.loads(f.read)
-        else:
-            kwargs.pop('file')
         return kwargs
     
     async def handle_form_input(self, kwargs):
@@ -254,6 +249,7 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
         pass
 
     async def __call__(self, **kwargs):
+        pprint(kwargs)
         if self.decorator:
             try:
                 return_value = await self.decorator(input_command=self, **kwargs)
@@ -263,17 +259,24 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
         if kwargs['help']:
             return self.__get_help(verbose=kwargs['verbose'])
         for handler in self.command_execution_sequence:
+            print(f"EXECUTING: {handler.__name__}")
             kwargs = await handler(kwargs)
+            pprint(f"{kwargs}\n")
         else:
             try:
                 return_value = await self.run(**kwargs)
+            except exceptions.Shutdown as e:
+                raise e
             except Exception as e:
                 with open(saved_command, 'a') as f:
+                    kwargs.pop('connection')
                     f.write(json.dumps(kwargs))
                     print(f"Argument input failure, command data written to file {saved_command}")
                     raise e
         if self.return_formatter:
             return_value = self.return_formatter(return_value, kwargs['verbose'])
+        else:
+            return_value = str(return_value)
         return return_value
     
 
@@ -293,7 +296,6 @@ class CommandMapMetaClass(type):
         if name not in ('CommandMapMetaClass', 'BaseCommandMap'):
             instance.__check_commands_are_proper_type(name, attrs)
             instance.__check_command_name(name, attrs)
-            instance.__check_data_formatter(name, attrs)
             instance.__special_command_opts(name, attrs)
         return instance
     
@@ -301,19 +303,12 @@ class CommandMapMetaClass(type):
         commands = attrs['command_map']
         if not commands:
             raise AttributeError(f"The command group {name} has no commands!")
-        for command_name, command in commands.items():
-            if not issubclass(command.__class__, BaseCommand):
-                raise AttributeError(f"The command {command_name} was not passed to the {name} as a class, but as an object. Ensure you do not instantiate commands when defining the class")
             
     def __check_command_name(self, name, attrs):
         commands = attrs['command_map']
         for command_name, command in commands.items():
             if command_name != command.__class__.__name__:
                 raise AttributeError(f"The command {command_name} in the command map {name} is a different name from its corresponding command class, {command.__class__.__name__}")
-            
-    def __check_data_formatter(self, name, attrs):
-        if 'data_formatter' not in list(attrs.keys()):
-            print(f"WARNING: The command map {name} has no data formatter. If any commands have non json-serializable return values, command execution will fail! These must be handled by a formatter")
 
     def __special_command_opts(self, name, attrs):
         if 'command_opt' in list(attrs.keys()):
@@ -337,14 +332,11 @@ class CommandContainer:
 
 class BaseCommandMap(CommandContainer, HelpStringRetriever, metaclass=CommandMapMetaClass):
     command_map: dict[str, Type[BaseCommand]] = None
-    data_formatter = None
     command_opt = None
     def __init__(self):
         self.brief_help = self.__brief_help_gen()
         self.verbose_help = self.__help_gen()
         for name, command in self.command_map.items():
-            if self.data_formatter:
-                command.return_formatter = self.data_formatter
             self.aggregate_command_map.update({name:command})
             if command.required_arguments or command.optional_arguments:
                 self.__contribute_to_arguments(command)

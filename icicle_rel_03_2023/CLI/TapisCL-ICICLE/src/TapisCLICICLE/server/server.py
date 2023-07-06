@@ -18,15 +18,44 @@ class ServerConnection(socketOpts.ServerSocketOpts):
     """
     connection object to wrap around async reader and writer to make work easier
     """
-    def __init__(self, name, reader, writer, debug=False):
+    def __init__(self, name, reader, writer, connection_list, debug=False):
         super().__init__(name, debug=debug)
         self.name = name
+        self.connection_list: list = connection_list
         self.reader: asyncio.StreamReader = reader
-        self.writer = writer
+        self.writer: asyncio.StreamWriter = writer
+        self.task: asyncio.Task = None
+        self.status = "CLOSED"
+        self.shutdown_message = schemas.ResponseData(message={'message':'Shutdown initiated, closing'}, exit_status=1)
+
+    def set_status_device_authenticating(self):
+        self.status = 'DEVICE_CODE_AUTH'
+
+    def set_status_closed(self):
+        self.status = 'CLOSED'
+
+    def set_task(self, task: asyncio.Task):
+        self.task = task
+        self.status == 'OPEN'
 
     async def close(self):
-        self.writer.close()
-        await self.writer.wait_closed()
+        self.logger.info('ATTEMPTING TO CLOSE')
+        if self.status == 'OPEN':
+            self.task.cancel()
+            self.logger.info(self.task.result())
+            await self.send(self.shutdown_message)
+            self.writer.close()
+            await self.writer.wait_closed()
+            self.status = 'CLOSED'
+            self.connection_list.remove(self)
+        elif self.status == 'DEVICE_CODE_AUTH':
+            await self.send(schemas.AuthRequest(error='cancelled authentication during device_code grant', auth_request_type='device_code'))
+            self.writer.close()
+            await self.writer.wait_closed()
+        else:
+            self.writer.close()
+            await self.writer.wait_closed()
+        self.logger.info('SUCCESSFULLY CLOSED')
 
 
 class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.DecoratorSetup, auth.ServerSideAuth):
@@ -61,7 +90,6 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
 
         self.end_time = time.time() + self.SESSION_TIME # start the countdown on the timeout
 
-        self.task_list: list[asyncio.Task] = []
         self.connections_list: list[ServerConnection] = []
 
         self.server = None
@@ -69,20 +97,11 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
 
         self.logger.info('initialization complete')
 
-    def cancel_tasks(self):
-        for task in self.task_list:
-            task.cancel()
-        time.sleep(1)
-        print(self.task_list)
-
     async def close_connections(self):
         for connection in self.connections_list:
             await connection.close()
 
     async def close(self):
-        self.cancel_tasks()
-        while self.task_list:
-            time.sleep(1)
         await self.close_connections()
         self.server.close()
         raise exceptions.Shutdown()
@@ -92,12 +111,12 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
             if time.time() >= self.end_time:
                 self.logger.info("Timeout, shutting down")
                 self.running = False
-                return None
-            await asyncio.sleep(10)
+                return 'server timed out'
+            await asyncio.sleep(3)
     
     async def check_shutdown(self):
         while self.running:
-            await asyncio.sleep(1)
+            await asyncio.sleep(3)
         await self.close()
         self.logger.info("The server shutdown.")
         return None
@@ -120,8 +139,7 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
         """  
         self.num_connections += 1
         self.end_time = time.time() + self.SESSION_TIME
-        connection = ServerConnection(f"CON-{self.num_connections}", reader=reader, writer=writer, debug=self.debug)
-        self.connections_list.append(connection)
+        connection = ServerConnection(f"CON-{self.num_connections}", reader=reader, writer=writer, connection_list=self.connections_list, debug=self.debug)
         ip, port = writer.transport.get_extra_info('socket').getsockname()
         self.logger.info("Received connection request")
         try:
@@ -148,8 +166,8 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
 
         loop = asyncio.get_event_loop()
         task: asyncio.Task = loop.create_task(self.receive_and_execute(connection))
-        self.task_list.append(task)
-        task.add_done_callback(self.task_list.remove)
+        connection.set_task(task)
+        self.connections_list.append(connection)
 
     async def receive_and_execute(self, connection: ServerConnection):
         """
@@ -159,6 +177,8 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
         while self.running:
             try:
                 message = await connection.receive()
+                if not self.running:
+                    raise exceptions.Shutdown
                 kwargs = message.request_content
                 result = await self.run_command(connection, kwargs)
                 response = schemas.ResponseData(message={"message":result}, url=self.url, active_username=self.username)
@@ -173,7 +193,7 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
                 await connection.send(error_response)
                 self.logger.warning(str(e))
                 self.running = False
-                return
+                return 'shutdown initiated, closing'
             except exceptions.Exit as e:
                 self.logger.info("user exit initiated")
                 error_response = schemas.ResponseData(error=str(e), exit_status=1, url=self.url, active_username=self.username)
@@ -184,8 +204,7 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
                 self.logger.info("connection was lost, waiting to reconnect")
                 await connection.close()
             except asyncio.CancelledError:
-                self.logger.info('task cancelled')
-                return
+                return 'task was cancelled'
             except (exceptions.CommandNotFoundError, exceptions.NoConfirmationError, exceptions.InvalidCredentialsReceived, Exception) as e:
                 error_str = traceback.format_exc()
                 error_response = schemas.ResponseData(error=str(e), url=self.url, active_username=self.username)
@@ -196,7 +215,7 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
         self.server = await asyncio.start_server(self.accept, sock=self.sock)
         try:
             async with self.server:
-                result = await asyncio.gather(self.server.serve_forever(), self.check_timeout(), self.check_shutdown(),return_exceptions=True)#, self.check_timeout(), return_exceptions=True)
+                result = await asyncio.gather(self.server.serve_forever(), self.check_timeout(), self.check_shutdown(), return_exceptions=True)#, self.check_timeout(), return_exceptions=True)
                 self.logger.info(str(result))
         except (KeyboardInterrupt, exceptions.Shutdown):
             self.running = False
