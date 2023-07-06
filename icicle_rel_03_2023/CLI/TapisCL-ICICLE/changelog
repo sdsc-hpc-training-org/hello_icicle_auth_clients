@@ -12,3 +12,16 @@ overhaul of files and systems to grant user access to additional tapis resources
 ### Planned Changes
 * upgrade app commands and eventually implement intuitive job submission
 * refactor help generation code
+
+## 0.0.70
+### 6/15/23
+### Changes
+* added better positional support
+* fixed command parsing and validation server side
+* improved login UX with suggestions for auth type and tenant uri
+* improved help menus
+* added jobs commands
+* fixed data formatters to be more flexible
+  
+### Planned Changes
+* add improved config file support for tapis resources
