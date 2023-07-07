@@ -5,3 +5,4 @@ test
 *.vscode
 .vscode
 *.bat
+user_fields
