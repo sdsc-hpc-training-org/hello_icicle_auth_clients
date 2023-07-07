@@ -56,6 +56,7 @@ class switch_service_to(baseCommand.BaseCommand):
             results = None
         self.server.configure_decorators(self.server.username, self.server.password)
         self.server.update_credentials(self.server.t, self.server.username, self.server.password)
+        self.server.available_services = self.server.service_checker.check_services(self.server.t)
         return results
       
 

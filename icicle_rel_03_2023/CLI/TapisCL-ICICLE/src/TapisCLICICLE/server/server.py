@@ -10,8 +10,21 @@ if __name__ != "__main__":
     from utilities import logger, exceptions
     from socketopts import schemas, socketOpts
     from server import auth
+    from server import userFileManager
 else:
     import commands.commandMap as commandMap
+
+
+class ServiceChecker:
+    def __init__(self, available_services: list):
+        self.available_services = available_services
+
+    def check_services(self, t):
+        tenant = t.tenants.get_tenant(tenant_id=t.tenant_id)
+        site_id = tenant.site_id
+        supported_services = t.tenants.get_site(site_id=site_id).services
+        filtered_supported_services = [service for service in supported_services if service in self.available_services]
+        return filtered_supported_services
 
 
 class ServerConnection(socketOpts.ServerSocketOpts):
@@ -76,6 +89,10 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
         self.password = None
         self.auth_type = None
 
+        self.service_checker = ServiceChecker(available_services=list(self.groups.keys()))
+        self.available_services = []
+        self.file_manager = userFileManager.FileManager()
+
         self.__name__ = "Server"
         self.initialize_logger(self.__name__)
         # setting up socket server
@@ -85,8 +102,6 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.bind((self.ip, self.port))
         self.sock.listen(1)
-
-        loop = asyncio.get_event_loop()
 
         self.end_time = time.time() + self.SESSION_TIME # start the countdown on the timeout
 
