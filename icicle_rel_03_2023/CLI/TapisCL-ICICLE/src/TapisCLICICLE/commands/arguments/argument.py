@@ -88,8 +88,6 @@ class Argument(AbstractArgument):
             elif type(value) == str and (len(value) >= max_ or len(value) < min_):
                 raise ValueError(f"The argument {self.argument} must be between the sizes {self.size_limit}")
             elif self.choices and value not in self.choices:
-                print(value)
-                print(self.choices)
                 raise ValueError(f"The value for argument {self.argument} must be in the list {self.choices}")
             elif value == None and self.default_value:
                 value = self.default_value
@@ -118,7 +116,7 @@ class Argument(AbstractArgument):
     def help_message(self):
         help = {"name":self.argument,
                 "description":f"{self.description}"}
-        if self.choices:
+        if self.choices and isinstance(self.choices, list):
             help['choices'] = self.choices
         if self.positional:
             help['syntax'] = f"<{self.argument}>"

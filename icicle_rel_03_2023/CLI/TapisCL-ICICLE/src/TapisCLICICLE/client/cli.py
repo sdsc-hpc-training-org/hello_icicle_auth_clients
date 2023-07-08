@@ -203,14 +203,14 @@ class CLI(handlers.Handlers):
             except KeyboardInterrupt:
                 continue
             except exceptions.Shutdown:
-                print("Server shutdown, exiting")
+                print("Exit initiated by user")
                 kwargs = vars(self.parser.parse_args(['shutdown']))
                 response_message = schemas.CommandData(request_content=kwargs)
                 self.connection.send(response_message)
                 self.connection.close()
                 break
             except (ConnectionAbortedError, ConnectionResetError):
-                print("Server shutdown, exiting")
+                print("Server shutdown, exiting (SF)")
                 self.connection.close()
                 break
             except (TypeError, argparse.ArgumentError, argparse.ArgumentTypeError) as e:

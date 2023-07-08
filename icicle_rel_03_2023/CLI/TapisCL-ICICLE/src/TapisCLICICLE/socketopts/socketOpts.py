@@ -36,9 +36,8 @@ class BaseSocketOpts(logger.ConnectionLogger):
         if self.debug_state:
             if not isinstance(message, str):
                 self.logger.info(f"""{operation}: {message.schema_type}
-                                    MESSAGE CONTENT:{pformat(message.request_content)}
                                     MESSAGE: {pformat(message.message)}
-                                    ERROR: {pformat(message.error)}""")
+                                    ERROR: {pformat(message.error)}""") # MESSAGE CONTENT:{pformat(message.request_content)}
             else:
                 self.logger.info(message)
 

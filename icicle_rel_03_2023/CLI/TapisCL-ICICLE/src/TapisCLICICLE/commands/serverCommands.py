@@ -9,6 +9,18 @@ if __name__ != "__main__":
     from commands.arguments.argument import Argument
 
 
+class ServiceChecker:
+    def __init__(self, available_services: list):
+        self.available_services = available_services
+
+    def check_services(self, t):
+        tenant = t.tenants.get_tenant(tenant_id=t.tenant_id)
+        site_id = tenant.site_id
+        supported_services = t.tenants.get_site(site_id=site_id).services
+        filtered_supported_services = [service for service in supported_services if service in self.available_services]
+        return filtered_supported_services
+
+
 class get_tenants(baseCommand.BaseCommand):
     """
     @help: get a list of available tenants to authenticate with
@@ -56,7 +68,6 @@ class switch_service_to(baseCommand.BaseCommand):
             results = None
         self.server.configure_decorators(self.server.username, self.server.password)
         self.server.update_credentials(self.server.t, self.server.username, self.server.password)
-        self.server.available_services = self.server.service_checker.check_services(self.server.t)
         return results
       
 

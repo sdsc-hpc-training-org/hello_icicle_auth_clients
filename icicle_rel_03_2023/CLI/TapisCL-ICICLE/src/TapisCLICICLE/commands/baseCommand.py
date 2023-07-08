@@ -155,7 +155,6 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
             self.required_arguments.append(command)
 
     async def verify_argument_rules_followed(self, kwargs):
-        print("ACTIVATED THE ARGUMENT RULES TESTER")
         for name, value in self.arguments.items():
             if name in self.required_arguments and kwargs[name] == None:
                 raise Exception(f"The argument {name} is required by the command {self.__class__.__name__}")
@@ -249,7 +248,6 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
         pass
 
     async def __call__(self, **kwargs):
-        pprint(kwargs)
         if self.decorator:
             try:
                 return_value = await self.decorator(input_command=self, **kwargs)
@@ -259,9 +257,7 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
         if kwargs['help']:
             return self.__get_help(verbose=kwargs['verbose'])
         for handler in self.command_execution_sequence:
-            print(f"EXECUTING: {handler.__name__}")
             kwargs = await handler(kwargs)
-            pprint(f"{kwargs}\n")
         else:
             try:
                 return_value = await self.run(**kwargs)
@@ -273,10 +269,7 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
                     f.write(json.dumps(kwargs))
                     print(f"Argument input failure, command data written to file {saved_command}")
                     raise e
-        if self.return_formatter:
-            return_value = self.return_formatter(return_value, kwargs['verbose'])
-        else:
-            return_value = str(return_value)
+        return_value = self.return_formatter(return_value, kwargs['verbose'])
         return return_value
     
 

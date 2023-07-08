@@ -201,8 +201,6 @@ class ServerSideAuth:
             "url":link})
         self.configure_decorators(self.username, self.password)
         self.update_credentials(self.t, self.username, self.password)
-        self.available_services = self.service_checker.check_services(self.t)
-        self.file_manager.set_information(self.t.username, self.t.tenant_id)
         await connection.send(success_message)
             
 

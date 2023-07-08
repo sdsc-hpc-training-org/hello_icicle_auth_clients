@@ -2,29 +2,16 @@ import time
 import socket
 import asyncio
 import traceback
+import typing
+import os
+import json
 
 from tapipy.tapis import Tapis
 
-if __name__ != "__main__":
-    from commands import commandMap, decorators
-    from utilities import logger, exceptions
-    from socketopts import schemas, socketOpts
-    from server import auth
-    from server import userFileManager
-else:
-    import commands.commandMap as commandMap
-
-
-class ServiceChecker:
-    def __init__(self, available_services: list):
-        self.available_services = available_services
-
-    def check_services(self, t):
-        tenant = t.tenants.get_tenant(tenant_id=t.tenant_id)
-        site_id = tenant.site_id
-        supported_services = t.tenants.get_site(site_id=site_id).services
-        filtered_supported_services = [service for service in supported_services if service in self.available_services]
-        return filtered_supported_services
+from commands import commandMap, decorators
+from utilities import logger, exceptions
+from socketopts import schemas, socketOpts
+from server import auth
 
 
 class ServerConnection(socketOpts.ServerSocketOpts):
@@ -49,25 +36,27 @@ class ServerConnection(socketOpts.ServerSocketOpts):
 
     def set_task(self, task: asyncio.Task):
         self.task = task
-        self.status == 'OPEN'
+        self.status = 'OPEN'
 
-    async def close(self):
+    async def close(self, connection_list_lock: asyncio.Lock):
         self.logger.info('ATTEMPTING TO CLOSE')
         if self.status == 'OPEN':
-            self.task.cancel()
-            self.logger.info(self.task.result())
+            result = self.task.cancel()
+            self.logger.info("successfully cancelled task")
             await self.send(self.shutdown_message)
             self.writer.close()
             await self.writer.wait_closed()
             self.status = 'CLOSED'
-            self.connection_list.remove(self)
-        elif self.status == 'DEVICE_CODE_AUTH':
+        elif self.status == 'DEVICE_CODE_AUTH': # only in the auth file
             await self.send(schemas.AuthRequest(error='cancelled authentication during device_code grant', auth_request_type='device_code'))
             self.writer.close()
             await self.writer.wait_closed()
         else:
             self.writer.close()
             await self.writer.wait_closed()
+        async with connection_list_lock:
+            self.connection_list.remove(self)
+        print(self.connection_list)
         self.logger.info('SUCCESSFULLY CLOSED')
 
 
@@ -89,10 +78,6 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
         self.password = None
         self.auth_type = None
 
-        self.service_checker = ServiceChecker(available_services=list(self.groups.keys()))
-        self.available_services = []
-        self.file_manager = userFileManager.FileManager()
-
         self.__name__ = "Server"
         self.initialize_logger(self.__name__)
         # setting up socket server
@@ -110,11 +95,12 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
         self.server = None
         self.num_connections = 0
 
+        self.connection_list_lock = asyncio.Lock()
         self.logger.info('initialization complete')
 
     async def close_connections(self):
-        for connection in self.connections_list:
-            await connection.close()
+        print([connection.status for connection in self.connections_list])
+        return await asyncio.gather(*[connection.close(self.connection_list_lock) for connection in self.connections_list])
 
     async def close(self):
         await self.close_connections()
@@ -161,15 +147,15 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
             await self.handshake(connection)
         except exceptions.InvalidCredentialsReceived as e:
             self.logger.warning("invalid credentials entered too many times. Cancelling request")
-            await connection.close()
+            await connection.close(self.connection_list_lock)
             return
         except exceptions.ClientSideError as e:
             self.logger.warning(f"Encountered client side error during startup handshake. {e}")
-            await connection.close()
+            await connection.close(self.connection_list_lock)
             return
         except Exception as e:
             self.logger.warning(e)
-            await connection.close()
+            await connection.close(self.connection_list_lock)
             return
         self.logger.info("connection is running now")
         await connection.send(schemas.ResponseData(request_content={name:argument.json() for name, argument in self.arguments.items()}))
@@ -182,6 +168,7 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
         loop = asyncio.get_event_loop()
         task: asyncio.Task = loop.create_task(self.receive_and_execute(connection))
         connection.set_task(task)
+        print([connection.status for connection in self.connections_list])
         self.connections_list.append(connection)
 
     async def receive_and_execute(self, connection: ServerConnection):
@@ -191,6 +178,7 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
         self.logger.info(f"{connection.name} is now running")
         while self.running:
             try:
+                print("RECEIVING HERE")
                 message = await connection.receive()
                 if not self.running:
                     raise exceptions.Shutdown
@@ -204,11 +192,11 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
                 self.logger.warning(e)
                 continue
             except (exceptions.TimeoutError, exceptions.Shutdown) as e:
-                error_response = schemas.ResponseData(error=str(e), exit_status=1, url=self.url, active_username=self.username)
-                await connection.send(error_response)
+                #error_response = schemas.ResponseData(error=str(e), url=self.url, active_username=self.username, exit_status=1)
+                #await connection.send(error_response)
                 self.logger.warning(str(e))
                 self.running = False
-                return 'shutdown initiated, closing'
+                return
             except exceptions.Exit as e:
                 self.logger.info("user exit initiated")
                 error_response = schemas.ResponseData(error=str(e), exit_status=1, url=self.url, active_username=self.username)

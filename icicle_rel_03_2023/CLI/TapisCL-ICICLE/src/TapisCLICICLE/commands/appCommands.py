@@ -46,7 +46,7 @@ class update_app(create_app):
         Argument('appVersion', size_limit=(1, 64), positional=True)
     ]
     async def run(self, *args, **kwargs):
-        self.t.apps.patchApp(**kwargs)
+        self.t.apps.putApp(**kwargs)
         return f'updated app {kwargs["appId"]} successfully'
 
 
@@ -132,7 +132,7 @@ class assign_default_job_attributes(baseCommand.BaseCommand):
     async def run(self, *args, **kwargs):
         appId = kwargs.pop('appId')
         appVersion = kwargs.pop('appVersion')
-        self.t.apps.patchApp(appId=appId, appVersion=appVersion, jobAttributes=kwargs)
+        self.t.apps.putApp(appId=appId, appVersion=appVersion, jobAttributes=kwargs)
         return 'updated job attributes successfully'
     
 
@@ -140,7 +140,7 @@ class get_apps(baseCommand.BaseCommand):
     """
     @help: get a list of all available apps
     """
-    return_fields = ['id', 'version' 'runtime', 'containerImage']
+    return_fields = ['id', 'version']
     optional_arguments = [
         Argument('listType', choices=[
             'OWNED',
@@ -159,7 +159,7 @@ class get_app(baseCommand.BaseCommand):
     """
     @help: get a specific app
     """
-    return_fields = ['id', 'version' 'runtime', 'containerImage']
+    return_fields = ['id', 'version', 'containerImage']
     required_arguments = [
         Argument('appId', size_limit=(1, 80), positional=True),
     ]
@@ -167,6 +167,7 @@ class get_app(baseCommand.BaseCommand):
         Argument('appVersion', size_limit=(1, 64))
     ]
     async def run(self, *args, **kwargs):
+        print(kwargs)
         if 'appVersion' not in kwargs:
             version = self.t.apps.getAppLatestVersion(**kwargs).version
             kwargs['appVersion'] = version

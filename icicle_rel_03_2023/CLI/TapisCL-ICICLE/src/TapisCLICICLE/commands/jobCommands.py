@@ -55,7 +55,7 @@ class get_job_history(hide_job):
         return self.t.jobs.getJobHistory(**kwargs)
     
 
-class get_jobs(hide_job):
+class get_jobs(baseCommand.BaseCommand):
     """
     @help: list all available jobs on the system
     """
@@ -81,7 +81,7 @@ class download_job_output(baseCommand.BaseCommand):
         return f"job {kwargs['jobUuid']} output successfully downloaded"
     
 
-class get_job_status:
+class get_job_status(baseCommand.BaseCommand):
     """
     @help: retrieve the status of a job
     """
@@ -107,6 +107,11 @@ class submit_job(appCommands.assign_default_job_attributes):
     """
     @help: submit a job to be run on the select system based on a pre-existing app
     """
+    required_arguments = [
+        Argument('appId', size_limit=(1, 80), positional=True),
+        Argument('appVersion', size_limit=(1, 64), positional=True),
+        Argument('name', positional=True)
+    ]
     async def run(self, *args, **kwargs):
         return self.t.jobs.submitJob(**kwargs)
     

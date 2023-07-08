@@ -52,7 +52,7 @@ class get_systems(baseCommand.BaseCommand):
     @help: Gets and returns the list of systems the current Tapis service and account have access to
     @doc: this is an example of the doc segment of the docstring. not included in help message
     """
-    return_fields = ['id', 'systemType', 'host', 'enabled']
+    return_fields = ['id', 'systemType', 'host']
     optional_arguments = [
         Argument('listType', choices=['OWNED', 'SHARED_PUBLIC', 'ALL'])
     ]
@@ -309,8 +309,82 @@ class update_system(create_system):
     @help: update a system with new information
     """
     command_opt = [commandOpts.CHECK_EXPLICIT_ID('systemId')]
-    required_arguments = [
-        Argument('systemId', size_limit=(1, 80), positional=True)
+    required_arguments=[
+        Argument('id', size_limit=(1, 80), positional=True),
+    ]
+    optional_arguments=[
+        Argument('defaultAuthnMethod', choices=['PASSWORD', "PKI_KEYS", "ACCESS_KEY", "TOKEN", "CERT"], description=
+                                    """Depending on your systemType, you will be restricted to certain options.
+                                    Linux: PASSWORD, PKI_KEYS
+                                    S3: ACCESS_KEY
+                                    GLOBUS: TOKEN
+                                    IRODS: TOKEN
+                                    In the case you choose password, your username and password will either be your TACC account info, or the login info you used with federated/device_code grant"""),
+        Argument('host', size_limit=(1, 256), description="In the case of Linux this is the hostname or IP of the HPC system you want to connect to. For S3, this is the AWS bucket URL"),
+        Argument('description', arg_type='str_input', size_limit=(0, 2048)),
+        Argument('effectiveUserId', default_value=r"${apiUserId}", size_limit=(0, 60)),
+        Argument('port', data_type='int'),
+        Argument('useProxy', action='store_true'),
+        Argument('proxyHost', size_limit=(0, 256)),
+        Argument('proxyPort', data_type='int'),
+        Argument('dtnSystemId', size_limit=(0, 80)),
+        Argument('dtnMountPoint'),
+        Argument('canRunBatch', action='store_true'),
+        Argument('enableCmdPrefix', action='store_true'),
+        Argument('mpiCmd', size_limit=(0, 126), arg_type='str_input'),
+        Argument('jobRuntimes', arg_type='input_list', data_type=argument.Form(
+            'jobRuntime', arguments_list = [
+                Argument('runtimeType', choices=['DOCKER', 'SINGULARITY']), 
+                Argument('version')
+                ]
+            )),
+        Argument('jobWorkingDir', default_value=r"HOST_EVAL($WORK2)", size_limit=(0, 4096)),
+        Argument('jobEnvVariables', arg_type='input_list', data_type=argument.Form(
+            'jobEnvironmentVariable', arguments_list = [
+                Argument('key'),
+                Argument('value', default_value=''),
+                Argument('description', size_limit=(0, 2048), arg_type='str_input')
+            ]
+        )),
+        Argument('jobMaxJobs', data_type='int'),
+        Argument('jobMaxJobsPerUser', data_type='int'),
+        Argument('batchScheduler', choices=['SLURM', "CONDOR", "PBS", "SGE", "UGE", "TORQUE"]),
+        Argument('batchLogicalQueues', arg_type='input_list', data_type=argument.Form(
+            'batchLogicalQueue', arguments_list = [
+                Argument('name', size_limit=(1, 128)),
+                Argument('hpcQueueName', size_limit=(1, 128)),
+                Argument('maxJobs', data_type='int'),
+                Argument('maxJobsPerUser', data_type='int'),
+                Argument('minNodeCount', data_type='int'),
+                Argument('maxNodeCount', data_type='int'),
+                Argument('minCoresPerNode', data_type='int'),
+                Argument('maxCoresPerNode', data_type='int'),
+                Argument('minMemoryMB', data_type='int'),
+                Argument('maxMemoryMB', data_type='int'),
+                Argument('minMinutes', data_type='int'),
+                Argument('maxMinutes', data_type='int')
+            ]
+        )),
+        Argument('batchDefaultLoginQueue', size_limit=(1, 128)),
+        Argument('batchSchedulerProfile', choices=get_scheduler_profiles_choices()),
+        Argument('jobCapabilities', arg_type='input_list', data_type=argument.Form(
+            'jobCapability', arguments_list=[
+                Argument('category', choices=['SCHEUDLER', 
+                                              'OS', 'HARDWARE', 
+                                              'SOFTWARE', 'JOB', 
+                                              'CONTAINER', 'MISC', 
+                                              'CUSTOM']),
+                Argument('name', size_limit=(1, 128)),
+                Argument('datatype', choices=['STRING', 'INTEGER', 
+                                              'BOOLEAN', 'NUMBER', 
+                                              'TIMESTAMP']),
+                Argument('precedence', data_type='int'),
+                Argument('value')
+            ]
+        )),
+        Argument('tags', arg_type='input_list', data_type=Argument('tag', arg_type='str_input')),
+        Argument('notes', arg_type='str_input'),
+        Argument('importRefId')
     ]
     async def run(self, *args, **kwargs):
         result = self.t.systems.putSystem(**kwargs)
