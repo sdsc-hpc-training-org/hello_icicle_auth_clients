@@ -25,3 +25,11 @@ overhaul of files and systems to grant user access to additional tapis resources
   
 ### Planned Changes
 * add improved config file support for tapis resources
+
+## 0.0.80
+### 6/15/23
+### Changes
+* much improved UX for deeply nested forms for operations like system creation.
+* Fixed a minor issue with the 'exit' command
+  
+### Planned Changes
