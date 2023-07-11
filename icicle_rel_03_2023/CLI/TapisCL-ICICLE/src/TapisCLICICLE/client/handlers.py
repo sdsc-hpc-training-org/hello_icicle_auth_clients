@@ -177,6 +177,7 @@ class Handlers(Formatters):
                     pass
                 elif decision.lower() in ('modify', 'delete'):
                     mode = decision
+                    continue
                 elif decision.isdigit() and mode == 'delete':
                     try:
                         answer.pop(int(decision)-1)
@@ -185,14 +186,14 @@ class Handlers(Formatters):
                     continue
                 elif decision.isdigit() and mode == 'modify':
                     try:
-                        sub_answer = self.advanced_input_handler({f"{attrs['name']}_{str(decision)}":attrs['data_type']}, term, default={f"{attrs['name']}_{str(decision)}":answer})
-                        answer[int(decision)] = sub_answer
+                        sub_answer = self.advanced_input_handler({f"{attrs['name']}_{str(decision)}":attrs['data_type']}, term, default={f"{attrs['name']}_{str(decision)}":answer[int(decision)-1]})
+                        answer[int(decision)-1] = sub_answer
                     except IndexError:
                         continue
                     continue
                 else:
                     continue
-                sub_answer = self.advanced_input_handler({f"{attrs['name']}_{str(len(answer)+1)}":attrs['data_type']}, term,  default={f"{attrs['name']}_{str(len(answer)+1)}":answer})
+                sub_answer = self.advanced_input_handler({f"{attrs['name']}_{str(len(answer)+1)}":attrs['data_type']}, term)
                 index, value = list(sub_answer.items())[0]
                 answer.append(value)
 
@@ -229,6 +230,7 @@ class Handlers(Formatters):
             # print(field)
             if default:
                 default_selection = default[field]
+                print(default[field])
             else:
                 default_selection = None
             try:
