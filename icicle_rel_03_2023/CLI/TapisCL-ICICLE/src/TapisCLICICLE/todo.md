@@ -5,3 +5,5 @@
 5. create a more user friendly way to deal with config files. Add a flag to file supporting commands that allows the command to generate a config file template and prompt the user to edit it
 6. add a way for certain command line arguments to be cached by the client so they can be auto suggested later. Add option to clear this cache
 7. add some sort of interface to dockerhub and (singularityhub?) to validate app creation.
+8. add the simplistic system config
+9. add the way to save the failed command entry

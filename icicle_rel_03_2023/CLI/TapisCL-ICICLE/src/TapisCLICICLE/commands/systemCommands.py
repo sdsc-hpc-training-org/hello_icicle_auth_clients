@@ -304,13 +304,20 @@ class submit_system_credentials(create_system):
         return return_info
     
 
+class SystemUpdatingRetriever(baseCommand.UpdatableFormRetriever):
+    def __call__(self, tapis_instance, **kwargs):
+        system_data = tapis_instance.systems.getSystem(systemId=kwargs["systemId"])
+        return system_data
+    
+
 class update_system(create_system):
     """
     @help: update a system with new information
     """
+    updateable_form_retriever = SystemUpdatingRetriever()
     command_opt = [commandOpts.CHECK_EXPLICIT_ID('systemId')]
     required_arguments=[
-        Argument('id', size_limit=(1, 80), positional=True),
+        Argument('systemId', size_limit=(1, 80), positional=True),
     ]
     optional_arguments=[
         Argument('defaultAuthnMethod', choices=['PASSWORD', "PKI_KEYS", "ACCESS_KEY", "TOKEN", "CERT"], description=
@@ -387,8 +394,8 @@ class update_system(create_system):
         Argument('importRefId')
     ]
     async def run(self, *args, **kwargs):
-        result = self.t.systems.putSystem(**kwargs)
-        return result
+        result = self.t.systems.patchSystem(**kwargs)
+        return f"successfully updated the system {kwargs['systemId']}"
     
 
 class is_system_enabled(baseCommand.BaseCommand):

@@ -1,11 +1,15 @@
 from getpass import getpass
 import os
 import json
+import pprint
+import time
+import pyreadline3
 
 from prompt_toolkit.validation import Validator, ValidationError
 from prompt_toolkit.completion import word_completer, WordCompleter
 from prompt_toolkit import prompt
 from blessed import Terminal
+
 
 if __name__ != "__main__":
     from ..socketopts import schemas
@@ -14,6 +18,9 @@ if __name__ != "__main__":
 __location__ = os.path.realpath(
     os.path.join(os.getcwd(), os.path.dirname(f"{__file__}")))
 saved_command = os.path.join(__location__, r'entered_command.json')
+
+
+LINE_READER = base_read_line = pyreadline3.BaseReadline()
 
 
 class Formatters:
@@ -79,8 +86,8 @@ class ResponseValidator(Validator):
     def validate(self, document):
         text = document.text
         self.enforcer(text)
-            
 
+        
 class Handlers(Formatters):
     def __init__(self):
         self.validator = ResponseValidator()
@@ -112,14 +119,17 @@ class Handlers(Formatters):
                 print("Enter valid response")
         return decision
     
-    def input_dict_handler(self, term: Terminal, attrs: dict):
+    def input_dict_handler(self, term: Terminal, attrs: dict, default=None):
         mode = 'create'
-        answer = dict()
+        if not default:
+            default = dict()
+        answer = default
         default_name = attrs['data_type']['name']
         with term.fullscreen():
             print(f"You are now entering data for {attrs['name']}")
             while True:
-                print(f"{term.clear}{attrs['name']}\nreserved names: create, delete, exit (enter these for special action)\n{answer}\nmode: {mode}")
+                print(f"{term.clear}now editing the map: {attrs['name']}\nreserved names: create, delete, exit (enter these for special action)\nmode: {mode}")
+                print(json.dumps(answer, indent=4))
                 attrs['data_type']['name'] = default_name
                 name = str(input(f"enter the name for the instance of your {attrs['data_type']['name']}: "))
                 if name.lower() in ('delete', 'create'):
@@ -130,7 +140,12 @@ class Handlers(Formatters):
                 if mode == 'create':
                     mode = 'create'
                     attrs['data_type']['name'] = name
-                    sub_answer = self.form_handler({name:attrs['data_type']}, term)
+                    if name in answer:
+                        default_value = answer#[name]
+                    else:
+                        default_value = None
+                    pprint.pprint({name:attrs['data_type']})
+                    sub_answer = self.advanced_input_handler({name:attrs['data_type']}, term, default=default_value)
                     answer.update(**sub_answer)
                 elif mode == 'delete':
                     mode = 'delete'
@@ -139,35 +154,83 @@ class Handlers(Formatters):
                     except KeyError:
                         pass
 
-    def input_list(self, term: Terminal, attrs: dict):
-        answer = []
+    def input_list(self, term: Terminal, attrs: dict, default=None):
+        if not default:
+            default = list()
+        answer = default
         with term.fullscreen():
             print(f"You are now entering data for {attrs['name']}")
+            mode = 'modify'
             while True:
                 presentable_dict = {str(index+1):value for index, value in enumerate(answer)}
-                print(f"{term.clear}{attrs['name']}\nreserved names: exit, new (enter these for special action). Enter index of an existing variable name to delete it\n{presentable_dict}")
+                print(rf"""{term.clear}now editing the list: {attrs['name']}
+                      Enter exit to submit list, or new to create new list element.
+                      Modes: to change mode, enter the mode you want to use. 
+                        Delete: when you enter an index the index is deleted. 
+                        Modify: when you enter an index you will re-enter the element to modify it
+                      mode: {mode}""")
+                print(json.dumps(presentable_dict, indent=4))
                 decision = input("Enter 'new' or 'exit': ")
                 if decision.lower() == 'exit':
                     return answer
                 elif decision.lower() == 'new':
                     pass
-                elif decision.isdigit():
+                elif decision.lower() in ('modify', 'delete'):
+                    mode = decision
+                elif decision.isdigit() and mode == 'delete':
                     try:
                         answer.pop(int(decision)-1)
                     except IndexError:
                         continue
                     continue
+                elif decision.isdigit() and mode == 'modify':
+                    try:
+                        sub_answer = self.advanced_input_handler({f"{attrs['name']}_{str(decision)}":attrs['data_type']}, term, default={f"{attrs['name']}_{str(decision)}":answer})
+                        answer[int(decision)] = sub_answer
+                    except IndexError:
+                        continue
+                    continue
                 else:
                     continue
-                sub_answer = self.form_handler({str(len(answer)+1):attrs['data_type']}, term)
+                sub_answer = self.advanced_input_handler({f"{attrs['name']}_{str(len(answer)+1)}":attrs['data_type']}, term,  default={f"{attrs['name']}_{str(len(answer)+1)}":answer})
                 index, value = list(sub_answer.items())[0]
                 answer.append(value)
+
+    def form_handler(self, term: Terminal, attrs: dict, form_name, default=None):
+        form_options = attrs['arguments_list']
+        completer = WordCompleter(list(form_options.keys()))
+        if not default:
+            form_input = dict()
+            for name, command_metadata in form_options.items():
+                if command_metadata['default_value']:
+                    form_input[name] = command_metadata['default_value']
+                    continue
+                form_input[name] = ''
+        else:
+            form_input = {arg_name:arg_default_value for arg_name, arg_default_value in default.items() if arg_name in form_options}
+        while True:
+            print(f"{term.clear}now editing the form: {form_name}")
+            print(json.dumps(form_input, indent=3))
+            field = prompt('Enter the field you want to modify. Enter exit to complete: ', completer=completer)
+            if field.lower() == 'exit':
+                return form_input
+            elif field not in form_options:
+                continue
+            result = self.advanced_input_handler({field:form_options[field]}, term, default=form_input)
+            form_input[field] = result[field]
     
-    def form_handler(self, form_request: dict, term: Terminal):
+    def advanced_input_handler(self, form_request: dict, term: Terminal, default=None):
         response = dict()
         for field, attrs in form_request.items():
             arg_type = attrs['arg_type']
             self.validator.enforcer.update_constraints(**attrs)
+            pprint.pprint(default)
+            # pprint.pprint(form_request)
+            # print(field)
+            if default:
+                default_selection = default[field]
+            else:
+                default_selection = None
             try:
                 match arg_type:
                     case 'secure':
@@ -177,11 +240,11 @@ class Handlers(Formatters):
                             print(f"Enter expression input for the {attrs['name']} argument.")
                             answer = self.__expression_input()
                     case 'form':
-                        answer = self.form_handler(attrs['arguments_list'], term)
+                        answer = self.form_handler(term, attrs, field, default=default_selection)
                     case 'input_list':
-                        answer = self.input_list(term, attrs)
+                        answer = self.input_list(term, attrs, default=default_selection)
                     case 'input_dict':
-                        answer = self.input_dict_handler(term, attrs)
+                        answer = self.input_dict_handler(term, attrs, default=default_selection)
                     case 'str_input':
                         completer = None
                         if 'description' in attrs and attrs['description']:
@@ -210,7 +273,11 @@ class Handlers(Formatters):
         if message.error:
             self.print_response(message.error)
         if message.request_content:
-            filled_form = self.form_handler(message.request_content, term)
+            try:
+                default = message.existing_data
+            except:
+                default = None
+            filled_form = self.advanced_input_handler(message.request_content, term, default=default)
             return filled_form
         return None
         

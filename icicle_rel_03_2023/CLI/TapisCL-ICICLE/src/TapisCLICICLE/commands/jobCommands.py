@@ -2,6 +2,7 @@ if __name__ != "__main__":
     from . import baseCommand, decorators
     from .arguments import argument
     from . import appCommands
+    from commands import commandOpts
     Argument = argument.Argument
 
 
@@ -107,6 +108,7 @@ class submit_job(appCommands.assign_default_job_attributes):
     """
     @help: submit a job to be run on the select system based on a pre-existing app
     """
+    command_opt = [commandOpts.CHECK_EXPLICIT_ID('execSystemId')]
     required_arguments = [
         Argument('appId', size_limit=(1, 80), positional=True),
         Argument('appVersion', size_limit=(1, 64), positional=True),

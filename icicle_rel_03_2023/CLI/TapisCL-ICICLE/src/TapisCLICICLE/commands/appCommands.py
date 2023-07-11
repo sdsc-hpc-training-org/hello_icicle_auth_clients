@@ -36,24 +36,38 @@ class create_app(baseCommand.BaseCommand):
         return f"App created successfully\nID: {kwargs['id']}\nVersion: {kwargs['version']}\nURL: {url}\n"
     
 
+class AppUpdatingRetriever(baseCommand.UpdatableFormRetriever):
+    def __call__(self, tapis_instance, **kwargs):
+        app_data = tapis_instance.apps.getApp(appId=kwargs['appId'], appVersion=kwargs['appVersion'])
+        return app_data
+    
+
 class update_app(create_app):
     """
     @help: update app with the select attributes
     """
+    updateable_form_retriever = AppUpdatingRetriever()
     supports_config_file = True
     required_arguments = [
         Argument('appId', size_limit=(1, 80), positional=True),
         Argument('appVersion', size_limit=(1, 64), positional=True)
     ]
     async def run(self, *args, **kwargs):
-        self.t.apps.putApp(**kwargs)
+        self.t.apps.patchApp(**kwargs)
         return f'updated app {kwargs["appId"]} successfully'
+    
+
+class JobUpdatingRetriever(baseCommand.UpdatableFormRetriever):
+    def __call__(self, tapis_instance, **kwargs):
+        app_data = tapis_instance.apps.getApp(appId=kwargs['appId'], appVersion=kwargs['appVersion']).jobAttributes
+        return app_data
 
 
 class assign_default_job_attributes(baseCommand.BaseCommand):
     """
     @help: assign a default set of job attributes for this app, if you decide to run it as a job
     """
+    updateable_form_retriever = JobUpdatingRetriever()
     supports_config_file=True
     required_arguments = [
         Argument('appId', size_limit=(1, 80), positional=True),
@@ -132,7 +146,8 @@ class assign_default_job_attributes(baseCommand.BaseCommand):
     async def run(self, *args, **kwargs):
         appId = kwargs.pop('appId')
         appVersion = kwargs.pop('appVersion')
-        self.t.apps.putApp(appId=appId, appVersion=appVersion, jobAttributes=kwargs)
+        jobAttributes = {'jobAttributes':kwargs}
+        self.t.apps.patchApp(appId=appId, appVersion=appVersion, **jobAttributes)
         return 'updated job attributes successfully'
     
 

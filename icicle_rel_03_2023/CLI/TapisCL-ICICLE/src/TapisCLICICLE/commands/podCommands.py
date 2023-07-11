@@ -88,10 +88,17 @@ class create_pod(baseCommand.BaseCommand):
         return pod_information
     
 
+class PodUpdatingRetriever(baseCommand.UpdatableFormRetriever):
+    def __call__(self, tapis_instance, **kwargs):
+        pod_data = tapis_instance.pods.get_pod(pod_id=kwargs["pod_id"])
+        return pod_data
+    
+
 class update_pod(create_pod): # make it so the command retrieves current settings and sends them over so forms can append and edit instead of just overwrite
     """
     @help: update a pod. Must be restarted to stage changes
     """
+    updateable_form_retriever=PodUpdatingRetriever()
     return_fields = ['pod_id', 'pod_template', 'status']
     required_arguments=[
         Argument('pod_id', positional=True),

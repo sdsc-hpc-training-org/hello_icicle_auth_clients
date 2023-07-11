@@ -43,6 +43,8 @@ class Argument(AbstractArgument):
                  description: str="",
                  positional: bool=False,
                  default_value=None,
+                 depends_on: list = [],
+                 required_for: list = [],
                  size_limit: tuple=(0,4096)):
         if arg_type not in typing.get_args(ALLOWED_ARG_TYPES) and arg_type != 'standard':
             raise ValueError(f"The arg type parameter in the argument {self.__class__.__name__} must be in the list {ALLOWED_ARG_TYPES}. Got arg type {arg_type}")
@@ -141,7 +143,7 @@ class Argument(AbstractArgument):
         elif self.action == 'store':
             help_str += f"<{self.argument}> "
         if self.arg_type != 'standard':
-            help_str += ' (f)'
+            help_str += ' (f)\t'
         return help_str
 
 

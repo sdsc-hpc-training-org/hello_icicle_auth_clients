@@ -84,6 +84,12 @@ class CommandMetaClass(abc.ABCMeta):
     def __check_command_opt(self, name, attrs):
         if 'command_opt' in list(attrs.keys()) and type((attrs['command_opt'])) != list:
             raise TypeError(f"The command opt attribute of the command {name} must be a list!")
+        
+
+class UpdatableFormRetriever(abc.ABC):
+    @abc.abstractmethod
+    def __call__(self, tapis_instance, **kwargs):
+        pass
 
 
 class HelpMenu:
@@ -112,6 +118,7 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
     supports_config_file: bool = False
     required_arguments: list[Argument] | dict = list()
     optional_arguments: list[Argument] | dict = list()
+    updateable_form_retriever: UpdatableFormRetriever = None
     def __init__(self):
         self.t = None
         self.username = None
@@ -180,7 +187,10 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
     async def handle_form_input(self, kwargs):
         for arg_name in self.form_arguments:
             if kwargs[arg_name] or arg_name in self.required_arguments:
-                request = schemas.FormRequest(request_content={arg_name:self.arguments[arg_name] for arg_name in self.form_arguments if kwargs[arg_name] or arg_name in self.required_arguments})
+                existing_values = dict()
+                if self.updateable_form_retriever:
+                    existing_values = self.return_formatter.obj_to_dict(self.updateable_form_retriever(self.t, **kwargs))
+                request = schemas.FormRequest(request_content={arg_name:self.arguments[arg_name] for arg_name in self.form_arguments if kwargs[arg_name] or arg_name in self.required_arguments}, existing_data=existing_values)
                 await kwargs['connection'].send(request)
                 response: schemas.FormResponse = await kwargs['connection'].receive()
                 kwargs.update(**response.request_content)
@@ -264,9 +274,9 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
             except exceptions.Shutdown as e:
                 raise e
             except Exception as e:
-                with open(saved_command, 'a') as f:
+                with open(saved_command, 'w') as f:
                     kwargs.pop('connection')
-                    f.write(json.dumps(kwargs))
+                    json.dump(kwargs, f)
                     print(f"Argument input failure, command data written to file {saved_command}")
                     raise e
         return_value = self.return_formatter(return_value, kwargs['verbose'])

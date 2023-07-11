@@ -57,6 +57,7 @@ class FormRequest(BaseSchema):
     Request seperate input for some command parameters. If the arguments_list is empty, this will be interpreted as an expression request for something like neo4j
     """
     schema_type: str = 'FormRequest'
+    existing_data: dict | object = dict()
 
 
 class FormResponse(BaseSchema):

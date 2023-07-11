@@ -34,13 +34,16 @@ class ServerConnection(socketOpts.ServerSocketOpts):
     def set_status_closed(self):
         self.status = 'CLOSED'
 
+    def set_status_exiting(self):
+        self.status = 'EXITING'
+
     def set_task(self, task: asyncio.Task):
         self.task = task
         self.status = 'OPEN'
 
     async def close(self, connection_list_lock: asyncio.Lock):
         self.logger.info('ATTEMPTING TO CLOSE')
-        if self.status == 'OPEN':
+        if self.status in ('OPEN', 'EXITING'):
             result = self.task.cancel()
             self.logger.info("successfully cancelled task")
             await self.send(self.shutdown_message)
@@ -118,6 +121,9 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
     async def check_shutdown(self):
         while self.running:
             await asyncio.sleep(3)
+            for connection in self.connections_list:
+                if connection.status == 'EXITING':
+                    await connection.close(self.connection_list_lock)
         await self.close()
         self.logger.info("The server shutdown.")
         return None
@@ -168,8 +174,8 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
         loop = asyncio.get_event_loop()
         task: asyncio.Task = loop.create_task(self.receive_and_execute(connection))
         connection.set_task(task)
-        print([connection.status for connection in self.connections_list])
         self.connections_list.append(connection)
+        print([connection.status for connection in self.connections_list])
 
     async def receive_and_execute(self, connection: ServerConnection):
         """
@@ -199,13 +205,13 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
                 return
             except exceptions.Exit as e:
                 self.logger.info("user exit initiated")
-                error_response = schemas.ResponseData(error=str(e), exit_status=1, url=self.url, active_username=self.username)
-                await connection.send(error_response)
-                await connection.close()
+                # error_response = schemas.ResponseData(error=str(e), exit_status=1, url=self.url, active_username=self.username)
+                # await connection.send(error_response)
+                connection.set_status_exiting()
                 return
             except OSError:
                 self.logger.info("connection was lost, waiting to reconnect")
-                await connection.close()
+                await connection.close(self.connection_list_lock)
             except asyncio.CancelledError:
                 return 'task was cancelled'
             except (exceptions.CommandNotFoundError, exceptions.NoConfirmationError, exceptions.InvalidCredentialsReceived, Exception) as e:
