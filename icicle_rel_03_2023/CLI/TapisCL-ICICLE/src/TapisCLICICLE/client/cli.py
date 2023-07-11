@@ -184,6 +184,10 @@ class CLI(handlers.Handlers):
             kwargs = self.parser.parse_args()
             kwargs = vars(kwargs)
             self.interface(kwargs)
+            kwargs = vars(self.parser.parse_args(['exit']))
+            response_message = schemas.CommandData(request_content=kwargs)
+            self.connection.send(response_message)
+            self.connection.close()
         except Exception as e:
             print(e)
         finally:

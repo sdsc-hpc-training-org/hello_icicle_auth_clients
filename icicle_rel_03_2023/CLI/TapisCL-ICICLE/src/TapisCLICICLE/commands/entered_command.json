@@ -1,1 +1,1 @@
-{"positionals": [], "help": false, "verbose": false}
+{"positionals": ["MKYZUBRSYS2"], "help": false, "verbose": false, "id": "MKYZUBRSYS2", "systemType": "LINUX", "host": "stampede2.tacc.utexas.edu", "defaultAuthnMethod": "PASSWORD", "canExec": true, "enabled": false, "effectiveUserId": "${apiUserId}", "rootDir": "/", "useProxy": false, "isDtn": false, "canRunBatch": false, "enableCmdPrefix": false, "jobWorkingDir": "HOST_EVAL($WORK2)"}

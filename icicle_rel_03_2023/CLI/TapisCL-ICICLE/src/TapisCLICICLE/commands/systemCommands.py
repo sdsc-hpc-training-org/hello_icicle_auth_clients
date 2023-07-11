@@ -126,20 +126,20 @@ class create_system(baseCommand.BaseCommand):
         Argument('id', size_limit=(1, 80), positional=True),
         Argument('systemType', choices=["LINUX", "S3", "IRODS", "GLOBUS"], description=
                                     """LINUX is a standard linux kernel
-                                    S3 refers to an AWS S3 Bucket
-                                    IRODS refers to an IRODS data management system
-                                    GLOBUS refers to a GLOBUS file system"""),
+S3 refers to an AWS S3 Bucket
+IRODS refers to an IRODS data management system
+GLOBUS refers to a GLOBUS file system"""),
         Argument('host', size_limit=(1, 256), description="In the case of Linux this is the hostname or IP of the HPC system you want to connect to. For S3, this is the AWS bucket URL"),
         Argument('defaultAuthnMethod', choices=['PASSWORD', "PKI_KEYS", "ACCESS_KEY", "TOKEN", "CERT"], description=
                                     """Depending on your systemType, you will be restricted to certain options.
-                                    Linux: PASSWORD, PKI_KEYS
-                                    S3: ACCESS_KEY
-                                    GLOBUS: TOKEN
-                                    IRODS: TOKEN
-                                    In the case you choose password, your username and password will either be your TACC account info, or the login info you used with federated/device_code grant"""),
+Linux: PASSWORD, PKI_KEYS
+S3: ACCESS_KEY
+GLOBUS: TOKEN
+IRODS: TOKEN
+In the case you choose password, your username and password will either be your TACC account info, or the login info you used with federated/device_code grant"""),
     ]
     optional_arguments=[
-        Argument('canExec', action='store_true', default_value=False),
+        Argument('canExec', action='store_true', default_value=False, depends_on=['jobRuntimes']),
         Argument('description', arg_type='str_input', size_limit=(0, 2048)),
         Argument('owner'),
         Argument('enabled', action='store_true'),
@@ -150,10 +150,10 @@ class create_system(baseCommand.BaseCommand):
         Argument('useProxy', action='store_true'),
         Argument('proxyHost', size_limit=(0, 256)),
         Argument('proxyPort', data_type='int'),
-        Argument('isDtn', action='store_true'),
+        Argument('isDtn', action='store_true', depends_on=['rootDir']),
         Argument('dtnSystemId', size_limit=(0, 80)),
         Argument('dtnMountPoint'),
-        Argument('canRunBatch', action='store_true'),
+        Argument('canRunBatch', action='store_true', depends_on=['batchScheduler', 'batchLogicalQueues', 'batchLogicalDefaultQueue']),
         Argument('enableCmdPrefix', action='store_true'),
         Argument('mpiCmd', size_limit=(0, 126), arg_type='str_input'),
         Argument('jobRuntimes', arg_type='input_list', data_type=argument.Form(
@@ -162,7 +162,7 @@ class create_system(baseCommand.BaseCommand):
                 Argument('version')
                 ]
             )),
-        Argument('jobWorkingDir', default_value=r"HOST_EVAL($WORK2)", size_limit=(0, 4096)),
+        Argument('jobWorkingDir', default_value=r"HOST_EVAL($WORK2)", size_limit=(0, 4096), description='Where on this hpc system are jobs run?'),
         Argument('jobEnvVariables', arg_type='input_list', data_type=argument.Form(
             'jobEnvironmentVariable', arguments_list = [
                 Argument('key'),
@@ -395,7 +395,7 @@ class update_system(create_system):
     ]
     async def run(self, *args, **kwargs):
         result = self.t.systems.patchSystem(**kwargs)
-        return f"successfully updated the system {kwargs['systemId']}"
+        return result
     
 
 class is_system_enabled(baseCommand.BaseCommand):

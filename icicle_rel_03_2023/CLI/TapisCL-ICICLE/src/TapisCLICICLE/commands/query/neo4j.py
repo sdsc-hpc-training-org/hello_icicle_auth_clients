@@ -26,3 +26,14 @@ class neo4j(baseCommand.BaseQuery):
             return f'[-][{kwargs["id"]}@pods.{self.t.base_url.split("https://")[1]}:443] KG is empty'
 
         return return_value
+    
+
+class get_neo4j_pod_uri(baseCommand.BaseCommand):
+    """
+    @help: get the uri for a neo4j pod to use in external database software
+    """
+    required_arguments = [
+        argument.Argument('id')
+    ]
+    async def run(self, *args, **kwargs) -> str:
+        return f"bolt+ssc://{kwargs['id']}.pods.{self.t.base_url.split('https://')[1]}:443"

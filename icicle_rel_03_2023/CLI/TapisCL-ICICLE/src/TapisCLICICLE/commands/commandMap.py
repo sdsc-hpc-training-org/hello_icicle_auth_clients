@@ -176,7 +176,8 @@ class Query(baseCommand.BaseCommandMap):
     """
     command_map = {
         'postgres': postgres.postgres(),
-        'neo4j': neo4j.neo4j()
+        'neo4j': neo4j.neo4j(),
+        'get_neo4j_pod_uri':neo4j.get_neo4j_pod_uri(),
     }
 
 

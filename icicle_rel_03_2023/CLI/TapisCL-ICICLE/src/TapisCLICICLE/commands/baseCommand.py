@@ -8,6 +8,7 @@ import typing
 from abc import abstractmethod, ABC
 import os
 from pprint import pprint
+from datetime import datetime
 
 from commands import decorators # I finally understand. Imported at the top level by serverRun, so it can only see packages from that vantage point
 from utilities import exceptions
@@ -18,7 +19,7 @@ from commands import dataFormatters
 
 __location__ = os.path.realpath(
     os.path.join(os.getcwd(), os.path.dirname(f"{__file__}")))
-saved_command = os.path.join(__location__, r'entered_command.json')
+saved_command_root_dir = os.path.join(__location__, r'..\user_files')
 
 
 def get_kwargs(function):
@@ -126,7 +127,7 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
         self.server = None
         self.arguments = dict()
         self.return_formatter: dataFormatters.BaseDataFormatter = dataFormatters.BaseDataFormatter(self.return_fields)
-        self.default_commands()
+        self.default_arguments()
         if self.supports_config_file:
             self.optional_arguments.append(Argument('file'))
         if isinstance(self.required_arguments, list):
@@ -140,8 +141,6 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
         self.help: dict[dict[str, list[dict[str, str]]]] = dict()
 
         self.command_execution_sequence = []
-        if self.supports_config_file:
-            self.command_execution_sequence.append(self.handle_config_file)
         if self.positional_arguments:
             self.command_execution_sequence.append(self.check_for_positionals)
         if self.command_opt:
@@ -152,16 +151,22 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
         self.command_execution_sequence.append(self.verify_argument_rules_followed)
         self.command_execution_sequence.append(self.filter_kwargs)
 
-    def default_commands(self):
-        default_commands = [Argument('connection', arg_type='silent'),
+    def default_arguments(self):
+        """
+        these are pseudarguments that allow some non-argument data to be passed to the command. This is a bit hacky, but its programatically necessary in the context of this framework
+        """
+        default_arguments = [Argument('connection', arg_type='silent'),
                             Argument('verbose', arg_type='silent'),
                             Argument('help', arg_type='silent'),
                             Argument('positionals', arg_type='silent')]
         
-        for command in default_commands:
+        for command in default_arguments:
             self.required_arguments.append(command)
 
     async def verify_argument_rules_followed(self, kwargs):
+        """
+        verify that the rules for each argument are followed, this is the argument validation
+        """
         for name, value in self.arguments.items():
             if name in self.required_arguments and kwargs[name] == None:
                 raise Exception(f"The argument {name} is required by the command {self.__class__.__name__}")
@@ -169,9 +174,16 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
                 kwargs[name] = self.required_arguments[name].verify_standard_value(kwargs[name])
             elif name in kwargs and name in self.optional_arguments and name not in self.form_arguments:
                 kwargs[name] = self.optional_arguments[name].verify_standard_value(kwargs[name])
+            if kwargs[name] and value.depends_on:
+                for dependency in value.depends_on:
+                    if not kwargs[dependency]:
+                        raise Exception(f"The argument {name} requires the arguments {value.depends_on}")
         return kwargs
 
     async def filter_kwargs(self, kwargs):
+        """
+        filters out kwargs that have None value, Tapis breaks if I dont do this
+        """
         filtered_kwargs = dict()
         for arg, value in kwargs.items():
             if arg in self.arguments and value or arg in self.required_arguments or (value == False and arg in self.arguments and self.arguments[arg].arg_type == 'standard'):
@@ -179,34 +191,51 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
         return filtered_kwargs
 
     async def handle_config_file(self, kwargs):
+        """
+        when there is a config file submitted, that config file overrides all the other received kwargs
+        """
         if kwargs['file']:
             with open(kwargs['file'], 'r') as f:
-                kwargs = json.loads(f.read)
+                kwargs = json.load(f)
+            if 'error' in kwargs:
+                kwargs.pop('error')
         return kwargs
     
-    async def handle_form_input(self, kwargs):
+    async def handle_form_input(self, kwargs, complex_args_flag=True):
+        """
+        handles forms when the user selects to fill them out
+        """
+        existing_values = dict()
+        if self.updateable_form_retriever:
+            existing_values = self.return_formatter.obj_to_dict(self.updateable_form_retriever(self.t, **kwargs))
         for arg_name in self.form_arguments:
             if kwargs[arg_name] or arg_name in self.required_arguments:
-                existing_values = dict()
-                if self.updateable_form_retriever:
-                    existing_values = self.return_formatter.obj_to_dict(self.updateable_form_retriever(self.t, **kwargs))
-                request = schemas.FormRequest(request_content={arg_name:self.arguments[arg_name] for arg_name in self.form_arguments if kwargs[arg_name] or arg_name in self.required_arguments}, existing_data=existing_values)
+                request = schemas.FormRequest(request_content={arg_name:self.arguments[arg_name]}, existing_data=existing_values)
                 await kwargs['connection'].send(request)
                 response: schemas.FormResponse = await kwargs['connection'].receive()
                 kwargs.update(**response.request_content)
         return kwargs
-    
+
     async def handle_arg_opts(self, kwargs):
+        """
+        arg opts handle special operations, like supporting relative file paths, and system entry
+        """
         for opt in self.command_opt:
             kwargs = opt(kwargs)
         return kwargs
     
     async def check_for_positionals(self, kwargs):
+        """
+        some commands contain positional arguments. This function handles that circumstance
+        """
         for arg_name, value in zip(self.positional_arguments, kwargs['positionals']):
             kwargs[arg_name] = value
         return kwargs
 
     def set_t_and_creds(self, t, username, password, server):
+        """
+        whenever the tenant or user changes, the new tapis object with the new credentials must be passed to each command to ensure they are operating on the currect user
+        """
         self.t = t
         self.username = username
         self.password = password
@@ -216,6 +245,9 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
                 arg.choices = arg.choices(self.t)
 
     def update_args_with_truncated(self, truncated_args_dict):
+        """
+        when the command group finishes processing all the truncated arguments, they get passed back here to be processed and assigned
+        """
         try:
             for key in self.required_arguments:
                 self.required_arguments[key].truncated_arg = f"-{truncated_args_dict[key]}"
@@ -228,6 +260,9 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
             raise e
         
     def __argument_help_compiler(self, arg_dict: dict[str, Argument]):
+        """
+        compile the help menus based on stored command metadata
+        """
         verbose_dict = dict()
         standard_str = str()
         for name, argument in arg_dict.items():
@@ -237,6 +272,9 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
         return {'verbose':verbose_dict, 'standard':standard_str}
 
     def __get_help(self, verbose):
+        """
+        return the compiled help menus
+        """
         help_dict = {"Command":self.__class__.__name__,
                     "Description":self.help_string_retriever()}
         if not verbose:
@@ -250,35 +288,64 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
         return help_dict
     
     def brief_help(self):
+        """
+        return non verbose help
+        """
         return {"Command":self.__class__.__name__,
                 "Description":self.help_string_retriever()}
     
     @abstractmethod
     async def run(self, *args, **kwargs):
+        """
+        contains the actual command information at command definition
+        """
         pass
 
     async def __call__(self, **kwargs):
-        if self.decorator:
-            try:
-                return_value = await self.decorator(input_command=self, **kwargs)
-            except (ValueError, exceptions.NoConfirmationError) as e:
-                return f"Command execution failed due to {e}"
-
-        if kwargs['help']:
-            return self.__get_help(verbose=kwargs['verbose'])
-        for handler in self.command_execution_sequence:
-            kwargs = await handler(kwargs)
+        """
+        runs all command meta-operations
+        """
+        if self.supports_config_file and kwargs['file']:
+            new_kwargs = await self.handle_config_file(kwargs)
+            for arg_name, arg in kwargs.items():
+                if arg_name in ('connection', 'positionals', 'verbose', 'help'):
+                    new_kwargs[arg_name] = arg
+            kwargs = new_kwargs
         else:
-            try:
-                return_value = await self.run(**kwargs)
-            except exceptions.Shutdown as e:
-                raise e
-            except Exception as e:
-                with open(saved_command, 'w') as f:
+            if self.decorator:
+                try:
+                    return_value = await self.decorator(input_command=self, **kwargs)
+                except (ValueError, exceptions.NoConfirmationError) as e:
+                    return f"Command execution failed due to {e}"
+
+            if kwargs['help']:
+                return self.__get_help(verbose=kwargs['verbose'])
+            for handler in self.command_execution_sequence:
+                kwargs = await handler(kwargs)
+        try:
+            return_value = await self.run(**kwargs)
+        except (exceptions.Shutdown, exceptions.Exit) as e:
+            raise e
+        except Exception as e:
+            if self.supports_config_file:
+                current_date = datetime.now()
+                formatted_date = current_date.strftime("%m-%d-%y")
+                main_save_path = f"{saved_command_root_dir}\\{formatted_date}"
+                try:
+                    os.listdir(main_save_path)
+                except:
+                    os.makedirs(main_save_path)
+                number = len(os.listdir(main_save_path))
+                file_save_path = f"{main_save_path}\\{self.__class__.__name__}_{number}.json"
+                with open(file_save_path, 'w') as f:
                     kwargs.pop('connection')
-                    json.dump(kwargs, f)
-                    print(f"Argument input failure, command data written to file {saved_command}")
-                    raise e
+                    kwargs.pop('positionals')
+                    kwargs.pop('verbose')
+                    kwargs.pop('help')
+                    kwargs['error'] = str(e)
+                    json.dump(kwargs, f, indent=4)
+                    raise Exception(e, f"Argument input failure, command data written to file {file_save_path}")
+            raise e
         return_value = self.return_formatter(return_value, kwargs['verbose'])
         return return_value
     

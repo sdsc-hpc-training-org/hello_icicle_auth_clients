@@ -44,7 +44,6 @@ class Argument(AbstractArgument):
                  positional: bool=False,
                  default_value=None,
                  depends_on: list = [],
-                 required_for: list = [],
                  size_limit: tuple=(0,4096)):
         if arg_type not in typing.get_args(ALLOWED_ARG_TYPES) and arg_type != 'standard':
             raise ValueError(f"The arg type parameter in the argument {self.__class__.__name__} must be in the list {ALLOWED_ARG_TYPES}. Got arg type {arg_type}")
@@ -67,6 +66,7 @@ class Argument(AbstractArgument):
         self.positional = positional
         self.default_value = default_value
         self.size_limit=size_limit
+        self.depends_on = depends_on
 
         self.truncated_arg = None
         self.full_arg = f"--{self.argument}"
@@ -107,7 +107,8 @@ class Argument(AbstractArgument):
             'default_value':self.default_value,
             'size_limit':self.size_limit,
             'truncated_arg':self.truncated_arg,
-            'full_arg':self.full_arg
+            'full_arg':self.full_arg,
+            'depends_on':self.depends_on
         }
         if self.data_type in ('string', 'int', 'bool'):
             json['data_type'] = self.data_type
@@ -148,8 +149,8 @@ class Argument(AbstractArgument):
 
 
 class Form(Argument):
-    def __init__(self, form_name, arguments_list):
-        super().__init__(form_name, arg_type='form')
+    def __init__(self, form_name, arguments_list, description=None):
+        super().__init__(form_name, arg_type='form', description=description)
         for argument in arguments_list:
             if argument.arg_type == 'standard':
                 argument.arg_type = 'str_input'

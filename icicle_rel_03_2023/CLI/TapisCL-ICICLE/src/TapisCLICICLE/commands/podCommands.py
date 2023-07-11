@@ -44,26 +44,25 @@ class create_pod(baseCommand.BaseCommand):
     ]
     optional_arguments=[
         Argument('description', arg_type='str_input', size_limit=(0, 2048)),
-        Argument('command', arg_type='input_list', data_type=argument.Argument('command', arg_type='str_input')),
+        Argument('command', arg_type='input_list', data_type=argument.Argument('command', arg_type='str_input'), description="Command to run in the pod"),
         Argument('environment_variables', arg_type='input_dict', data_type=argument.Argument('environment_variable', arg_type='str_input')),
-        Argument('data_request', arg_type='input_list', data_type=argument.Argument('data_request', arg_type='str_input')),
-        Argument('roles_required', arg_type='input_list', data_type=argument.Argument('required_role', arg_type='str_input')),
+        Argument('roles_required', arg_type='input_list', data_type=argument.Argument('required_role', arg_type='str_input'), description='what role is required by the user to access this pod?'),
         Argument('time_to_stop_default', data_type='int'),
         Argument('time_to_stop_instance', data_type='int'),
         Argument('volume_mounts', arg_type='input_dict', data_type=argument.Form(
             'volume_mount', arguments_list = [
                 Argument('type', choices=['tapisvolume', 'tapissnapshot', 'pvc']),
-                Argument("mount_path"),
-                Argument('sub_path')
+                Argument("mount_path", description='This is top level path you want to mount the volume on inside the pod. This is something like <neo4j-home>\data for a neo4j pod. Data from that path will load to the mount and become persistent'),
+                Argument('sub_path', description='If you want to only load a single file, like file.txt (which is inside the parent mount path) you can specify here')
             ]
-        )),
+        ), description="Used to attach the pod to an existing kubernetes volume to provide pod persistence (in case of crash). Each key is the volume_id"),
         Argument('networking', arg_type='input_dict', data_type=argument.Form(
             'network', arguments_list = [
-                Argument('protocol'),
+                Argument('protocol', description='Something like https'),
                 Argument('port', data_type='int'),
                 Argument('url')
             ]
-        )),
+        ), description='Important networking configuration. You probably shouldnt touch this, but I wont stop you'),
         argument.Form(
             'resources', arguments_list = [
                 Argument('cpu_request', data_type='int'),
@@ -76,16 +75,28 @@ class create_pod(baseCommand.BaseCommand):
     async def run(self, *args, **kwargs) -> str:
         template_name = kwargs['pod_template']
         template_formats = (f"template/{template_name}", f"{self.username}/{template_name}", template_name)
+        if 'volume_mounts' in kwargs and kwargs['volume_mounts']:
+            for mount_name, mount in kwargs['volume_mounts'].items():
+                if mount['type'] == 'tapisvolume':
+                    try:
+                        self.t.pods.get_volume(volume_id=mount_name)
+                    except:
+                        self.t.pods.create_volume(volume_id=mount_name)
+                elif mount['type'] == 'tapissnapshot':
+                    try:
+                        self.t.pods.get_snapshot(snapshot_id=mount_name)
+                    except:
+                        raise Exception('snapshot not found')
         for template_format in template_formats:
             try:
                 kwargs['pod_template'] = template_format
-                pod_information = self.t.pods.create_pod(**kwargs)
+                results = self.t.pods.create_pod(**kwargs)
                 break
             except TapisErrors.BadRequestError as e:
                 if template_format != template_formats[-1]:
                     continue
                 raise ValueError(f"Failed to execute pod creation due to {str(e)}")
-        return pod_information
+        return results
     
 
 class PodUpdatingRetriever(baseCommand.UpdatableFormRetriever):

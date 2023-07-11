@@ -31,5 +31,7 @@ overhaul of files and systems to grant user access to additional tapis resources
 ### Changes
 * much improved UX for deeply nested forms for operations like system creation.
 * Fixed a minor issue with the 'exit' command
+* improved support for jobs
   
 ### Planned Changes
+* currently jobs only supported on tacc systems. will add better support for other icicle tenants later

@@ -184,7 +184,6 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
         self.logger.info(f"{connection.name} is now running")
         while self.running:
             try:
-                print("RECEIVING HERE")
                 message = await connection.receive()
                 if not self.running:
                     raise exceptions.Shutdown

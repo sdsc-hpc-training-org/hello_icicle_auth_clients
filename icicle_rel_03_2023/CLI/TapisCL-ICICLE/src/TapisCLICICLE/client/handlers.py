@@ -41,7 +41,7 @@ class Formatters:
                 print(("  " * depth) + f"{name}: ")
                 self.print_response(data, depth=depth+1)
         elif isinstance(input_data, (int, str)):
-            print(input_data)
+            print(f"{depth * '  '}{input_data}")
         if depth == 0:
             print("\n")
 
@@ -106,6 +106,8 @@ class Handlers(Formatters):
         return expression
     
     def confirmation_handler(self, argument):
+        if 'description' in argument and argument['description']:
+            print(argument['description'])
         print(argument['name'])
         while True:
             decision = str(input("(y/n)"))
@@ -162,6 +164,7 @@ class Handlers(Formatters):
             print(f"You are now entering data for {attrs['name']}")
             mode = 'modify'
             while True:
+                sub_answer = None
                 presentable_dict = {str(index+1):value for index, value in enumerate(answer)}
                 print(rf"""{term.clear}now editing the list: {attrs['name']}
                       Enter exit to submit list, or new to create new list element.
@@ -186,8 +189,10 @@ class Handlers(Formatters):
                     continue
                 elif decision.isdigit() and mode == 'modify':
                     try:
+                        print({f"{attrs['name']}_{str(decision)}":answer[int(decision)-1]})
+                        time.sleep(5)
                         sub_answer = self.advanced_input_handler({f"{attrs['name']}_{str(decision)}":attrs['data_type']}, term, default={f"{attrs['name']}_{str(decision)}":answer[int(decision)-1]})
-                        answer[int(decision)-1] = sub_answer
+                        answer[int(decision)-1] = sub_answer[f"{attrs['name']}_{str(decision)}"]
                     except IndexError:
                         continue
                     continue
@@ -219,18 +224,25 @@ class Handlers(Formatters):
                 continue
             result = self.advanced_input_handler({field:form_options[field]}, term, default=form_input)
             form_input[field] = result[field]
+            
+    def str_input(self, attrs):
+        completer = None
+        if 'choices' in attrs and attrs['choices']:
+            completer = WordCompleter(attrs['choices'])
+        answer = prompt(f"{attrs['name']}: ", validator=self.validator, wrap_lines=True, completer=completer)
+        return answer
     
     def advanced_input_handler(self, form_request: dict, term: Terminal, default=None):
         response = dict()
         for field, attrs in form_request.items():
             arg_type = attrs['arg_type']
             self.validator.enforcer.update_constraints(**attrs)
-            pprint.pprint(default)
+            if 'description' in attrs and attrs['description']:
+                print(attrs['description'])
             # pprint.pprint(form_request)
             # print(field)
             if default:
                 default_selection = default[field]
-                print(default[field])
             else:
                 default_selection = None
             try:
@@ -248,12 +260,9 @@ class Handlers(Formatters):
                     case 'input_dict':
                         answer = self.input_dict_handler(term, attrs, default=default_selection)
                     case 'str_input':
-                        completer = None
-                        if 'description' in attrs and attrs['description']:
-                            print(attrs['description'])
-                        if 'choices' in attrs and attrs['choices']:
-                            completer = WordCompleter(attrs['choices'])
-                        answer = prompt(f"{attrs['name']}: ", validator=self.validator, wrap_lines=True, completer=completer)
+                        answer = self.str_input(attrs)
+                    case 'standard':
+                        answer = self.str_input(attrs)
                     case 'confirmation':
                         answer = self.confirmation_handler(attrs)
                     case 'silent':

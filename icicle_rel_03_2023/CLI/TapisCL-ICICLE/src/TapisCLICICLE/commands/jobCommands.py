@@ -97,6 +97,7 @@ class resubmit_job(baseCommand.BaseCommand):
     """
     @help: resubmit a job with the same arguments as the original submission
     """
+    return_fields = ['name', 'status', 'uuid', 'appId', 'execSystemId']
     required_arguments = [
         Argument('jobUuid'),
     ]
@@ -108,10 +109,11 @@ class submit_job(appCommands.assign_default_job_attributes):
     """
     @help: submit a job to be run on the select system based on a pre-existing app
     """
+    return_fields = ['name', 'status', 'uuid', 'appId', 'execSystemId']
     command_opt = [commandOpts.CHECK_EXPLICIT_ID('execSystemId')]
     required_arguments = [
         Argument('appId', size_limit=(1, 80), positional=True),
-        Argument('appVersion', size_limit=(1, 64), positional=True),
+        Argument('appVersion', size_limit=(1, 64)),
         Argument('name', positional=True)
     ]
     async def run(self, *args, **kwargs):
