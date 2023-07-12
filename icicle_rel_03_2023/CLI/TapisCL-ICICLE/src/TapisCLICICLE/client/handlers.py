@@ -47,35 +47,35 @@ class Formatters:
 
 
 class ParserTypeLenEnforcer:
-        def __init__(self, name: str=str(), size: tuple=(0, 0), data_type: str='string', choices: list=list()):
-            self.arg_name = name
-            self.data_type = data_type
-            self.lower_size_limit, self.upper_size_limit = size
-            self.choices = choices
+    def __init__(self, name: str=str(), size: tuple=(0, 0), data_type: str='string', choices: list=list()):
+        self.arg_name = name
+        self.data_type = data_type
+        self.lower_size_limit, self.upper_size_limit = size
+        self.choices = choices
 
-        def update_constraints(self, name=None, data_type=None, choices=None, size_limit=None, **kwargs):
-            self.arg_name = name
-            self.data_type = data_type
-            self.choices = choices
-            self.lower_size_limit, self.upper_size_limit = size_limit
+    def update_constraints(self, name=None, data_type=None, choices=None, size_limit=None, **kwargs):
+        self.arg_name = name
+        self.data_type = data_type
+        self.choices = choices
+        self.lower_size_limit, self.upper_size_limit = size_limit
 
-        def __call__(self, data):
-            if self.data_type:
-                try:
-                    if self.data_type == 'string':
-                        str(data)
-                    elif self.data_type == 'int':
-                        int(data)
-                except Exception as e:
-                    raise ValidationError(message=str(e) + self.data_type, cursor_position=0)
-            if self.data_type == int:
-                if not data >= self.lower_size_limit or not data < self.upper_size_limit:
-                    raise ValidationError(message=f"The input for the argument {self.arg_name} must be in the range ({self.lower_size_limit}, {self.upper_size_limit}). Got value {data}", cursor_position=0)
-            elif self.data_type == str:
-                if not len(data) >= self.lower_size_limit or not len(data) < self.upper_size_limit:
-                    raise ValidationError(message=f"The input length for the argument {self.arg_name} must be in the range ({self.lower_size_limit}, {self.upper_size_limit}). Got length {len(data)}", cursor_position=0)
-            if self.choices and data not in self.choices:
-                raise ValidationError(message=f"The input for the argument {self.arg_name} must be one of the following: {self.choices}", cursor_position=0)
+    def __call__(self, data):
+        if self.data_type:
+            try:
+                if self.data_type == 'string':
+                    str(data)
+                elif self.data_type == 'int':
+                    int(data)
+            except Exception as e:
+                raise ValidationError(message=str(e) + self.data_type, cursor_position=0)
+        if self.data_type == int:
+            if not data >= self.lower_size_limit or not data < self.upper_size_limit:
+                raise ValidationError(message=f"The input for the argument {self.arg_name} must be in the range ({self.lower_size_limit}, {self.upper_size_limit}). Got value {data}", cursor_position=0)
+        elif self.data_type == str:
+            if not len(data) >= self.lower_size_limit or not len(data) < self.upper_size_limit:
+                raise ValidationError(message=f"The input length for the argument {self.arg_name} must be in the range ({self.lower_size_limit}, {self.upper_size_limit}). Got length {len(data)}", cursor_position=0)
+        if self.choices and data not in self.choices:
+            raise ValidationError(message=f"The input for the argument {self.arg_name} must be one of the following: {self.choices}", cursor_position=0)
 
 
 class ResponseValidator(Validator):
@@ -214,16 +214,17 @@ class Handlers(Formatters):
                 form_input[name] = ''
         else:
             form_input = {arg_name:arg_default_value for arg_name, arg_default_value in default.items() if arg_name in form_options}
-        while True:
-            print(f"{term.clear}now editing the form: {form_name}")
-            print(json.dumps(form_input, indent=3))
-            field = prompt('Enter the field you want to modify. Enter exit to complete: ', completer=completer)
-            if field.lower() == 'exit':
-                return form_input
-            elif field not in form_options:
-                continue
-            result = self.advanced_input_handler({field:form_options[field]}, term, default=form_input)
-            form_input[field] = result[field]
+        with term.fullscreen():
+            while True:
+                print(f"{term.clear}now editing the form: {form_name}")
+                print(json.dumps(form_input, indent=3))
+                field = prompt('Enter the field you want to modify. Enter exit to complete: ', completer=completer)
+                if field.lower() == 'exit':
+                    return form_input
+                elif field not in form_options:
+                    continue
+                result = self.advanced_input_handler({field:form_options[field]}, term, default=form_input)
+                form_input[field] = result[field]
             
     def str_input(self, attrs):
         completer = None
@@ -239,8 +240,6 @@ class Handlers(Formatters):
             self.validator.enforcer.update_constraints(**attrs)
             if 'description' in attrs and attrs['description']:
                 print(attrs['description'])
-            # pprint.pprint(form_request)
-            # print(field)
             if default:
                 default_selection = default[field]
             else:

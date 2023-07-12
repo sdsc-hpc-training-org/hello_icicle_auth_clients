@@ -12,7 +12,7 @@ from datetime import datetime
 
 from commands import decorators # I finally understand. Imported at the top level by serverRun, so it can only see packages from that vantage point
 from utilities import exceptions
-from commands.arguments.argument import Argument, DynamicChoiceList, ALLOWED_ARG_TYPES
+from commands.arguments.argument import Argument, ALLOWED_ARG_TYPES
 from socketopts import schemas
 from commands import dataFormatters
 
@@ -178,6 +178,10 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
                 for dependency in value.depends_on:
                     if not kwargs[dependency]:
                         raise Exception(f"The argument {name} requires the arguments {value.depends_on}")
+            if kwargs[name] and value.mutually_exclusive_with and value.mutually_exclusive_with in kwargs and kwargs[value.mutually_exclusive_with]:
+                raise Exception(f'The argument {name} is mutually exclusive with {value.mutually_exclusive_with}. Only one can be specified!')
+            if self.arguments[name].arg_type == 'form' and self.arguments[name].flattening_type != 'NONE' and name in kwargs and kwargs[name] and not isinstance(kwargs[name], (bool)):
+                kwargs.update(**self.arguments[name].flatten_form_data(kwargs, name))
         return kwargs
 
     async def filter_kwargs(self, kwargs):
@@ -186,7 +190,7 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
         """
         filtered_kwargs = dict()
         for arg, value in kwargs.items():
-            if arg in self.arguments and value or arg in self.required_arguments or (value == False and arg in self.arguments and self.arguments[arg].arg_type == 'standard'):
+            if value or arg in self.required_arguments or (value == False and arg in self.arguments and self.arguments[arg].arg_type == 'standard'):
                 filtered_kwargs[arg] = value
         return filtered_kwargs
 
@@ -208,6 +212,19 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
         existing_values = dict()
         if self.updateable_form_retriever:
             existing_values = self.return_formatter.obj_to_dict(self.updateable_form_retriever(self.t, **kwargs))
+            to_pop = []
+            reformatted_default_values = dict()
+            for argument in self.form_arguments:
+                argument = self.arguments[argument]
+                if argument.arg_type == 'form' and argument.flattening_type in ('FLATTEN', 'RETRIEVE') and set(argument.arguments_list.keys()).issubset(set(existing_values.keys())):
+                    reformatted_default_values[argument.argument] = {sub_arg_name:sub_arg_value for sub_arg_name, sub_arg_value in existing_values.items() if sub_arg_name in argument.arguments_list}
+                    to_pop += list(argument.arguments_list.keys())
+            for argument, value in existing_values.items():
+                if argument not in to_pop:
+                    reformatted_default_values[argument] = value
+            if reformatted_default_values:
+                existing_values = reformatted_default_values
+
         for arg_name in self.form_arguments:
             if kwargs[arg_name] or arg_name in self.required_arguments:
                 request = schemas.FormRequest(request_content={arg_name:self.arguments[arg_name]}, existing_data=existing_values)
@@ -240,9 +257,6 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
         self.username = username
         self.password = password
         self.server = server
-        for key, arg in self.optional_arguments.items():
-            if issubclass(arg.choices.__class__, DynamicChoiceList):
-                arg.choices = arg.choices(self.t)
 
     def update_args_with_truncated(self, truncated_args_dict):
         """
@@ -276,7 +290,8 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
         return the compiled help menus
         """
         help_dict = {"Command":self.__class__.__name__,
-                    "Description":self.help_string_retriever()}
+                    "Description":self.help_string_retriever(),
+                    "Support Config File":self.supports_config_file}
         if not verbose:
             help_dict.update(**{
                 "Syntax":f"{self.__class__.__name__} {self.help['required']['standard']}\n(Optional Arguments) {self.help['optional']['standard']}"})

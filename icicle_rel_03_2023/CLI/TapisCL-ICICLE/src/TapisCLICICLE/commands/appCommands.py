@@ -1,4 +1,5 @@
 import json
+import pprint
 
 
 if __name__ != "__main__":
@@ -8,7 +9,7 @@ if __name__ != "__main__":
 
 
 def get_latest_version(t, kwargs):
-    if 'appVersion' not in kwargs:
+    if 'appVersion' not in kwargs or not kwargs['appVersion']:
         version = t.apps.getAppLatestVersion(**kwargs).version
         kwargs['appVersion'] = version
     return kwargs
@@ -29,13 +30,17 @@ class create_app(baseCommand.BaseCommand):
         Argument('description', arg_type='str_input'),
         Argument('owner', default_value=r"${apiUserId}"),
         Argument('enabled', action='store_true'),
-        Argument('runtime', choices=['SINGULARITY', 'DOCKER']),
-        Argument('runtimeVersion'),
-        Argument('runtimeOptions', choices=['NONE', 'SINGULARITY_START', 'SINGULARITY_RUN']),
-        Argument('jobType', choices=['BATCH', 'FORK']),
-        Argument('maxJobs', data_type='int'),
-        Argument('maxJobsPerUser', data_type='int'),
-        Argument("strictFileInputs", action='store_true'),
+        argument.Form('configureRuntime', flattening_type='RETRIEVE', arguments_list = [
+            Argument('runtime', choices=['SINGULARITY', 'DOCKER']),
+            Argument('runtimeVersion'),
+            Argument('runtimeOptions', choices=['NONE', 'SINGULARITY_START', 'SINGULARITY_RUN']),
+        ]),
+        argument.Form('configureJobSettings', flattening_type='RETRIEVE', arguments_list = [
+            Argument('jobType', choices=['BATCH', 'FORK']),
+            Argument('maxJobs', data_type='int'),
+            Argument('maxJobsPerUser', data_type='int'),
+        ]),
+        Argument("strictFileInputs", action='store_true', description='indicates if you want your jobs to be able to accept unnamed file inputs'),
         Argument('tags', arg_type='input_list', data_type=Argument('tag', size_limit=(1, 128))),
     ]
     async def run(self, *args, **kwargs) -> str: # create a tapis app taking a json descriptor file path
@@ -46,6 +51,7 @@ class create_app(baseCommand.BaseCommand):
 class AppUpdatingRetriever(baseCommand.UpdatableFormRetriever):
     def __call__(self, tapis_instance, **kwargs):
         kwargs = get_latest_version(tapis_instance, kwargs)
+        pprint.pprint(kwargs)
         app_data = tapis_instance.apps.getApp(appId=kwargs['appId'], appVersion=kwargs['appVersion'])
         return app_data
     
@@ -62,15 +68,17 @@ class update_app(create_app):
     optional_arguments = [
         Argument('appVersion', size_limit=(1, 64)),
         Argument('description', arg_type='str_input'),
-        Argument('owner', default_value=r"${apiUserId}"),
-        Argument('enabled', action='store_true'),
-        Argument('runtime', choices=['SINGULARITY', 'DOCKER']),
-        Argument('runtimeVersion'),
-        Argument('runtimeOptions', choices=['NONE', 'SINGULARITY_START', 'SINGULARITY_RUN']),
-        Argument('jobType', choices=['BATCH', 'FORK']),
-        Argument('maxJobs', data_type='int'),
-        Argument('maxJobsPerUser', data_type='int'),
-        Argument("strictFileInputs", action='store_true'),
+        argument.Form('configureRuntime', flattening_type='RETRIEVE', arguments_list = [
+            Argument('runtime', choices=['SINGULARITY', 'DOCKER']),
+            Argument('runtimeVersion'),
+            Argument('runtimeOptions', choices=['NONE', 'SINGULARITY_START', 'SINGULARITY_RUN']),
+        ]),
+        argument.Form('configureJobSettings', flattening_type='RETRIEVE', arguments_list = [
+            Argument('jobType', choices=['BATCH', 'FORK']),
+            Argument('maxJobs', data_type='int'),
+            Argument('maxJobsPerUser', data_type='int'),
+        ]),
+        Argument("strictFileInputs", action='store_true', description='indicates if you want your jobs to be able to accept unnamed file inputs'),
         Argument('tags', arg_type='input_list', data_type=Argument('tag', size_limit=(1, 128))),
     ]
     async def run(self, *args, **kwargs):
@@ -96,21 +104,19 @@ class assign_default_job_attributes(baseCommand.BaseCommand):
         Argument('appId', size_limit=(1, 80), positional=True)
     ]
     optional_arguments = [
-        Argument('appVersion', size_limit=(1, 64)),
-        Argument('description', arg_type='str_input'),
-        Argument('dynamicExecSystem', arg_type='confirmation', description="System is dynamic?"),
-        Argument('execSystemConstraints', arg_type='input_list', data_type=Argument('constraint', size_limit=(3, 4096))),
-        Argument('execSystemId', size_limit=(1, 80), description='what system id will this be run on?'),
-        Argument('execSystemExecDir', size_limit=(1, 4096), description='based on the system job working dir? automatically generated if not specified'),
-        Argument('execSystemInputDir', size_limit=(1, 4096), description='what system path will be used to stage input files? automatically generated if not specified'),
-        Argument('execSystemOutputDir', size_limit=(1, 4096), description='Where will tapis put job output files? automatically generated if not specified'),
-        Argument('execSystemLogicalQueue', size_limit=(1, 128), description='What batch logical queue on the system will be used for execution?'),
-        Argument('archiveSystemId', size_limit=(1, 80), description='What system will be used when archiving outputs?'),
-        Argument('archivesystemDir', size_limit=(1, 4096), description='What system directory will be used for archiving?'),
-        Argument('archiveOnAppError', arg_type='confirmation', description='archive on error?'),
-        Argument("isMpi", arg_type='confirmation', description="is mpi?"),
-        Argument('mpiCmd', size_limit=(1, 126), arg_type='str_input', description='command to launch MPI jobs. Conflicts with cmdPrefix if isMpi is set'),
-        Argument('cmdPrefix', size_limit=(1, 126), description='string put in front of app run command to run with mpi command'),
+        argument.Form('defaultSystemConfig', flattening_type='RETRIEVE', arguments_list = [
+            Argument('dynamicExecSystem', arg_type='confirmation', description="System is dynamic?"),
+            Argument('execSystemConstraints', arg_type='input_list', data_type=Argument('constraint', size_limit=(3, 4096))),
+            Argument('execSystemId', size_limit=(1, 80), description='what system id will this be run on?'),
+            Argument('execSystemExecDir', size_limit=(1, 4096), description='based on the system job working dir? automatically generated if not specified'),
+            Argument('execSystemInputDir', size_limit=(1, 4096), description='what system path will be used to stage input files? automatically generated if not specified'),
+            Argument('execSystemOutputDir', size_limit=(1, 4096), description='Where will tapis put job output files? automatically generated if not specified'),
+            Argument('execSystemLogicalQueue', size_limit=(1, 128), description='What batch logical queue on the system will be used for execution?'),
+        ]),
+        argument.Form('archiveOnAppError', flattening_type='FLATTEN',  arguments_list=[
+            Argument('archiveSystemId', size_limit=(1, 80), description='What system will be used when archiving outputs?'),
+            Argument('archivesystemDir', size_limit=(1, 4096), description='What system directory will be used for archiving?'),
+        ]),
         argument.Form('parameterSet', arguments_list=[
             Argument('appArgs', arg_type='input_list', data_type=argument.Form('appArg', arguments_list=[
                 Argument('name', size_limit=(1, 80)),
@@ -136,6 +142,17 @@ class assign_default_job_attributes(baseCommand.BaseCommand):
                 Argument('description', size_limit=(1, 2048))
             ]), description='environment variables placed into the runtime environment')
         ], description='collections used during job execution. Specify app args, container args, scheduler options, evnironment variables, and archive filter for job execution'),
+        argument.Form('jobAllocationConfiguration', flattening_type='RETRIEVE', arguments_list = [
+            Argument('nodeCount', data_type='int', description='how many nodes do you want to request in your job?'),
+            Argument('coresPerNode', data_type='int', description='how many cores per node?'),
+            Argument('memoryMB', data_type='int'),
+            Argument('maxMinutes', data_type='int', description='max job runtime'),
+        ]),
+        Argument('appVersion', size_limit=(1, 64)),
+        Argument('description', arg_type='str_input'),
+        Argument("isMpi", arg_type='confirmation', description="is mpi?"),
+        Argument('mpiCmd', size_limit=(1, 126), arg_type='str_input', description='command to launch MPI jobs. Conflicts with cmdPrefix if isMpi is set', mutually_exclusive_with=['cmdPrefix']),
+        Argument('cmdPrefix', size_limit=(1, 126), description='string put in front of app run command to run with mpi command'),
         Argument('fileInputs', arg_type='input_list', data_type=argument.Form('fileInput', arguments_list=[
             Argument('name', size_limit=(1, 80)),
             Argument('description', size_limit=(1, 8096)),
@@ -151,10 +168,6 @@ class assign_default_job_attributes(baseCommand.BaseCommand):
             Argument('sourceUrls', arg_type='input_list', data_type=Argument('sourceUrl')),
             Argument('targetPath')
         ]), description='collection of arrays of inputs to be staged to the application'),
-        Argument('nodeCount', data_type='int', description='how many nodes do you want to request in your job?'),
-        Argument('coresPerNode', data_type='int', description='how many cores per node?'),
-        Argument('memoryMB', data_type='int'),
-        Argument('maxMinutes', data_type='int', description='max job runtime'),
         Argument('subscriptions', arg_type='input_list', data_type=argument.Form('subscription', arguments_list=[
             Argument('description'),
             Argument('enabled', arg_type='confirmation', description='enable subscription?'),

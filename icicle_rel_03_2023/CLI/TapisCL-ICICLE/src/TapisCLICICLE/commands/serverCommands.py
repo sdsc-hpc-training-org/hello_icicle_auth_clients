@@ -1,4 +1,5 @@
 import typing
+import webbrowser
 
 from tapipy.tapis import Tapis
 
@@ -21,7 +22,7 @@ class ServiceChecker:
         return filtered_supported_services
 
 
-class get_tenants(baseCommand.BaseCommand):
+class get_tenants(baseCommand.BaseCommand): # give this return fields
     """
     @help: get a list of available tenants to authenticate with
     """
@@ -45,7 +46,7 @@ class get_tenant(baseCommand.BaseCommand):
         return {'uri':tenant.base_url.split('//')[1], 'owner':tenant.owner, 'description':tenant.description}
     
     
-class switch_service_to(baseCommand.BaseCommand):
+class switch_tenant_to(baseCommand.BaseCommand):
     """
     @help: switch the connected tapis service
     @todo: upgrade to federated auth
@@ -105,13 +106,6 @@ class user(baseCommand.BaseCommand):
     ]
     async def run(self, *args, **kwargs):
         return self.t.authenticator.get_profile(**kwargs)
-
-class get_args(baseCommand.BaseCommand):
-    """
-    @help: get the list of possible arguments 
-    """
-    async def run(self, *args, **kwargs):
-        return self.server.arguments
     
 
 class whereami(baseCommand.BaseCommand):
@@ -127,4 +121,5 @@ class manpages(baseCommand.BaseCommand):
     @help: get a link to the application manpages
     """
     async def run(self, *args, **kwargs):
+        webbrowser.open('https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients/tree/main/icicle_rel_03_2023/CLI/TapisCL-ICICLE')
         return "Please see https://github.com/sdsc-hpc-training-org/hello_icicle_auth_clients/tree/main/icicle_rel_03_2023/CLI/TapisCL-ICICLE for manpages (will add actual manpages later)"

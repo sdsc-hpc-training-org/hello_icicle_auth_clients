@@ -12,12 +12,14 @@ class Systems(baseCommand.BaseCommandMap):
     """
     command_map = {
         'get_systems':systemCommands.get_systems(), # since initialization of commands is separate from __init__, you dont need to specify these as classes anymore
-        'get_system_info':systemCommands.get_system_info(),
+        'get_system':systemCommands.get_system(),
         'get_scheduler_profiles':systemCommands.get_scheduler_profiles(),
         'submit_system_credentials':systemCommands.submit_system_credentials(),
         'verify_pki_keys':systemCommands.verify_pki_keys(),
         'create_system':systemCommands.create_system(),
+        'create_s3_system':systemCommands.create_s3_system(),
         'update_system':systemCommands.update_system(),
+        'update_s3_system':systemCommands.update_s3_system(),
         'is_system_enabled':systemCommands.is_system_enabled(),
         'enable_system':systemCommands.enable_system(),
         'disable_system':systemCommands.disable_system(),
@@ -46,8 +48,7 @@ class General(baseCommand.BaseCommandMap):
         'whereami':serverCommands.whereami(),
         'exit':serverCommands.exit(),
         'shutdown':serverCommands.shutdown(),
-        "get_args":serverCommands.get_args(),
-        'switch_service_to':serverCommands.switch_service_to(),
+        'switch_tenant_to':serverCommands.switch_tenant_to(),
         'manpages':serverCommands.manpages()
     }
 

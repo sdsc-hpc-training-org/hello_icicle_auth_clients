@@ -7,17 +7,10 @@ ALLOWED_DATA_TYPES = typing.Literal['string', 'int', 'bool']
 ALLOWED_ACTIONS = typing.Literal['store', 'store_true', 'store_false']
 
 
-class DynamicChoiceList(abc.ABC):
-    @abc.abstractmethod
-    def __call__(self, tapis_instance):
-        pass
-
-
 class AbstractArgument(abc.ABC):
     @abc.abstractmethod
     def json(self):
         pass
-
 
 def cast_int(data):
     return int(data)
@@ -38,12 +31,13 @@ class Argument(AbstractArgument):
     def __init__(self, argument: str,
                  data_type: ALLOWED_DATA_TYPES | typing.Type[AbstractArgument] = 'string',
                  arg_type: ALLOWED_ARG_TYPES | typing.Literal['standard']='standard',
-                 choices: list | typing.Type[DynamicChoiceList] | None=None, 
+                 choices: list | None=None, 
                  action: typing.Literal['store', 'store_true', 'store_false']="store", 
                  description: str="",
                  positional: bool=False,
                  default_value=None,
                  depends_on: list = [],
+                 mutually_exclusive_with: list = [],
                  size_limit: tuple=(0,4096)):
         if arg_type not in typing.get_args(ALLOWED_ARG_TYPES) and arg_type != 'standard':
             raise ValueError(f"The arg type parameter in the argument {self.__class__.__name__} must be in the list {ALLOWED_ARG_TYPES}. Got arg type {arg_type}")
@@ -67,6 +61,7 @@ class Argument(AbstractArgument):
         self.default_value = default_value
         self.size_limit=size_limit
         self.depends_on = depends_on
+        self.mutually_exclusive_with = mutually_exclusive_with
 
         self.truncated_arg = None
         self.full_arg = f"--{self.argument}"
@@ -108,12 +103,13 @@ class Argument(AbstractArgument):
             'size_limit':self.size_limit,
             'truncated_arg':self.truncated_arg,
             'full_arg':self.full_arg,
-            'depends_on':self.depends_on
+            'depends_on':self.depends_on,
+            'mutually_exclusive_with':self.mutually_exclusive_with
         }
         if self.data_type in ('string', 'int', 'bool'):
             json['data_type'] = self.data_type
         else:
-            json['data_type'] = self.data_type.json()
+            json['data_type'] = self.data_type.json() 
         return json
     
     def help_message(self):
@@ -144,17 +140,31 @@ class Argument(AbstractArgument):
         elif self.action == 'store':
             help_str += f"<{self.argument}> "
         if self.arg_type != 'standard':
-            help_str += ' (f)\t'
+            help_str += ' (f) '
         return help_str
 
 
 class Form(Argument):
-    def __init__(self, form_name, arguments_list, description=None):
-        super().__init__(form_name, arg_type='form', description=description)
+    def __init__(self, form_name, arguments_list, description=None, depends_on=None, flattening_type: typing.Literal['NONE', 'FLATTEN', 'RETRIEVE']='NONE'):
+        super().__init__(form_name, arg_type='form', description=description, depends_on=depends_on)
         for argument in arguments_list:
             if argument.arg_type == 'standard':
                 argument.arg_type = 'str_input'
         self.arguments_list = {argument.argument:argument for argument in arguments_list}
+        self.flattening_type = flattening_type
+    
+    def flatten_form_data(self, kwargs, target):
+        if self.flattening_type == 'FLATTEN':
+            form_info = kwargs.pop(target)
+            flattened_form_info = {target:True}
+            flattened_form_info.update(**{arg_name:arg_value for arg_name, arg_value in form_info.items()})
+            return flattened_form_info
+        if self.flattening_type == 'RETRIEVE':
+            form = kwargs.pop(target)
+            exctracted_form_data = {arg_name:arg for arg_name, arg in form.items()}
+            return exctracted_form_data
+        else:
+            return None
 
     def json(self):
         fields = {argument_name:argument.json() for argument_name, argument in self.arguments_list.items()}
