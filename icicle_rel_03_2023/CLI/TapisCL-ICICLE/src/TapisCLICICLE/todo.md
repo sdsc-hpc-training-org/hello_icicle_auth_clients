@@ -7,3 +7,4 @@
 7. add some sort of interface to dockerhub and (singularityhub?) to validate app creation.
 8. add the simplistic system config
 9. add the way to save the failed command entry
+10. what the heck is wrong with "none" has no attribute write!?!?!?!?
