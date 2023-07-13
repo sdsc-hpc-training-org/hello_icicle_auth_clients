@@ -3,7 +3,6 @@ import os
 import json
 import pprint
 import time
-import pyreadline3
 
 from prompt_toolkit.validation import Validator, ValidationError
 from prompt_toolkit.completion import word_completer, WordCompleter
@@ -18,9 +17,6 @@ if __name__ != "__main__":
 __location__ = os.path.realpath(
     os.path.join(os.getcwd(), os.path.dirname(f"{__file__}")))
 saved_command = os.path.join(__location__, r'entered_command.json')
-
-
-LINE_READER = base_read_line = pyreadline3.BaseReadline()
 
 
 class Formatters:
@@ -63,9 +59,9 @@ class ParserTypeLenEnforcer:
         if self.data_type:
             try:
                 if self.data_type == 'string':
-                    str(data)
+                    data = str(data)
                 elif self.data_type == 'int':
-                    int(data)
+                    data = int(data)
             except Exception as e:
                 raise ValidationError(message=str(e) + self.data_type, cursor_position=0)
         if self.data_type == int:
@@ -190,7 +186,6 @@ class Handlers(Formatters):
                 elif decision.isdigit() and mode == 'modify':
                     try:
                         print({f"{attrs['name']}_{str(decision)}":answer[int(decision)-1]})
-                        time.sleep(5)
                         sub_answer = self.advanced_input_handler({f"{attrs['name']}_{str(decision)}":attrs['data_type']}, term, default={f"{attrs['name']}_{str(decision)}":answer[int(decision)-1]})
                         answer[int(decision)-1] = sub_answer[f"{attrs['name']}_{str(decision)}"]
                     except IndexError:
@@ -231,6 +226,12 @@ class Handlers(Formatters):
         if 'choices' in attrs and attrs['choices']:
             completer = WordCompleter(attrs['choices'])
         answer = prompt(f"{attrs['name']}: ", validator=self.validator, wrap_lines=True, completer=completer)
+        if attrs['data_type'] == 'str':
+            answer = str(answer)
+        elif attrs['data_type'] == 'int':
+            answer = int(answer)
+        elif attrs['data_type'] == 'bool':
+            answer = bool(answer)
         return answer
     
     def advanced_input_handler(self, form_request: dict, term: Terminal, default=None):

@@ -125,7 +125,6 @@ class rm(baseCommand.BaseCommand):
     """
     @help: delete a selected file
     """
-    decorator=decorators.NeedsConfirmation()
     command_opt = [commandOpts.CHECK_PWD(('file_path',)), commandOpts.CHECK_EXPLICIT_ID('systemId')]
     required_arguments = [
         Argument('file_path', positional=True),

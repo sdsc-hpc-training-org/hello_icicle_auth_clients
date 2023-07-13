@@ -8,4 +8,4 @@ blessed==1.20.0
 prompt_toolkit==3.0.36
 TapisFederatedAuthClientAPI==0.0.1
 requests==2.28.2
-pyreadline3
+questionary==1.10.0

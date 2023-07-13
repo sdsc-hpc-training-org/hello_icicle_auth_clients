@@ -12,10 +12,11 @@ import webbrowser
 
 
 if __name__ != "__main__":
-    from . import baseCommand, decorators
-    from .arguments import argument
-    from . import commandOpts
+    from .. import baseCommand, decorators
+    from ..arguments import argument
+    from .. import commandOpts
     from socketopts import schemas
+    from . import systemForms
     Argument = argument.Argument
 
 
@@ -208,71 +209,11 @@ IRODS: PASSWORD
 In the case you choose password, your username and password will either be your TACC account info, or the login info you used with federated/device_code grant"""),
     ]
     optional_arguments=[
-        argument.Form('canExec', flattening_type='FLATTEN', arguments_list=[
-            Argument('jobRuntimes', arg_type='input_list', data_type=argument.Form(
-            'jobRuntime', arguments_list = [
-                Argument('runtimeType', choices=['DOCKER', 'SINGULARITY']), 
-                Argument('version')
-                ]
-            )),
-            Argument('jobWorkingDir', default_value=r"HOST_EVAL($WORK2)", size_limit=(0, 4096), description='Where on this hpc system are jobs run?'),
-        ]),
-        argument.Form('useProxy', flattening_type='FLATTEN', arguments_list=[
-            Argument('proxyHost', size_limit=(0, 256)),
-            Argument('proxyPort', data_type='int'),
-        ]),
-        argument.Form('canRunBatch', flattening_type='FLATTEN', arguments_list=[
-            Argument('batchScheduler', choices=['SLURM', "CONDOR", "PBS", "SGE", "UGE", "TORQUE"]),
-            Argument('batchLogicalQueues', arg_type='input_list', data_type=argument.Form(
-                'batchLogicalQueue', arguments_list = [
-                    Argument('name', size_limit=(1, 128)),
-                    Argument('hpcQueueName', size_limit=(1, 128)),
-                    Argument('maxJobs', data_type='int'),
-                    Argument('maxJobsPerUser', data_type='int'),
-                    Argument('minNodeCount', data_type='int'),
-                    Argument('maxNodeCount', data_type='int'),
-                    Argument('minCoresPerNode', data_type='int'),
-                    Argument('maxCoresPerNode', data_type='int'),
-                    Argument('minMemoryMB', data_type='int'),
-                    Argument('maxMemoryMB', data_type='int'),
-                    Argument('minMinutes', data_type='int'),
-                    Argument('maxMinutes', data_type='int')
-                ]
-            )),
-            Argument('batchDefaultLogicalQueue', size_limit=(1, 128)),
-            Argument('batchSchedulerProfile'),
-        ]),
-        argument.Form('mountDataTransferNode', flattening_type='RETRIEVE', arguments_list=[
-            Argument('dtnSystemId', size_limit=(0, 80)),
-            Argument('dtnMountPoint'),
-            Argument('dtnMountSourcePath')
-        ]),
-        argument.Form('configureDefaultJobCharacteristics', flattening_type='RETRIEVE', depends_on=['canExec'], arguments_list=[
-            Argument('jobEnvVariables', arg_type='input_list', data_type=argument.Form(
-                'jobEnvironmentVariable', arguments_list = [
-                    Argument('key'),
-                    Argument('value', default_value=''),
-                    Argument('description', size_limit=(0, 2048), arg_type='str_input')
-                ]
-            )),
-            Argument('jobMaxJobs', data_type='int'),
-            Argument('jobMaxJobsPerUser', data_type='int'),
-            Argument('jobCapabilities', arg_type='input_list', data_type=argument.Form(
-                'jobCapability', arguments_list=[
-                    Argument('category', choices=['SCHEUDLER', 
-                                                'OS', 'HARDWARE', 
-                                                'SOFTWARE', 'JOB', 
-                                                'CONTAINER', 'MISC', 
-                                                'CUSTOM']),
-                    Argument('name', size_limit=(1, 128)),
-                    Argument('datatype', choices=['STRING', 'INTEGER', 
-                                                'BOOLEAN', 'NUMBER', 
-                                                'TIMESTAMP']),
-                    Argument('precedence', data_type='int'),
-                    Argument('value')
-                ]
-            )),
-        ]),
+        systemForms.CAN_EXEC,
+        systemForms.USE_PROXY,
+        systemForms.CAN_RUN_BATCH,
+        systemForms.MOUNT_DATA_TRANSFER_NODE,
+        systemForms.CONFIGURE_DEFAULT_JOB_CHARACTERISTICS,
         Argument('effectiveUserId', default_value=r"${apiUserId}", size_limit=(0, 60)),
         Argument('owner', default_value=r"${apiUserId}"),
         Argument('description', arg_type='str_input', size_limit=(0, 2048)),
@@ -307,36 +248,9 @@ class create_s3_system(create_system):
         Argument('bucketName')
     ]
     optional_arguments = [
-        argument.Form('useProxy', flattening_type='FLATTEN', arguments_list=[
-            Argument('proxyHost', size_limit=(0, 256)),
-            Argument('proxyPort', data_type='int'),
-        ]),
-        argument.Form('canRunBatch', flattening_type='FLATTEN', arguments_list=[
-            Argument('batchScheduler', choices=['SLURM', "CONDOR", "PBS", "SGE", "UGE", "TORQUE"]),
-            Argument('batchLogicalQueues', arg_type='input_list', data_type=argument.Form(
-                'batchLogicalQueue', arguments_list = [
-                    Argument('name', size_limit=(1, 128)),
-                    Argument('hpcQueueName', size_limit=(1, 128)),
-                    Argument('maxJobs', data_type='int'),
-                    Argument('maxJobsPerUser', data_type='int'),
-                    Argument('minNodeCount', data_type='int'),
-                    Argument('maxNodeCount', data_type='int'),
-                    Argument('minCoresPerNode', data_type='int'),
-                    Argument('maxCoresPerNode', data_type='int'),
-                    Argument('minMemoryMB', data_type='int'),
-                    Argument('maxMemoryMB', data_type='int'),
-                    Argument('minMinutes', data_type='int'),
-                    Argument('maxMinutes', data_type='int')
-                ]
-            )),
-            Argument('batchDefaultLogicalQueue', size_limit=(1, 128)),
-            Argument('batchSchedulerProfile'),
-        ]),
-        argument.Form('mountDataTransferNode', flattening_type='RETRIEVE', arguments_list=[
-            Argument('dtnSystemId', size_limit=(0, 80)),
-            Argument('dtnMountPoint'),
-            Argument('dtnMountSourcePath')
-        ]),
+        systemForms.USE_PROXY,
+        systemForms.CAN_RUN_BATCH,
+        systemForms.MOUNT_DATA_TRANSFER_NODE,
         Argument('effectiveUserId', default_value=r"${apiUserId}", size_limit=(0, 60)),
         Argument('owner', default_value=r"${apiUserId}"),
         Argument('description', arg_type='str_input', size_limit=(0, 2048)),
@@ -371,6 +285,7 @@ class submit_system_credentials(create_system):
         system_info = self.t.systems.getSystem(systemId=kwargs['id'])
         kwargs['systemType'] = system_info.systemType
         kwargs['defaultAuthnMethod'] = system_info.defaultAuthnMethod
+        kwargs['host'] = system_info.host
         return_info = await self.authenticate(kwargs)
         return return_info
     
@@ -381,7 +296,7 @@ class SystemUpdatingRetriever(baseCommand.UpdatableFormRetriever):
         return system_data
     
 
-class update_system(create_system):
+class update_system(baseCommand.BaseCommand):
     """
     @help: update a system with new information
     """
@@ -391,62 +306,16 @@ class update_system(create_system):
         Argument('systemId', size_limit=(1, 80), positional=True),
     ]
     optional_arguments=[
-        argument.Form('useProxy', flattening_type='FLATTEN', arguments_list=[
-            Argument('proxyHost', size_limit=(0, 256)),
-            Argument('proxyPort', data_type='int'),
-        ]),
-        argument.Form('canRunBatch', flattening_type='FLATTEN', arguments_list=[
-            Argument('batchScheduler', choices=['SLURM', "CONDOR", "PBS", "SGE", "UGE", "TORQUE"]),
-            Argument('batchLogicalQueues', arg_type='input_list', data_type=argument.Form(
-                'batchLogicalQueue', arguments_list = [
-                    Argument('name', size_limit=(1, 128)),
-                    Argument('hpcQueueName', size_limit=(1, 128)),
-                    Argument('maxJobs', data_type='int'),
-                    Argument('maxJobsPerUser', data_type='int'),
-                    Argument('minNodeCount', data_type='int'),
-                    Argument('maxNodeCount', data_type='int'),
-                    Argument('minCoresPerNode', data_type='int'),
-                    Argument('maxCoresPerNode', data_type='int'),
-                    Argument('minMemoryMB', data_type='int'),
-                    Argument('maxMemoryMB', data_type='int'),
-                    Argument('minMinutes', data_type='int'),
-                    Argument('maxMinutes', data_type='int')
-                ]
-            )),
-            Argument('batchDefaultLogicalQueue', size_limit=(1, 128)),
-            Argument('batchSchedulerProfile'),
-        ]),
-        argument.Form('mountDataTransferNode', flattening_type='RETRIEVE', arguments_list=[
-            Argument('dtnSystemId', size_limit=(0, 80)),
-            Argument('dtnMountPoint'),
-            Argument('dtnMountSourcePath')
-        ]),
-        argument.Form('configureDefaultJobCharacteristics', flattening_type='RETRIEVE', arguments_list=[
-            Argument('jobEnvVariables', arg_type='input_list', data_type=argument.Form(
-                'jobEnvironmentVariable', arguments_list = [
-                    Argument('key'),
-                    Argument('value', default_value=''),
-                    Argument('description', size_limit=(0, 2048), arg_type='str_input')
-                ]
-            )),
-            Argument('jobMaxJobs', data_type='int'),
-            Argument('jobMaxJobsPerUser', data_type='int'),
-            Argument('jobCapabilities', arg_type='input_list', data_type=argument.Form(
-                'jobCapability', arguments_list=[
-                    Argument('category', choices=['SCHEUDLER', 
-                                                'OS', 'HARDWARE', 
-                                                'SOFTWARE', 'JOB', 
-                                                'CONTAINER', 'MISC', 
-                                                'CUSTOM']),
-                    Argument('name', size_limit=(1, 128)),
-                    Argument('datatype', choices=['STRING', 'INTEGER', 
-                                                'BOOLEAN', 'NUMBER', 
-                                                'TIMESTAMP']),
-                    Argument('precedence', data_type='int'),
-                    Argument('value')
-                ]
-            )),
-        ]),
+        systemForms.USE_PROXY,
+        systemForms.CAN_RUN_BATCH,
+        systemForms.MOUNT_DATA_TRANSFER_NODE,
+        systemForms.CONFIGURE_DEFAULT_JOB_CHARACTERISTICS,
+        Argument('defaultAuthnMethod', choices=['PASSWORD', "PKI_KEYS", "TOKEN"], description=
+                                    """Depending on your systemType, you will be restricted to certain options.
+LINUX: PASSWORD, PKI_KEYS
+GLOBUS: TOKEN
+IRODS: PASSWORD
+In the case you choose password, your username and password will either be your TACC account info, or the login info you used with federated/device_code grant"""),
         Argument('jobRuntimes', arg_type='input_list', data_type=argument.Form(
             'jobRuntime', arguments_list = [
                 Argument('runtimeType', choices=['DOCKER', 'SINGULARITY']), 
@@ -464,6 +333,7 @@ class update_system(create_system):
         Argument('importRefId')
     ]
     async def run(self, *args, **kwargs):
+        pprint.pprint(kwargs)
         result = self.t.systems.patchSystem(**kwargs)
         return result
     
@@ -473,36 +343,9 @@ class update_s3_system(update_system):
     @help: update an s3 system
     """
     optional_arguments = [
-        argument.Form('useProxy', flattening_type='FLATTEN', arguments_list=[
-            Argument('proxyHost', size_limit=(0, 256)),
-            Argument('proxyPort', data_type='int'),
-        ]),
-        argument.Form('canRunBatch', flattening_type='FLATTEN', arguments_list=[
-            Argument('batchScheduler', choices=['SLURM', "CONDOR", "PBS", "SGE", "UGE", "TORQUE"]),
-            Argument('batchLogicalQueues', arg_type='input_list', data_type=argument.Form(
-                'batchLogicalQueue', arguments_list = [
-                    Argument('name', size_limit=(1, 128)),
-                    Argument('hpcQueueName', size_limit=(1, 128)),
-                    Argument('maxJobs', data_type='int'),
-                    Argument('maxJobsPerUser', data_type='int'),
-                    Argument('minNodeCount', data_type='int'),
-                    Argument('maxNodeCount', data_type='int'),
-                    Argument('minCoresPerNode', data_type='int'),
-                    Argument('maxCoresPerNode', data_type='int'),
-                    Argument('minMemoryMB', data_type='int'),
-                    Argument('maxMemoryMB', data_type='int'),
-                    Argument('minMinutes', data_type='int'),
-                    Argument('maxMinutes', data_type='int')
-                ]
-            )),
-            Argument('batchDefaultLogicalQueue', size_limit=(1, 128)),
-            Argument('batchSchedulerProfile'),
-        ]),
-        argument.Form('mountDataTransferNode', flattening_type='RETRIEVE', arguments_list=[
-            Argument('dtnSystemId', size_limit=(0, 80)),
-            Argument('dtnMountPoint'),
-            Argument('dtnMountSourcePath')
-        ]),
+        systemForms.USE_PROXY,
+        systemForms.CAN_RUN_BATCH,
+        systemForms.MOUNT_DATA_TRANSFER_NODE,
         Argument('effectiveUserId', default_value=r"${apiUserId}", size_limit=(0, 60)),
         Argument('description', arg_type='str_input', size_limit=(0, 2048)),
         Argument('port', data_type='int', default_value=22),
@@ -541,7 +384,6 @@ class disable_system(is_system_enabled):
     """
     @help: disable a system
     """
-    decorator=decorators.NeedsConfirmation()
     async def run(self, *args, **kwargs):
         return self.t.systems.disableSystem(**kwargs)
     
@@ -550,7 +392,6 @@ class delete_system(baseCommand.BaseCommand):
     """
     @help: delete the selected system
     """
-    decorator=decorators.NeedsConfirmation()
     command_opt = [commandOpts.CHECK_EXPLICIT_ID('systemId')]
     required_arguments=[
         Argument('systemId', size_limit=(1, 80), positional=True),
@@ -570,7 +411,7 @@ class undelete_system(baseCommand.BaseCommand):
         Argument('systemId', size_limit=(1, 80), positional=True),
     ]
     async def run(self, *args, **kwargs):
-        return self.t.systems.undelete(**kwargs)
+        return self.t.systems.undeleteSystem(**kwargs)
 
 class create_child_system(baseCommand.BaseCommand):
     """

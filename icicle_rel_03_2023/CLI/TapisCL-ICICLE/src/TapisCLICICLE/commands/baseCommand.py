@@ -72,7 +72,7 @@ class CommandMetaClass(abc.ABCMeta):
         if args:
             for argument in args:
                 if not issubclass(argument.__class__, Argument) and not isinstance(argument, Argument):
-                    raise AttributeError(f"The argument {argument.argument} of the command '{name}' must be of type 'Argument'")
+                    raise AttributeError(f"The argument {argument} of the command '{name}' must be of type 'Argument'. Currently {type(argument)}")
                 if 'optional_arguments' in list(attrs.keys()) and argument in attrs['optional_arguments'] and argument.positional:
                     raise AttributeError(f"The optional argument {argument.argument} of the command {name} cannot be positional. All positional arguments must be required")
         if 'kwargs' not in run_params or 'args' not in run_params:
@@ -119,6 +119,10 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
     supports_config_file: bool = False
     required_arguments: list[Argument] | dict = list()
     optional_arguments: list[Argument] | dict = list()
+    default_arguments = [Argument('connection', arg_type='silent'),
+                            Argument('verbose', arg_type='silent'),
+                            Argument('help', arg_type='silent'),
+                            Argument('positionals', arg_type='silent')]
     updateable_form_retriever: UpdatableFormRetriever = None
     def __init__(self):
         self.t = None
@@ -127,7 +131,7 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
         self.server = None
         self.arguments = dict()
         self.return_formatter: dataFormatters.BaseDataFormatter = dataFormatters.BaseDataFormatter(self.return_fields)
-        self.default_arguments()
+        self.required_arguments += self.default_arguments
         if self.supports_config_file:
             self.optional_arguments.append(Argument('file'))
         if isinstance(self.required_arguments, list):
@@ -150,18 +154,6 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
             self.command_execution_sequence.append(self.handle_form_input)
         self.command_execution_sequence.append(self.verify_argument_rules_followed)
         self.command_execution_sequence.append(self.filter_kwargs)
-
-    def default_arguments(self):
-        """
-        these are pseudarguments that allow some non-argument data to be passed to the command. This is a bit hacky, but its programatically necessary in the context of this framework
-        """
-        default_arguments = [Argument('connection', arg_type='silent'),
-                            Argument('verbose', arg_type='silent'),
-                            Argument('help', arg_type='silent'),
-                            Argument('positionals', arg_type='silent')]
-        
-        for command in default_arguments:
-            self.required_arguments.append(command)
 
     async def verify_argument_rules_followed(self, kwargs):
         """
@@ -218,7 +210,7 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
                 argument = self.arguments[argument]
                 if argument.arg_type == 'form' and argument.flattening_type in ('FLATTEN', 'RETRIEVE') and set(argument.arguments_list.keys()).issubset(set(existing_values.keys())):
                     reformatted_default_values[argument.argument] = {sub_arg_name:sub_arg_value for sub_arg_name, sub_arg_value in existing_values.items() if sub_arg_name in argument.arguments_list}
-                    to_pop += list(argument.arguments_list.keys())
+                    to_pop += list(argument.arguments_list.keys()) + [argument.argument]
             for argument, value in existing_values.items():
                 if argument not in to_pop:
                     reformatted_default_values[argument] = value
@@ -320,28 +312,28 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
         """
         runs all command meta-operations
         """
-        if self.supports_config_file and kwargs['file']:
+        if self.supports_config_file and kwargs['file']: # if there is a config file input, skip all the other steps and take kwargs from that file
             new_kwargs = await self.handle_config_file(kwargs)
             for arg_name, arg in kwargs.items():
                 if arg_name in ('connection', 'positionals', 'verbose', 'help'):
                     new_kwargs[arg_name] = arg
             kwargs = new_kwargs
         else:
+            if kwargs['help']:
+                return self.__get_help(verbose=kwargs['verbose'])
             if self.decorator:
                 try:
                     return_value = await self.decorator(input_command=self, **kwargs)
+                    return return_value
                 except (ValueError, exceptions.NoConfirmationError) as e:
                     return f"Command execution failed due to {e}"
-
-            if kwargs['help']:
-                return self.__get_help(verbose=kwargs['verbose'])
             for handler in self.command_execution_sequence:
                 kwargs = await handler(kwargs)
         try:
             return_value = await self.run(**kwargs)
         except (exceptions.Shutdown, exceptions.Exit) as e:
             raise e
-        except Exception as e:
+        except Exception as e: # this whole part writes command input to a file in the event a form command fails
             if self.supports_config_file:
                 current_date = datetime.now()
                 formatted_date = current_date.strftime("%m-%d-%y")

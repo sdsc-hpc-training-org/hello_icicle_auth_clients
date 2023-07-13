@@ -1,5 +1,9 @@
+from .Apps import appCommands
+from .Systems import systemCommands
+
+
 if __name__ != "__main__":
-    from . import systemCommands, volumeCommands, serverCommands, appCommands, podCommands, fileCommands, dataFormatters, baseCommand, jobCommands
+    from . import volumeCommands, serverCommands, podCommands, fileCommands, dataFormatters, baseCommand, jobCommands
     from .query import postgres, neo4j
     from utilities import exceptions
     from commands.arguments.argument import Argument

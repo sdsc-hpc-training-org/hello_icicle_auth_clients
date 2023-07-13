@@ -2,7 +2,7 @@ import typing
 import abc
 
 
-ALLOWED_ARG_TYPES = typing.Literal['silent', 'secure', 'expression', 'input_list', 'input_dict', 'form', 'str_input', 'confirmation']
+ALLOWED_ARG_TYPES = typing.Literal['silent', 'secure', 'expression', 'input_list', 'input_dict', 'form', 'str_input', 'confirmation', 'selection_list']
 ALLOWED_DATA_TYPES = typing.Literal['string', 'int', 'bool']
 ALLOWED_ACTIONS = typing.Literal['store', 'store_true', 'store_false']
 

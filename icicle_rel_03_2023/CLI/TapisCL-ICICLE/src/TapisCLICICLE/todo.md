@@ -8,3 +8,8 @@
 8. add the simplistic system config
 9. add the way to save the failed command entry
 10. what the heck is wrong with "none" has no attribute write!?!?!?!?
+11. ADD A WAY TO GET THE DYNAMIC CHOICES
+12. required vs optional fields in forms
+13. get rid of the silly decorators replace with confirmation and auth argument types. Overcomplicated things
+14. fix issue where things arent updating like theyre supposed to!
+15. shutdown still isnt working when run directly from bash

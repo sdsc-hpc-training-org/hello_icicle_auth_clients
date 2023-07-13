@@ -40,7 +40,14 @@ class create_pod(baseCommand.BaseCommand):
     supports_config_file=True
     required_arguments=[
         Argument('pod_id', positional=True),
-        Argument('pod_template', positional=True)
+        Argument('pod_template', positional=True),
+        Argument('volume_mounts', arg_type='input_dict', data_type=argument.Form(
+            'volume_mount', arguments_list = [
+                Argument('type', choices=['tapisvolume', 'tapissnapshot', 'pvc']),
+                Argument("mount_path", description='This is top level path you want to mount the volume on inside the pod. This is something like <neo4j-home>\data for a neo4j pod. Data from that path will load to the mount and become persistent'),
+                Argument('sub_path', description='If you want to only load a single file, like file.txt (which is inside the parent mount path) you can specify here')
+            ]
+        ), description="Used to attach the pod to an existing kubernetes volume to provide pod persistence (in case of crash). Each key is the volume_id"),
     ]
     optional_arguments=[
         Argument('description', arg_type='str_input', size_limit=(0, 2048)),
@@ -138,7 +145,6 @@ class restart_pod(baseCommand.BaseCommand):
     @help: initiate a pod restart
     """
     return_fields = ['pod_id', 'pod_template', 'status']
-    decorator=decorators.NeedsConfirmation()
     required_arguments=[
         Argument('pod_id', positional=True),
     ]
@@ -152,7 +158,6 @@ class stop_pod(baseCommand.BaseCommand):
     @help: stop a pod's operations
     """
     return_fields = ['pod_id', 'pod_template', 'status']
-    decorator=decorators.NeedsConfirmation()
     required_arguments=[
         Argument('pod_id', positional=True),
     ]
@@ -166,7 +171,6 @@ class delete_pod(baseCommand.BaseCommand):
     @help: delete select pod
     """
     return_fields = ['pod_id', 'pod_template', 'status']
-    decorator=decorators.NeedsConfirmation()
     required_arguments=[
         Argument('pod_id', positional=True),
     ]
@@ -195,7 +199,6 @@ class delete_pod_perms(baseCommand.BaseCommand):
     @help: delete the selected pod from the pods service you are connected to
     """
     return_fields = ['permissions']
-    decorator=decorators.NeedsConfirmation()
     required_arguments=[
         Argument('pod_id', positional=True),
         Argument('username')
@@ -222,7 +225,6 @@ class copy_pod_password(baseCommand.BaseCommand):
     """
     @help: copy the pod password to the clipboard
     """
-    decorator=decorators.Auth()
     required_arguments=[
         Argument('pod_id', positional=True),
     ]

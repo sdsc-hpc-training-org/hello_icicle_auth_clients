@@ -30,7 +30,7 @@ blessed = "*"
 prompt_toolkit = "*"
 TapisFederatedAuthClientAPI = "*"
 requests = "*"
-pyreadline3 = "*"
+questionary = "1.10.0"
 
 [project.optional-dependencies]
 dev = []

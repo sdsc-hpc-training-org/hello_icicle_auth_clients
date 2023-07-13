@@ -3,7 +3,7 @@ class CHECK_EXPLICIT_ID:
         self.arg_name = arg_name
     
     def __call__(self, kwargs):
-        if not kwargs[self.arg_name]:
+        if self.arg_name not in kwargs or not kwargs[self.arg_name]:
             kwargs[self.arg_name] = kwargs['connection'].system
         return kwargs
 

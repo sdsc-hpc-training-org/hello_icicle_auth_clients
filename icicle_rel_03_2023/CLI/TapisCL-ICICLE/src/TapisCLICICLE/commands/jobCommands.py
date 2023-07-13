@@ -1,7 +1,7 @@
 if __name__ != "__main__":
     from . import baseCommand, decorators
     from .arguments import argument
-    from . import appCommands
+    from .Apps import appCommands
     from commands import commandOpts
     Argument = argument.Argument
 
@@ -11,7 +11,7 @@ class hide_job(baseCommand.BaseCommand):
     @help: hide a job if its already completed
     """
     required_arguments = [
-        Argument('jobUuid')
+        Argument('jobUuid', positional=True)
     ]
     async def run(self, *args, **kwargs):
         return self.t.jobs.hideJob(**kwargs)
@@ -29,7 +29,6 @@ class cancel_job(hide_job):
     """
     @help: cancel a job as it executes
     """
-    deceorator = decorators.NeedsConfirmation()
     async def run(self, *args, **kwargs):
         return self.t.jobs.cancelJob(**kwargs)
     
@@ -113,10 +112,10 @@ class submit_job(appCommands.assign_default_job_attributes):
     command_opt = [commandOpts.CHECK_EXPLICIT_ID('execSystemId')]
     required_arguments = [
         Argument('appId', size_limit=(1, 80), positional=True),
-        Argument('appVersion', size_limit=(1, 64)),
         Argument('name', positional=True)
     ]
     async def run(self, *args, **kwargs):
+        kwargs = appCommands.get_latest_version(self.t, kwargs)
         return self.t.jobs.submitJob(**kwargs)
     
 
@@ -207,7 +206,6 @@ class delete_subscriptions(baseCommand.BaseCommand):
     """
     @help: delete a subscription if you no longer want to receive its notifications
     """
-    decorator = decorators.NeedsConfirmation()
     required_arguments = [
         Argument('uuid')
     ]
