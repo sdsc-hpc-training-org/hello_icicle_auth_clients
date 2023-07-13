@@ -1,7 +1,3 @@
-def engage_in_silliness(request1, request2, answer = {}):
-    answer[request1] = request2
-    return answer
-
-z = engage_in_silliness('a', 'b')
-y = engage_in_silliness('b', 'c')
-print(y)
+x = [1, 2]
+y = list(range(10))
+print(x.issub)

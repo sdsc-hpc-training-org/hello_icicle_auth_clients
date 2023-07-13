@@ -30,6 +30,7 @@ overhaul of files and systems to grant user access to additional tapis resources
 ### 6/15/23
 ### Changes
 * much improved UX for deeply nested forms for operations like system creation.
+* add support for loading existing data when updating services
 * Fixed a minor issue with the 'exit' command
 * improved support for jobs
   

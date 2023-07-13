@@ -50,4 +50,65 @@ If you want to get a list of commands which fall under a certain service, enter 
 To get information about an individual command, you can run `(command) -h`. This will list all command syntax. Running `(command) -h -v`, specifying verbose with -v will give detailed description of each argument associated with the command
 When running help commands, arguments marked with an (f) do not receive values directly, but send a request for a form back to the client.
 
-# WIP
+### Commands
+Commands in TapisCLICICLE can be divided into 2 classifications: creational and managerial
+
+#### General Commands
+General commands are for managing and viewing information on your current application session.
+
+General Commands:
+* whoami: return information about the current logged in user
+* whereami: return the current tenant URI
+* switch_tenant_to --tenant_uri (tenant_uri) --auth (auth type): log in to a different tenant without shutting down the app. Tenant URI is the base URL of the tenant you want to connect to. For example, icicle.tapis.io, or smartfoods.tapis.io. The auth parameter must be one of the 3 authentication methods previously mentioned, password, federated, or device_code grant.
+* exit: exit the current instance of the application client without deactivating the app entirely. The app continues to run in the background until timeout, or a new user session starts. Starting the client again after
+* shutdown: completely shut down the application client and background. If you want to run the application again you will have to re-authenticate
+* user (username): gets information about the user connected to the specified username
+* get_tenants: gets a list of available tenants to connect to
+* get_tenant (tenant_id): get more detailed information about a specific tenant specified by the tenant id.
+* manpages: brings you to this page
+
+#### Creational
+These commands are for creating and updating Tapis services like pods and systems. These commands generally have lots of optional arguments for configuration, and forms to fill out. If you choose, in lieu of writing your configurations in the command line you can write and upload your own service config file from an application generated config file template. For all creational commands, you can do this by adding the argument `-f (path to your config file)`
+In the event that you do make a mistake while writing your config in the command line, your work is saved to a config file (the application will tell you where when this happens). When you fix the errors in the config file you can immediately re-upload it to try again.
+
+Creational commands include:
+* create_system
+* update_system
+* create_pod
+* update_pod
+* create_volume
+* update_volume
+* create_snapshot
+* update_snapshot
+* create_app
+* update_app
+* submit_job
+
+##### Generating Config Files
+WIP
+
+#### Managerial
+Managerial commands are generally for getting information about the Tapis services you have access to, managing permissions, state, and sharing for those services. These wont usually have more than 3 arguments. 
+
+### Services
+Each Tapis service has their own command group which allows you to interface with that service. Currently, TapisCLICICLE supports 7 services:
+* Systems
+* Files
+* Apps
+* Jobs
+* Pods
+* Volumes
+* Query
+
+#### Systems
+Systems lie at the core of most workflows in Tapis, and TapisCLICICLE. They are representations of your account on an HPC system, and interface with HPC resources using SSH. You can read more specifics about Tapis systems [here](https://tapis.readthedocs.io/en/latest/technical/systems.html). Systems enable the user to store and access files on as well as run jobs on that resource. 
+Each system has 4 key characteristics:
+* id: the identifier for the system
+* systemType: What type of system are you interfacing with? LINUX, IRODS, or GLOBUS
+* host: What is the hostname of the system you are trying to connect to? This can be anything that supports Tapis systems, whether it be a url or IP address. SOmething like stampede2.tacc.utexas.edu
+* defaultAuthnMethod: What authentication method will you use on this system?
+
+##### S3 Bucket Systems
+Tapis also supports interfacing with AWS S3 Bucket systems
+
+
