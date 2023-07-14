@@ -69,7 +69,7 @@ class cat(baseCommand.BaseCommand):
     ]
     async def run(self, *args, **kwargs):
         size = self.t.files.getStatInfo(systemId=kwargs['systemId'], path=kwargs['file_path']).size
-        if size <= 4000:
+        if size <= 4096:
             file_info = self.t.files.getContents(systemId=kwargs['systemId'],
                                 path=kwargs['file_path'])
         else:

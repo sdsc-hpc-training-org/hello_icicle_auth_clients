@@ -32,14 +32,20 @@ class BaseSocketOpts(logger.ConnectionLogger):
         self.initialize_logger(f"{name} LOGGER")
         self.debug_state = debug
 
-    def debug(self, operation: typing.Literal["SENDING", "RECEIVED", "WAITING"], message: str | typing.Type[schemas.BaseSchema]):
+    def debug(self, operation: typing.Literal["SENDING", "RECEIVED", "WAITING"], data: str | typing.Type[schemas.BaseSchema], message: str | None = None):
         if self.debug_state:
-            if not isinstance(message, str):
-                self.logger.info(f"""{operation}: {message.schema_type}
-                                    MESSAGE: {pformat(message.message)}
-                                    ERROR: {pformat(message.error)}""") # MESSAGE CONTENT:{pformat(message.request_content)}
+            if not isinstance(data, str):
+                self.logger.info(f"""{operation}: {data.schema_type}
+                                    MESSAGE: {pformat(data.data)}
+                                    ERROR: {pformat(data.error)}
+                                    MESSAGE CONTENT:{pformat(data.request_content)}""")
             else:
-                self.logger.info(message)
+                self.logger.info(data)
+            return
+        if self.__class__.__name__ == 'ClientSocketOpts':
+            return
+        elif message:
+            self.logger.info(message)
 
 
 class ClientSocketOpts(BaseSocketOpts):
@@ -66,7 +72,7 @@ class ClientSocketOpts(BaseSocketOpts):
         self.__json_send_explicit(self.connection, data.dict())
 
     def receive(self) -> typing.Type[schemas.BaseSchema]:
-        self.debug("WAITING", "Awaiting message receive")
+        self.debug("WAITING", "Awaiting data receive")
         data = self.__json_receive_explicit(self.connection)
         schema_type = schema_types[data['schema_type']]
         self.debug('RECEIVED', schema_type(**data))
@@ -99,7 +105,7 @@ class ServerSocketOpts(BaseSocketOpts):
             for key, value in data.request_content.items():
                 if not isinstance(value, (str, list, tuple, bool, int, dict, set)) and value != None:
                     data.request_content[key] = value.json()
-        self.debug('SENDING', data)
+        self.debug('SENDING', data, message=f'Sending data of type {data.schema_type} to the client')
         data.pwd = self.pwd
         data.system = self.system
         json_data = json.dumps(data.dict())
@@ -107,11 +113,11 @@ class ServerSocketOpts(BaseSocketOpts):
         await self.writer.drain()
 
     async def receive(self):
-        self.debug("WAITING", "Awaiting message receive")
+        self.debug("WAITING", "Awaiting data receive", message='Waiting to receive data from the client on this connection')
         data = await self.__json_receive_explicit_async()
         schema_type = schema_types[data['schema_type']]
         formatted_data = schema_type(**data)
-        self.debug('RECEIVED', formatted_data)
+        self.debug('RECEIVED', formatted_data, message=f'Successfully received data of type {formatted_data.schema_type}')
         if formatted_data.error:
             raise exceptions.ClientSideError(formatted_data.error)
         return formatted_data

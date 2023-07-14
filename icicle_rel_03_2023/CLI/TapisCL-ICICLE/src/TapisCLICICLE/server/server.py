@@ -27,6 +27,7 @@ class ServerConnection(socketOpts.ServerSocketOpts):
         self.task: asyncio.Task = None
         self.status = "CLOSED"
         self.shutdown_message = schemas.ResponseData(message={'message':'Shutdown initiated, closing'}, exit_status=1)
+        self.logger.info('Connection successfully initiated, beginning handshake')
 
     def set_status_device_authenticating(self):
         self.status = 'DEVICE_CODE_AUTH'
@@ -40,6 +41,7 @@ class ServerConnection(socketOpts.ServerSocketOpts):
     def set_task(self, task: asyncio.Task):
         self.task = task
         self.status = 'OPEN'
+        self.logger.info('Asyncio task for socket operations was received, and is now active')
 
     async def close(self, connection_list_lock: asyncio.Lock):
         self.logger.info('ATTEMPTING TO CLOSE')
@@ -58,7 +60,10 @@ class ServerConnection(socketOpts.ServerSocketOpts):
             self.writer.close()
             await self.writer.wait_closed()
         async with connection_list_lock:
-            self.connection_list.remove(self)
+            try:
+                self.connection_list.remove(self)
+            except Exception as e:
+                self.logger.info("Connection was not in the command list, closure ocurred during connection setup")
         print(self.connection_list)
         self.logger.info('SUCCESSFULLY CLOSED')
 
@@ -148,40 +153,38 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
         self.end_time = time.time() + self.SESSION_TIME
         connection = ServerConnection(f"CON-{self.num_connections}", reader=reader, writer=writer, connection_list=self.connections_list, debug=self.debug)
         ip, port = writer.transport.get_extra_info('socket').getsockname()
-        self.logger.info("Received connection request")
         try:
             await self.handshake(connection)
+            connection.logger.info('Handshake complete')
         except exceptions.InvalidCredentialsReceived as e:
-            self.logger.warning("invalid credentials entered too many times. Cancelling request")
+            connection.logger.warning("invalid credentials entered too many times. Cancelling request")
             await connection.close(self.connection_list_lock)
             return
         except exceptions.ClientSideError as e:
-            self.logger.warning(f"Encountered client side error during startup handshake. {e}")
+            connection.logger.warning(f"Encountered client side error during startup handshake. {e}")
             await connection.close(self.connection_list_lock)
             return
         except Exception as e:
-            self.logger.warning(e)
+            connection.logger.warning(e)
             await connection.close(self.connection_list_lock)
             return
-        self.logger.info("connection is running now")
+        connection.logger.info('Sending command arguments now')
         await connection.send(schemas.ResponseData(request_content={name:argument.json() for name, argument in self.arguments.items()}))
-        
         setup_response: schemas.ResponseData = await connection.receive()
         if not setup_response.request_content['setup_success']:
-            self.logger.warning(f"The setup of the connection {connection.name} failed")
+            connection.logger.warning(f"The setup of the connection upon sending argument information failed")
             return
-
+        connection.logger.info(f"Argument setup succeeded on the client side")
         loop = asyncio.get_event_loop()
         task: asyncio.Task = loop.create_task(self.receive_and_execute(connection))
         connection.set_task(task)
         self.connections_list.append(connection)
-        print([connection.status for connection in self.connections_list])
+        connection.logger.info('All connection setup complete, beginning normal operations')
 
     async def receive_and_execute(self, connection: ServerConnection):
         """
         receive and process commands
         """
-        self.logger.info(f"{connection.name} is now running")
         while self.running:
             try:
                 message = await connection.receive()
@@ -192,32 +195,32 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
                 response = schemas.ResponseData(message={"message":result}, url=self.url, active_username=self.username)
                 self.end_time = time.time() + self.SESSION_TIME 
                 await connection.send(response)
-                self.logger.info(message.schema_type)
             except exceptions.ClientSideError as e:
                 self.logger.warning(e)
                 continue
             except (exceptions.TimeoutError, exceptions.Shutdown) as e:
                 #error_response = schemas.ResponseData(error=str(e), url=self.url, active_username=self.username, exit_status=1)
                 #await connection.send(error_response)
-                self.logger.warning(str(e))
+                connection.logger.warning(str(e))
                 self.running = False
                 return
             except exceptions.Exit as e:
-                self.logger.info("user exit initiated")
+                connection.logger.info("user exit initiated")
                 # error_response = schemas.ResponseData(error=str(e), exit_status=1, url=self.url, active_username=self.username)
                 # await connection.send(error_response)
                 connection.set_status_exiting()
                 return
             except OSError:
-                self.logger.info("connection was lost, waiting to reconnect")
-                await connection.close(self.connection_list_lock)
+                connection.logger.info("connection was lost, waiting to reconnect")
+                connection.set_status_exiting()
+                return
             except asyncio.CancelledError:
                 return 'task was cancelled'
             except (exceptions.CommandNotFoundError, exceptions.NoConfirmationError, exceptions.InvalidCredentialsReceived, Exception) as e:
                 error_str = traceback.format_exc()
                 error_response = schemas.ResponseData(error=str(e), url=self.url, active_username=self.username)
                 await connection.send(error_response)
-                self.logger.warning(f"{error_str}")
+                connection.logger.warning(f"{error_str}")
     
     async def main(self):
         self.server = await asyncio.start_server(self.accept, sock=self.sock)

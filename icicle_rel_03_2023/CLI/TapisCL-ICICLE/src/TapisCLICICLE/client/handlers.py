@@ -88,6 +88,17 @@ class Handlers(Formatters):
     def __init__(self):
         self.validator = ResponseValidator()
 
+    def __labelled_form(self, form_options, form_filled):
+        labelled_dict = dict()
+        for field_name, field_metadata in form_options.items():
+            if field_metadata['required']:
+                requirement_str = 'R'
+            else:
+                requirement_str = 'O'
+            labelled_dict[f"({requirement_str}) {field_name}"] = form_filled[field_name]
+        return json.dumps(labelled_dict, indent=3)
+
+
     def __expression_input(self) -> str: 
         """
         Input an expression as requested by the server for something like cypher queries
@@ -101,10 +112,12 @@ class Handlers(Formatters):
                 expression += line
         return expression
     
-    def confirmation_handler(self, argument):
-        if 'description' in argument and argument['description']:
-            print(argument['description'])
-        print(argument['name'])
+    def confirmation_handler(self, argument: dict | str=None):
+        if isinstance(argument, dict):
+            if 'description' in argument and argument['description']:
+                print(argument['description'])
+        else:
+            print(argument)
         while True:
             decision = str(input("(y/n)"))
             if decision == 'y':
@@ -144,7 +157,8 @@ class Handlers(Formatters):
                         default_value = None
                     pprint.pprint({name:attrs['data_type']})
                     sub_answer = self.advanced_input_handler({name:attrs['data_type']}, term, default=default_value)
-                    answer.update(**sub_answer)
+                    if sub_answer:
+                        answer.update(**sub_answer)
                 elif mode == 'delete':
                     mode = 'delete'
                     try:
@@ -185,9 +199,9 @@ class Handlers(Formatters):
                     continue
                 elif decision.isdigit() and mode == 'modify':
                     try:
-                        print({f"{attrs['name']}_{str(decision)}":answer[int(decision)-1]})
                         sub_answer = self.advanced_input_handler({f"{attrs['name']}_{str(decision)}":attrs['data_type']}, term, default={f"{attrs['name']}_{str(decision)}":answer[int(decision)-1]})
-                        answer[int(decision)-1] = sub_answer[f"{attrs['name']}_{str(decision)}"]
+                        if sub_answer:
+                            answer[int(decision)-1] = sub_answer[f"{attrs['name']}_{str(decision)}"]
                     except IndexError:
                         continue
                     continue
@@ -195,7 +209,8 @@ class Handlers(Formatters):
                     continue
                 sub_answer = self.advanced_input_handler({f"{attrs['name']}_{str(len(answer)+1)}":attrs['data_type']}, term)
                 index, value = list(sub_answer.items())[0]
-                answer.append(value)
+                if sub_answer:
+                    answer.append(value)
 
     def form_handler(self, term: Terminal, attrs: dict, form_name, default=None):
         form_options = attrs['arguments_list']
@@ -212,9 +227,19 @@ class Handlers(Formatters):
         with term.fullscreen():
             while True:
                 print(f"{term.clear}now editing the form: {form_name}")
-                print(json.dumps(form_input, indent=3))
+                print(self.__labelled_form(form_options, form_input))
                 field = prompt('Enter the field you want to modify. Enter exit to complete: ', completer=completer)
                 if field.lower() == 'exit':
+                    for field_name, field_metadata in form_options:
+                        unfulfilled_requirements = []
+                        if field_metadata['required'] and not form_input[field_name] and form_input[field_name] != False:
+                            unfulfilled_requirements.append(field_name)
+                        if unfulfilled_requirements:
+                            decision = self.confirmation_handler(f'The fields {unfulfilled_requirements} are required but did not receive any input. If you exit this form will not be submitted.\nSubmit form?')
+                            if decision:
+                                return None
+                            else:
+                                continue
                     return form_input
                 elif field not in form_options:
                     continue

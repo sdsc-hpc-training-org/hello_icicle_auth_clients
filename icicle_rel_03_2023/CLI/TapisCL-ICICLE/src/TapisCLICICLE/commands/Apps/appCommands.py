@@ -26,6 +26,7 @@ class create_app(baseCommand.BaseCommand):
         Argument('id', positional=True, description='This can be the same as another app as long as the version number is different'),
         Argument('version', positional=True),
         Argument('containerImage'),
+        Argument('execSystemId', size_limit=(1, 80), description='what system id will this be run on?')
     ]
     optional_arguments = [
         Argument('description', arg_type='str_input'),
@@ -44,7 +45,6 @@ class create_app(baseCommand.BaseCommand):
 class AppUpdatingRetriever(baseCommand.UpdatableFormRetriever):
     def __call__(self, tapis_instance, **kwargs):
         kwargs = get_latest_version(tapis_instance, kwargs)
-        pprint.pprint(kwargs)
         app_data = tapis_instance.apps.getApp(appId=kwargs['appId'], appVersion=kwargs['appVersion'])
         return app_data
     
@@ -59,6 +59,7 @@ class update_app(create_app):
         Argument('appId', size_limit=(1, 80), positional=True),
     ]
     optional_arguments = [
+        Argument('execSystemId', size_limit=(1, 80), description='what system id will this be run on?'),
         Argument('appVersion', size_limit=(1, 64)),
         Argument('description', arg_type='str_input'),
         appForms.CONFIGURE_RUNTIME,
@@ -89,6 +90,7 @@ class assign_default_job_attributes(baseCommand.BaseCommand):
         Argument('appId', size_limit=(1, 80), positional=True)
     ]
     optional_arguments = [
+        Argument('execSystemId', size_limit=(1, 80), description='what system id will this be run on?'),
         appForms.SYSTEM_CONFIG,
         appForms.ARCHIVE_ON_APP_ERROR,
         appForms.PARAMETER_SET,

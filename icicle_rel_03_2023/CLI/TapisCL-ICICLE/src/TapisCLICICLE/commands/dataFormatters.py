@@ -24,7 +24,6 @@ class BaseDataFormatter:
             for field in self.non_verbose_fields:
                 if isinstance(field, str):
                     formatted[field] = serialized_data[field]
-                    print(serialized_data[field])
                 elif isinstance(field, list):
                     formatted[field] = self.non_verbose_formatter(serialized_data[field])
             return formatted

@@ -333,7 +333,6 @@ In the case you choose password, your username and password will either be your 
         Argument('importRefId')
     ]
     async def run(self, *args, **kwargs):
-        pprint.pprint(kwargs)
         result = self.t.systems.patchSystem(**kwargs)
         return result
     
@@ -395,6 +394,7 @@ class delete_system(baseCommand.BaseCommand):
     command_opt = [commandOpts.CHECK_EXPLICIT_ID('systemId')]
     required_arguments=[
         Argument('systemId', size_limit=(1, 80), positional=True),
+        Argument('confirm', arg_type='confirmation')
     ]
     async def run(self, *args, **kwargs) -> str:
         kwargs['connection'].system = ''

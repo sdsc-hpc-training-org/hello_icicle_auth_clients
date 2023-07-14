@@ -93,25 +93,6 @@ class UpdatableFormRetriever(abc.ABC):
         pass
 
 
-class HelpMenu:
-    def __init__(self, required_arguments: dict[str, Argument], optional_arguments: dict[str, Argument]):
-        self.required_arguments = required_arguments
-        self.optional_arguments = optional_arguments
-        self.arguments = {**required_arguments, **optional_arguments}
-        self.help = self.create_help_menu()
-
-    def create_help_menu(self):
-        help_dict = {'required':dict(), 'optional':dict()}
-        for arg_name, argument in self.required_arguments.items():
-            help_dict['required'][arg_name] = argument.help_message()
-        for arg_name, argument in self.optional_arguments.items():
-            help_dict['optional'][arg_name] = argument.help_message()
-        return help_dict
-    
-    def dict(self):
-        return self.arguments
-
-
 class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
     decorator = None
     return_fields: list = []
@@ -134,11 +115,13 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
         self.required_arguments += self.default_arguments
         if self.supports_config_file:
             self.optional_arguments.append(Argument('file'))
+        map(lambda argument: argument.is_required(True), self.required_arguments)
+        map(lambda argument: argument.is_required(False), self.optional_arguments)
         if isinstance(self.required_arguments, list):
             self.required_arguments = {argument.argument:argument for argument in self.required_arguments}
             self.arguments.update(**self.required_arguments)
-        if isinstance(self.optional_arguments, list):  
-            self.optional_arguments = {argument.argument:argument for argument in self.optional_arguments}
+        if isinstance(self.optional_arguments, list): 
+            self.optional_arguments = {argument.argument:argument for argument in self.optional_arguments} 
             self.arguments.update(**self.optional_arguments)
         self.positional_arguments = [arg_name for arg_name, arg in self.required_arguments.items() if arg.positional]
         self.form_arguments = [arg_name for arg_name, arg in self.arguments.items() if arg.arg_type not in  ('standard', 'silent')]
@@ -160,12 +143,7 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
         verify that the rules for each argument are followed, this is the argument validation
         """
         for name, value in self.arguments.items():
-            if name in self.required_arguments and kwargs[name] == None:
-                raise Exception(f"The argument {name} is required by the command {self.__class__.__name__}")
-            elif name in kwargs and name in self.required_arguments and name not in self.form_arguments:
-                kwargs[name] = self.required_arguments[name].verify_standard_value(kwargs[name])
-            elif name in kwargs and name in self.optional_arguments and name not in self.form_arguments:
-                kwargs[name] = self.optional_arguments[name].verify_standard_value(kwargs[name])
+            kwargs[name] = self.arguments[name].verify_rules_followed(kwargs[name])
             if kwargs[name] and value.depends_on:
                 for dependency in value.depends_on:
                     if not kwargs[dependency]:
@@ -182,7 +160,7 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
         """
         filtered_kwargs = dict()
         for arg, value in kwargs.items():
-            if value or arg in self.required_arguments or (value == False and arg in self.arguments and self.arguments[arg].arg_type == 'standard'):
+            if value or self.arguments(arg).required or (value == False and self.arguments[arg].arg_type == 'standard'):
                 filtered_kwargs[arg] = value
         return filtered_kwargs
 
@@ -211,6 +189,10 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
                 if argument.arg_type == 'form' and argument.flattening_type in ('FLATTEN', 'RETRIEVE') and set(argument.arguments_list.keys()).issubset(set(existing_values.keys())):
                     reformatted_default_values[argument.argument] = {sub_arg_name:sub_arg_value for sub_arg_name, sub_arg_value in existing_values.items() if sub_arg_name in argument.arguments_list}
                     to_pop += list(argument.arguments_list.keys()) + [argument.argument]
+                elif argument.arg_type == 'form' and argument.part_of and argument.argument in existing_values[argument.part_of]:
+                    reformatted_default_values[argument.argument] = existing_values[argument.part_of][argument.argument]
+                    if argument.part_of not in to_pop:
+                        to_pop.append(argument.part_of)
             for argument, value in existing_values.items():
                 if argument not in to_pop:
                     reformatted_default_values[argument] = value
@@ -218,11 +200,17 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
                 existing_values = reformatted_default_values
 
         for arg_name in self.form_arguments:
-            if kwargs[arg_name] or arg_name in self.required_arguments:
+            if kwargs[arg_name] or self.arguments[arg_name].required:
                 request = schemas.FormRequest(request_content={arg_name:self.arguments[arg_name]}, existing_data=existing_values)
                 await kwargs['connection'].send(request)
                 response: schemas.FormResponse = await kwargs['connection'].receive()
-                kwargs.update(**response.request_content)
+                response_value = response.request_content
+                if argument.part_of:
+                    if argument.part_of not in kwargs:
+                        kwargs[argument.part_of] = dict()
+                    kwargs[argument.part_of][argument.argument] = response_value
+                else:
+                    kwargs.update(**response.request_content)
         return kwargs
 
     async def handle_arg_opts(self, kwargs):
@@ -255,14 +243,11 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
         when the command group finishes processing all the truncated arguments, they get passed back here to be processed and assigned
         """
         try:
-            for key in self.required_arguments:
-                self.required_arguments[key].truncated_arg = f"-{truncated_args_dict[key]}"
-            for key in self.optional_arguments:
-                self.optional_arguments[key].truncated_arg = f"-{truncated_args_dict[key]}"
+            for key in self.arguments:
+                self.arguments[key].truncated_arg = f"-{truncated_args_dict[key]}"
             self.help['required'] = self.__argument_help_compiler(self.required_arguments)
             self.help['optional'] = self.__argument_help_compiler(self.optional_arguments)
         except Exception as e:
-            print(self.__class__.__name__)
             raise e
         
     def __argument_help_compiler(self, arg_dict: dict[str, Argument]):
@@ -272,7 +257,7 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
         verbose_dict = dict()
         standard_str = str()
         for name, argument in arg_dict.items():
-            if not (name in self.required_arguments and name in self.form_arguments) and argument.arg_type != 'silent':
+            if not (name in self.form_arguments) and argument.arg_type != 'silent':
                 verbose_dict[name] = argument.help_message()
                 standard_str += argument.str()
         return {'verbose':verbose_dict, 'standard':standard_str}

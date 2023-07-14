@@ -11,23 +11,9 @@ class AbstractArgument(abc.ABC):
     @abc.abstractmethod
     def json(self):
         pass
-
-def cast_int(data):
-    return int(data)
-
-def cast_string(data):
-    return str(data)
-
-def cast_bool(data):
-    return bool(data)
-
+    
 
 class Argument(AbstractArgument):
-    type_map = {
-        'int':cast_int,
-        'string':cast_string,
-        'bool':cast_bool
-    }
     def __init__(self, argument: str,
                  data_type: ALLOWED_DATA_TYPES | typing.Type[AbstractArgument] = 'string',
                  arg_type: ALLOWED_ARG_TYPES | typing.Literal['standard']='standard',
@@ -38,7 +24,9 @@ class Argument(AbstractArgument):
                  default_value=None,
                  depends_on: list = [],
                  mutually_exclusive_with: list = [],
+                 part_of: str = "",
                  size_limit: tuple=(0,4096)):
+        super().__init__()
         if arg_type not in typing.get_args(ALLOWED_ARG_TYPES) and arg_type != 'standard':
             raise ValueError(f"The arg type parameter in the argument {self.__class__.__name__} must be in the list {ALLOWED_ARG_TYPES}. Got arg type {arg_type}")
         if data_type not in typing.get_args(ALLOWED_DATA_TYPES) and not issubclass(data_type.__class__, AbstractArgument):
@@ -62,33 +50,25 @@ class Argument(AbstractArgument):
         self.size_limit=size_limit
         self.depends_on = depends_on
         self.mutually_exclusive_with = mutually_exclusive_with
+        self.required = None
+        self.part_of = part_of
 
         self.truncated_arg = None
         self.full_arg = f"--{self.argument}"
 
-    def verify_standard_value(self, value):
-        if self.arg_type == "standard":
-            #print(f"ARGUMENT NAME: {self.argument}\nARGUMENT VALUE: {value}\n")
-            if value == None and self.default_value:
-                value = self.default_value
-                return value
-            elif not value:
-                return value
-            min_, max_ = self.size_limit
-            try:
-                value = self.type_map[self.data_type](value)
-            except:
-                raise ValueError(f"The argument {self.argument} requires a datatype {self.data_type}")
-            if type(value) == int:
-                if value >= max_ or value < min_:
-                    raise ValueError(f"The argument {self.argument} must be a value in the range {self.size_limit}")
-            elif type(value) == str and (len(value) >= max_ or len(value) < min_):
-                raise ValueError(f"The argument {self.argument} must be between the sizes {self.size_limit}")
-            elif self.choices and value not in self.choices:
-                raise ValueError(f"The value for argument {self.argument} must be in the list {self.choices}")
-            elif value == None and self.default_value:
-                value = self.default_value
-        return value
+    def is_required(self, is_required: bool):
+        """
+        setter for the required attribute
+        """
+        self.required = is_required
+
+    def verify_rules_followed(self, value):
+        """
+        check to make sure the value assigned to the argument follows all existing rules
+        """
+        if self.required and not value and value != False:
+            raise ValueError(f'The argument {self.argument} is required')
+        return self.validator_map[self.arg_type]
 
     def json(self):
         json = {
@@ -104,7 +84,8 @@ class Argument(AbstractArgument):
             'truncated_arg':self.truncated_arg,
             'full_arg':self.full_arg,
             'depends_on':self.depends_on,
-            'mutually_exclusive_with':self.mutually_exclusive_with
+            'mutually_exclusive_with':self.mutually_exclusive_with,
+            'part_of':self.part_of
         }
         if self.data_type in ('string', 'int', 'bool'):
             json['data_type'] = self.data_type
@@ -145,8 +126,11 @@ class Argument(AbstractArgument):
 
 
 class Form(Argument):
-    def __init__(self, form_name, arguments_list, description=None, depends_on=None, flattening_type: typing.Literal['NONE', 'FLATTEN', 'RETRIEVE']='NONE'):
+    def __init__(self, form_name, required_arguments, optional_arguments, description=None, depends_on=None, flattening_type: typing.Literal['NONE', 'FLATTEN', 'RETRIEVE']='NONE'):
         super().__init__(form_name, arg_type='form', description=description, depends_on=depends_on)
+        map(lambda argument: argument.is_required(True), required_arguments)
+        map(lambda argument: argument.is_required(False), optional_arguments)
+        arguments_list = required_arguments + optional_arguments
         for argument in arguments_list:
             if argument.arg_type == 'standard':
                 argument.arg_type = 'str_input'

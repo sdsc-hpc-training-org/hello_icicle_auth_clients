@@ -122,7 +122,6 @@ class update_pod(create_pod): # make it so the command retrieves current setting
         Argument('pod_id', positional=True),
     ]
     async def run(self, *args, **kwargs):
-        print(kwargs)
         pod_information = self.t.pods.update_pod(**kwargs)
         return pod_information
 
