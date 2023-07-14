@@ -33,7 +33,7 @@ class create_app(baseCommand.BaseCommand):
         Argument('owner', default_value=r"${apiUserId}"),
         Argument('enabled', action='store_true'),
         appForms.CONFIGURE_RUNTIME,
-        appForms.CONFIGURE_JOB_SETTINGS,
+        appForms.JOB_CONSTRAINTS,
         Argument("strictFileInputs", action='store_true', description='indicates if you want your jobs to be able to accept unnamed file inputs'),
         Argument('tags', arg_type='input_list', data_type=Argument('tag', size_limit=(1, 128))),
     ]
@@ -63,7 +63,7 @@ class update_app(create_app):
         Argument('appVersion', size_limit=(1, 64)),
         Argument('description', arg_type='str_input'),
         appForms.CONFIGURE_RUNTIME,
-        appForms.CONFIGURE_JOB_SETTINGS,
+        appForms.JOB_CONSTRAINTS,
         Argument("strictFileInputs", action='store_true', description='indicates if you want your jobs to be able to accept unnamed file inputs'),
         Argument('tags', arg_type='input_list', data_type=Argument('tag', size_limit=(1, 128))),
     ]
@@ -93,7 +93,10 @@ class assign_default_job_attributes(baseCommand.BaseCommand):
         Argument('execSystemId', size_limit=(1, 80), description='what system id will this be run on?'),
         appForms.SYSTEM_CONFIG,
         appForms.ARCHIVE_ON_APP_ERROR,
-        appForms.PARAMETER_SET,
+        appForms.APP_ARGUMENTS,
+        appForms.CONTAINER_ARGUMENTS,
+        appForms.SCHEDULER_OPTIONS,
+        appForms.JOB_ENVIRONMENT_VARIABLES,
         appForms.JOB_ALLOCATION_CONFIGURATION,
         Argument('appVersion', size_limit=(1, 64)),
         Argument('description', arg_type='str_input'),
@@ -200,10 +203,14 @@ class disable_app(is_app_enabled):
         return self.t.apps.disableApp(**kwargs)
     
 
-class delete_app(is_app_enabled):
+class delete_app(baseCommand.BaseCommand):
     """
     @help: delete the app
     """
+    required_arguments = [
+        Argument('appId', size_limit=(1, 80), positional=True),
+        Argument('confirm', arg_type='confirmation')
+    ]
     async def run(self, *args, **kwargs):
         return self.t.apps.disableApp(**kwargs)
     

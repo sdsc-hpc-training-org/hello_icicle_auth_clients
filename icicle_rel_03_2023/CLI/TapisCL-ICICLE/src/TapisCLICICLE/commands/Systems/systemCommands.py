@@ -111,6 +111,38 @@ class get_scheduler_profiles(baseCommand.BaseCommand):
         return [{"name":scheduler.name, "description":scheduler.description, "tenant":scheduler.tenant} for scheduler in self.t.systems.getSchedulerProfiles()]
     
 
+class create_scheduler_profile(baseCommand.BaseCommand):
+    """
+    @help: create a new Tapis scheduler profile with which to run batch jobs on a system
+    """
+    required_arguments = [
+        Argument('name')
+    ]
+    optional_arguments = [
+        Argument('description', arg_type='str_input'),
+        Argument('owner', default_value=r"${apiUserId}"),
+        Argument('moduleLoads', arg_type='input_list',
+                  data_type=argument.Form('moduleLoad',
+                    required_arguments = [
+                        Argument('moduleLoadCommand')
+                    ],
+                    optional_arguments = [
+                        Argument('modulesToLoad', arg_type='input_list', data_type=Argument('module'))
+                    ]))
+    ]
+    async def run(self, *args, **kwargs):
+        return self.t.systems.createSchedulerProfile(**kwargs)
+
+
+class delete_scheduler_profile(baseCommand.BaseCommand):
+    required_arguments = [
+        Argument('name'),
+        Argument('confirm', arg_type='confirmation')
+    ]
+    async def run(self, *args, **kwargs):
+        return self.t.systems.deleteSchedulerProfile(**kwargs)
+    
+
 class SystemAuth:
     sys_auth_map = None
     def config_auth_map(self):
@@ -213,7 +245,9 @@ In the case you choose password, your username and password will either be your 
         systemForms.USE_PROXY,
         systemForms.CAN_RUN_BATCH,
         systemForms.MOUNT_DATA_TRANSFER_NODE,
-        systemForms.CONFIGURE_DEFAULT_JOB_CHARACTERISTICS,
+        systemForms.JOB_CONSTRAINTS,
+        systemForms.JOB_CAPABILITIES,
+        systemForms.JOB_ENVIRONMENT_VARIABLES,
         Argument('effectiveUserId', default_value=r"${apiUserId}", size_limit=(0, 60)),
         Argument('owner', default_value=r"${apiUserId}"),
         Argument('description', arg_type='str_input', size_limit=(0, 2048)),
@@ -309,7 +343,9 @@ class update_system(baseCommand.BaseCommand):
         systemForms.USE_PROXY,
         systemForms.CAN_RUN_BATCH,
         systemForms.MOUNT_DATA_TRANSFER_NODE,
-        systemForms.CONFIGURE_DEFAULT_JOB_CHARACTERISTICS,
+        systemForms.JOB_CONSTRAINTS,
+        systemForms.JOB_CAPABILITIES,
+        systemForms.JOB_ENVIRONMENT_VARIABLES,
         Argument('defaultAuthnMethod', choices=['PASSWORD', "PKI_KEYS", "TOKEN"], description=
                                     """Depending on your systemType, you will be restricted to certain options.
 LINUX: PASSWORD, PKI_KEYS

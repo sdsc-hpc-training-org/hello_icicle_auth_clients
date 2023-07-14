@@ -29,6 +29,10 @@ class cancel_job(hide_job):
     """
     @help: cancel a job as it executes
     """
+    required_arguments = [
+        Argument('jobUuid', positional=True),
+        Argument('confirm', arg_type='confirmation')
+    ]
     async def run(self, *args, **kwargs):
         return self.t.jobs.cancelJob(**kwargs)
     
@@ -207,8 +211,18 @@ class delete_subscriptions(baseCommand.BaseCommand):
     @help: delete a subscription if you no longer want to receive its notifications
     """
     required_arguments = [
-        Argument('uuid')
+        Argument('confirm', arg_type='confirmation')
+    ],
+    optional_arguments = [
+        Argument('jobUuid'),
+        Argument('subscriptionUuid', mutually_exclusive_with=['jobUuid'])
     ]
     async def run(self, *args, **kwargs):
-        self.t.jobs.deleteSubscriptions(**kwargs)
+        if kwargs['jobUuid']:
+            uuid = kwargs['jobUuid']
+        elif kwargs['subscriptionUuid']:
+            uuid = kwargs['subscriptionUuid']
+        else:
+            raise ValueError('Must either specify jobUuid or subscriptionUuid')
+        self.t.jobs.deleteSubscriptions(uuid=uuid)
         return f"subscription {kwargs['uuid']} deleted"

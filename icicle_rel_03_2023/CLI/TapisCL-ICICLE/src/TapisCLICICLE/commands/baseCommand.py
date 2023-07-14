@@ -10,7 +10,7 @@ import os
 from pprint import pprint
 from datetime import datetime
 
-from commands import decorators # I finally understand. Imported at the top level by serverRun, so it can only see packages from that vantage point
+# I finally understand. Imported at the top level by serverRun, so it can only see packages from that vantage point
 from utilities import exceptions
 from commands.arguments.argument import Argument, ALLOWED_ARG_TYPES
 from socketopts import schemas
@@ -52,7 +52,6 @@ class CommandMetaClass(abc.ABCMeta):
         if name not in ('BaseQuery', 'BaseCommand'):
             instance.__check_run(name, attrs)
             instance.__check_command_args(name, attrs)
-            instance.__check_decorator(name, attrs)
             instance.__check_command_opt(name, attrs)
         return instance
     
@@ -78,10 +77,6 @@ class CommandMetaClass(abc.ABCMeta):
         if 'kwargs' not in run_params or 'args' not in run_params:
             raise AttributeError(f"The run() method of the {name} class must have a **kwargs and *args as parameters")
         
-    def __check_decorator(self, name, attrs):
-        if 'decorator' in list(attrs.keys()) and type(attrs['decorator']) not in decorators.DECORATOR_LIST:
-            raise TypeError(f"The decorator parameter of the command {name} is invalid. Must be set to None or to a decorator type. Currently is {type(attrs['decorator'])}")
-        
     def __check_command_opt(self, name, attrs):
         if 'command_opt' in list(attrs.keys()) and type((attrs['command_opt'])) != list:
             raise TypeError(f"The command opt attribute of the command {name} must be a list!")
@@ -94,7 +89,6 @@ class UpdatableFormRetriever(abc.ABC):
 
 
 class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
-    decorator = None
     return_fields: list = []
     command_opt: list = None
     supports_config_file: bool = False
@@ -306,12 +300,6 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
         else:
             if kwargs['help']:
                 return self.__get_help(verbose=kwargs['verbose'])
-            if self.decorator:
-                try:
-                    return_value = await self.decorator(input_command=self, **kwargs)
-                    return return_value
-                except (ValueError, exceptions.NoConfirmationError) as e:
-                    return f"Command execution failed due to {e}"
             for handler in self.command_execution_sequence:
                 kwargs = await handler(kwargs)
         try:

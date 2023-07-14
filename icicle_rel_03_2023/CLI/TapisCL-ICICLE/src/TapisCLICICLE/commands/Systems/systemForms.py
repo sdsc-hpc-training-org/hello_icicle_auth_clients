@@ -64,21 +64,21 @@ JOB_ENVIRONMENT_VARIABLES = Argument('jobEnvVariables', arg_type='input_list', d
 
 JOB_CAPABILITIES = Argument('jobCapabilities', arg_type='input_list', data_type=argument.Form(
             'jobCapability', required_arguments=[
+                Argument('name', size_limit=(1, 128)),
+                Argument('value'),
                 Argument('category', choices=['SCHEUDLER', 
                                             'OS', 'HARDWARE', 
                                             'SOFTWARE', 'JOB', 
                                             'CONTAINER', 'MISC', 
                                             'CUSTOM']),
-                Argument('name', size_limit=(1, 128)),
                 Argument('datatype', choices=['STRING', 'INTEGER', 
                                             'BOOLEAN', 'NUMBER', 
                                             'TIMESTAMP']),
                 Argument('precedence', data_type='int'),
-                Argument('value')
         ]
     ))
 
-CONFIGURE_DEFAULT_JOB_CHARACTERISTICS = argument.Form('configureJobs', flattening_type='RETRIEVE', depends_on=['canExec'], required_arguments=[
+JOB_CONSTRAINTS = argument.Form('jobConstraints', flattening_type='RETRIEVE', depends_on=['canExec'], required_arguments=[
         Argument('jobMaxJobs', data_type='int'),
         Argument('jobMaxJobsPerUser', data_type='int') # get rid of this form
     ])

@@ -26,7 +26,9 @@ class Validators:
             'input_list':self.list_validator,
             'input_dict':self.dict_validator,
             'form':self.form_validator,
+            'selection_list':self.selection_list_validator
         }
+
     def set_default_if_needed(self, value):
         """
         if there is no value, set the default value. If the value is False, return False
@@ -95,4 +97,12 @@ class Validators:
         for argument in self.arguments_list:
             self.arguments_list[argument.argument] = argument.verify_rules_followed(value[argument.argument])
         return argument
+    
+    def selection_list_validator(self, value):
+        results = dict()
+        for field, field_bool in value.items():
+            if field_bool:
+                results[field] = self.option_dict[field]
+        return results
+
         

@@ -146,6 +146,7 @@ class restart_pod(baseCommand.BaseCommand):
     return_fields = ['pod_id', 'pod_template', 'status']
     required_arguments=[
         Argument('pod_id', positional=True),
+        Argument('confirm', arg_type='confirmation')
     ]
     async def run(self, *args, **kwargs) -> str:
         return_information = self.t.pods.restart_pod(pod_id=kwargs['pod_id'])
@@ -159,6 +160,7 @@ class stop_pod(baseCommand.BaseCommand):
     return_fields = ['pod_id', 'pod_template', 'status']
     required_arguments=[
         Argument('pod_id', positional=True),
+        Argument('confirm', arg_type='confirmation')
     ]
     async def run(self, *args, **kwargs):
         return_information = self.t.pods.stop_pod(pod_id=kwargs['pod_id'])
@@ -172,6 +174,7 @@ class delete_pod(baseCommand.BaseCommand):
     return_fields = ['pod_id', 'pod_template', 'status']
     required_arguments=[
         Argument('pod_id', positional=True),
+        Argument('confirm', arg_type='confirmation')
     ]
     async def run(self, *args, **kwargs) -> str: 
         return_information = self.t.pods.delete_pod(pod_id=kwargs['pod_id'])

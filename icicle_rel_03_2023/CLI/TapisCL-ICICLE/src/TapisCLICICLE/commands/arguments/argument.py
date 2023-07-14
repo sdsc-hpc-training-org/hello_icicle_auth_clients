@@ -169,6 +169,30 @@ class Form(Argument):
         return json
     
 
+class SelectionList(Argument):
+    def __init__(self, argument, option_dict):
+        super().__init__(argument, data_type='selection_list')
+        self.option_dict = option_dict
+        self.option_list = list(option_dict.keys())
+
+    def json(self):
+        json = {
+            'name':self.argument,
+            'arg_type':self.arg_type,
+            'data_type':self.data_type,
+            'choices':self.choices,
+            'action':self.action,
+            'description':self.description,
+            'positional':self.positional,
+            'default_value':self.default_value,
+            'size_limit':self.size_limit,
+            'truncated_arg':self.truncated_arg,
+            'full_arg':self.full_arg,
+            'option_list':self.option_list
+        }
+        return json
+    
+
 class RequestHandler:
     def handle_requests(self, request):
         pass

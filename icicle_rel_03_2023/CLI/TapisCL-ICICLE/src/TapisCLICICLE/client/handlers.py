@@ -6,7 +6,9 @@ import time
 
 from prompt_toolkit.validation import Validator, ValidationError
 from prompt_toolkit.completion import word_completer, WordCompleter
+from prompt_toolkit.shortcuts import checkboxlist_dialog
 from prompt_toolkit import prompt
+
 from blessed import Terminal
 
 
@@ -116,6 +118,8 @@ class Handlers(Formatters):
         if isinstance(argument, dict):
             if 'description' in argument and argument['description']:
                 print(argument['description'])
+            else:
+                print(argument['name'])
         else:
             print(argument)
         while True:
@@ -124,12 +128,24 @@ class Handlers(Formatters):
                 decision = True
                 break
             elif decision == 'n':
-                decision = False
-                break
+                if not argument['required']:
+                    decision = False
+                    break
+                raise KeyboardInterrupt('User negative reply on confirmation, cancelling')
             else:
                 print("Enter valid response")
         return decision
     
+    def selection_list_handler(self, term: Terminal, attrs: dict):
+        with term.fullscreen():
+            results_array = checkboxlist_dialog(
+                title="CheckboxList dialog",
+                text="What would you like in your breakfast ?",
+                values=[(True, field) for field in attrs['option_list']]
+            ).run()
+            results = dict(zip(attrs['option_list'], results_array))
+            return results
+        
     def input_dict_handler(self, term: Terminal, attrs: dict, default=None):
         mode = 'create'
         if not default:

@@ -18,6 +18,8 @@ class Systems(baseCommand.BaseCommandMap):
         'get_systems':systemCommands.get_systems(), # since initialization of commands is separate from __init__, you dont need to specify these as classes anymore
         'get_system':systemCommands.get_system(),
         'get_scheduler_profiles':systemCommands.get_scheduler_profiles(),
+        'create_scheduler_profile':systemCommands.create_scheduler_profile(),
+        'delete_scheduler_profile':systemCommands.delete_scheduler_profile(),
         'submit_system_credentials':systemCommands.submit_system_credentials(),
         'verify_pki_keys':systemCommands.verify_pki_keys(),
         'create_system':systemCommands.create_system(),
