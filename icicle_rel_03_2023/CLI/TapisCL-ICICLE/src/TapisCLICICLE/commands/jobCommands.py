@@ -181,7 +181,7 @@ class subscribe_to_job(baseCommand.BaseCommand):
             'JOB_USER_EVENT',
             'ALL'
             ]),
-        Argument('deliveryTargets', arg_type='input_list', data_type=argument.Form('deliveryTarget', arguments_list=[
+        Argument('deliveryTargets', arg_type='input_list', data_type=argument.Form('deliveryTarget', required_arguments=[
             Argument('deliveryMethod', choices=['WEBHOOK', 'EMAIL', 'QUEUE', 'ACTOR']),
             Argument('deliveryAddress')
         ]))
@@ -212,7 +212,7 @@ class delete_subscriptions(baseCommand.BaseCommand):
     """
     required_arguments = [
         Argument('confirm', arg_type='confirmation')
-    ],
+    ]
     optional_arguments = [
         Argument('jobUuid'),
         Argument('subscriptionUuid', mutually_exclusive_with=['jobUuid'])

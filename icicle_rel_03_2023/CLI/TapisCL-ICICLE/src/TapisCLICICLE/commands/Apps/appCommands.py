@@ -103,7 +103,7 @@ class assign_default_job_attributes(baseCommand.BaseCommand):
         Argument("isMpi", arg_type='confirmation', description="is mpi?"),
         Argument('mpiCmd', size_limit=(1, 126), arg_type='str_input', description='command to launch MPI jobs. Conflicts with cmdPrefix if isMpi is set', mutually_exclusive_with=['cmdPrefix']),
         Argument('cmdPrefix', size_limit=(1, 126), description='string put in front of app run command to run with mpi command'),
-        Argument('fileInputs', arg_type='input_list', data_type=argument.Form('fileInput', arguments_list=[
+        Argument('fileInputs', arg_type='input_list', data_type=argument.Form('fileInput', optional_arguments=[
             Argument('name', size_limit=(1, 80)),
             Argument('description', size_limit=(1, 8096)),
             Argument('inputMode', choices=['REQUIRED', 'OPTIONAL', 'FIXED'], description='indicates how input should be treeated when processing job request'),
@@ -111,19 +111,19 @@ class assign_default_job_attributes(baseCommand.BaseCommand):
             Argument('sourceUrl', description='source used by jobs service when staging file inputs'),
             Argument('targetPath', description='where in the container will the files go when staging the inputs')
         ]), description='selection of file inputs that must be staged to run application'),
-        Argument('fileInputArrays', arg_type='input_list', data_type=argument.Form('fileInput', arguments_list=[
+        Argument('fileInputArrays', arg_type='input_list', data_type=argument.Form('fileInput', optional_arguments=[
             Argument('name', size_limit=(1, 80)),
             Argument('description', size_limit=(1, 8096)),
             Argument('inputMode', choices=['REQUIRED', 'OPTIONAL', 'FIXED']),
             Argument('sourceUrls', arg_type='input_list', data_type=Argument('sourceUrl')),
             Argument('targetPath')
         ]), description='collection of arrays of inputs to be staged to the application'),
-        Argument('subscriptions', arg_type='input_list', data_type=argument.Form('subscription', arguments_list=[
+        Argument('subscriptions', arg_type='input_list', data_type=argument.Form('subscription', optional_arguments=[
             Argument('description'),
             Argument('enabled', arg_type='confirmation', description='enable subscription?'),
             Argument('jobEventCategoryFilter', choices=['ALL', 'JOB_NEW_STATUS', 'JOB_INPUT_TRANSACTION_ID', 'JOB_ARCHIVE_TRANSACTION_ID', 'JOB_ERROR_MESSAGE', 'JOB_SUBSCRIPTION']),
             Argument('ttlMinutes', data_type='int'),
-            Argument('deliveryTargets', arg_type='input_list', data_type=argument.Form('deliveryTarget', arguments_list=[
+            Argument('deliveryTargets', arg_type='input_list', data_type=argument.Form('deliveryTarget', required_arguments=[
                 Argument('deliveryMethod', choices=['WEBHOOK', 'EMAIL']),
                 Argument('deliveryAddress')
             ]))

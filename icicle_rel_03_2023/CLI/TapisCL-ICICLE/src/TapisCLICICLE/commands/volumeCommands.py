@@ -87,10 +87,10 @@ class delete_volume(baseCommand.BaseCommand):
     """
     @help: delete a volume
     """
-    decorator=decorators.NeedsConfirmation()
     command_opt = [commandOpts.CHECK_EXPLICIT_ID('volume_id')]
     required_arguments = [
-        Argument('volume_id', positional=True)
+        Argument('volume_id', positional=True),
+        Argument('confirm', arg_type='confirmation')
     ]
     async def run(self, *args, **kwargs):
         return self.t.pods.delete_volume_files(**kwargs)
@@ -154,7 +154,6 @@ class delete_volume_permission(baseCommand.BaseCommand):
     """
     @help: delete the persmission for a user on a volume
     """
-    decorator=decorators.NeedsConfirmation()
     required_arguments = [
         Argument('volume_id', positional=True),
         Argument('username'),
@@ -229,9 +228,9 @@ class delete_snapshot(baseCommand.BaseCommand):
     """
     @help: delete snapshot information
     """
-    decorator=decorators.NeedsConfirmation()
     required_arguments = [
-        Argument('snapshot_id', positional=True)
+        Argument('snapshot_id', positional=True),
+        Argument('confirm', arg_type='confirmation')
     ]
     async def run(self, *args, **kwargs):
         return self.t.pods.delete_snapshot(**kwargs)

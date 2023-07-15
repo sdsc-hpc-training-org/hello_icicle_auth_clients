@@ -109,8 +109,10 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
         self.required_arguments += self.default_arguments
         if self.supports_config_file:
             self.optional_arguments.append(Argument('file'))
-        map(lambda argument: argument.is_required(True), self.required_arguments)
-        map(lambda argument: argument.is_required(False), self.optional_arguments)
+        if self.required_arguments:
+            map(lambda argument: argument.is_required(True), self.required_arguments)
+        if self.optional_arguments:
+            map(lambda argument: argument.is_required(False), self.optional_arguments)
         if isinstance(self.required_arguments, list):
             self.required_arguments = {argument.argument:argument for argument in self.required_arguments}
             self.arguments.update(**self.required_arguments)

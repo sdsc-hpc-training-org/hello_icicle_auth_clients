@@ -135,6 +135,9 @@ class create_scheduler_profile(baseCommand.BaseCommand):
 
 
 class delete_scheduler_profile(baseCommand.BaseCommand):
+    """
+    @help: delete a scheduler profile
+    """
     required_arguments = [
         Argument('name'),
         Argument('confirm', arg_type='confirmation')
@@ -353,9 +356,11 @@ GLOBUS: TOKEN
 IRODS: PASSWORD
 In the case you choose password, your username and password will either be your TACC account info, or the login info you used with federated/device_code grant"""),
         Argument('jobRuntimes', arg_type='input_list', data_type=argument.Form(
-            'jobRuntime', arguments_list = [
-                Argument('runtimeType', choices=['DOCKER', 'SINGULARITY']), 
-                Argument('version')
+            'jobRuntime', required_arguments = [
+                    Argument('runtimeType', choices=['DOCKER', 'SINGULARITY']), 
+                ],
+                optional_arguments=[
+                    Argument('version')
                 ]
             )),
         Argument('jobWorkingDir', default_value=r"HOST_EVAL($WORK2)", size_limit=(0, 4096), description='Where on this hpc system are jobs run?'),

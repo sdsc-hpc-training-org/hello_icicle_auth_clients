@@ -1,6 +1,8 @@
 import typing
 import abc
 
+from . import argumentValidators
+
 
 ALLOWED_ARG_TYPES = typing.Literal['silent', 'secure', 'expression', 'input_list', 'input_dict', 'form', 'str_input', 'confirmation', 'selection_list']
 ALLOWED_DATA_TYPES = typing.Literal['string', 'int', 'bool']
@@ -13,7 +15,7 @@ class AbstractArgument(abc.ABC):
         pass
     
 
-class Argument(AbstractArgument):
+class Argument(argumentValidators.Validators, AbstractArgument):
     def __init__(self, argument: str,
                  data_type: ALLOWED_DATA_TYPES | typing.Type[AbstractArgument] = 'string',
                  arg_type: ALLOWED_ARG_TYPES | typing.Literal['standard']='standard',
@@ -26,7 +28,6 @@ class Argument(AbstractArgument):
                  mutually_exclusive_with: list = [],
                  part_of: str = "",
                  size_limit: tuple=(0,4096)):
-        super().__init__()
         if arg_type not in typing.get_args(ALLOWED_ARG_TYPES) and arg_type != 'standard':
             raise ValueError(f"The arg type parameter in the argument {self.__class__.__name__} must be in the list {ALLOWED_ARG_TYPES}. Got arg type {arg_type}")
         if data_type not in typing.get_args(ALLOWED_DATA_TYPES) and not issubclass(data_type.__class__, AbstractArgument):
@@ -37,6 +38,7 @@ class Argument(AbstractArgument):
             data_type.arg_type = 'str_input'
         if action != 'store':
             data_type = 'bool'
+        super().__init__(arg_type)
         self.argument = argument
         self.arg_type = arg_type
         self.data_type = data_type
@@ -126,11 +128,15 @@ class Argument(AbstractArgument):
 
 
 class Form(Argument):
-    def __init__(self, form_name, required_arguments, optional_arguments, description=None, depends_on=None, flattening_type: typing.Literal['NONE', 'FLATTEN', 'RETRIEVE']='NONE'):
+    def __init__(self, form_name, required_arguments=None, optional_arguments=None, description=None, depends_on=None, flattening_type: typing.Literal['NONE', 'FLATTEN', 'RETRIEVE']='NONE'):
         super().__init__(form_name, arg_type='form', description=description, depends_on=depends_on)
-        map(lambda argument: argument.is_required(True), required_arguments)
-        map(lambda argument: argument.is_required(False), optional_arguments)
-        arguments_list = required_arguments + optional_arguments
+        arguments_list = list()
+        if required_arguments:
+            map(lambda argument: argument.is_required(True), required_arguments)
+            arguments_list += required_arguments
+        if optional_arguments:
+            map(lambda argument: argument.is_required(False), optional_arguments)
+            arguments_list += optional_arguments
         for argument in arguments_list:
             if argument.arg_type == 'standard':
                 argument.arg_type = 'str_input'

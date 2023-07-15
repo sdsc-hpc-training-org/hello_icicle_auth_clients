@@ -42,9 +42,11 @@ class create_pod(baseCommand.BaseCommand):
         Argument('pod_id', positional=True),
         Argument('pod_template', positional=True),
         Argument('volume_mounts', arg_type='input_dict', data_type=argument.Form(
-            'volume_mount', arguments_list = [
+            'volume_mount', required_arguments = [
                 Argument('type', choices=['tapisvolume', 'tapissnapshot', 'pvc']),
-                Argument("mount_path", description='This is top level path you want to mount the volume on inside the pod. This is something like <neo4j-home>\data for a neo4j pod. Data from that path will load to the mount and become persistent'),
+                Argument("mount_path", description='This is top level path you want to mount the volume on inside the pod. This is something like <neo4j-home>\data for a neo4j pod. Data from that path will load to the mount and become persistent')
+            ],
+            optional_arguments = [
                 Argument('sub_path', description='If you want to only load a single file, like file.txt (which is inside the parent mount path) you can specify here')
             ]
         ), description="Used to attach the pod to an existing kubernetes volume to provide pod persistence (in case of crash). Each key is the volume_id"),
@@ -56,26 +58,19 @@ class create_pod(baseCommand.BaseCommand):
         Argument('roles_required', arg_type='input_list', data_type=argument.Argument('required_role', arg_type='str_input'), description='what role is required by the user to access this pod?'),
         Argument('time_to_stop_default', data_type='int'),
         Argument('time_to_stop_instance', data_type='int'),
-        Argument('volume_mounts', arg_type='input_dict', data_type=argument.Form(
-            'volume_mount', arguments_list = [
-                Argument('type', choices=['tapisvolume', 'tapissnapshot', 'pvc']),
-                Argument("mount_path", description='This is top level path you want to mount the volume on inside the pod. This is something like <neo4j-home>\data for a neo4j pod. Data from that path will load to the mount and become persistent'),
-                Argument('sub_path', description='If you want to only load a single file, like file.txt (which is inside the parent mount path) you can specify here')
-            ]
-        ), description="Used to attach the pod to an existing kubernetes volume to provide pod persistence (in case of crash). Each key is the volume_id"),
         Argument('networking', arg_type='input_dict', data_type=argument.Form(
-            'network', arguments_list = [
-                Argument('protocol', description='Something like https'),
-                Argument('port', data_type='int'),
+            'network', required_arguments = [
+                Argument('protocol', default_value='http', description='Something like https'),
+                Argument('port', data_type='int', default_value=5000),
                 Argument('url')
             ]
         ), description='Important networking configuration. You probably shouldnt touch this, but I wont stop you'),
         argument.Form(
-            'resources', arguments_list = [
-                Argument('cpu_request', data_type='int'),
-                Argument('cpu_limit', data_type='int'),
-                Argument('mem_request', data_type='int'),
-                Argument('mem_limit', data_type='int'),
+            'resources', required_arguments = [
+                Argument('cpu_request', data_type='int', default_value=250),
+                Argument('cpu_limit', data_type='int', default_value=2000),
+                Argument('mem_request', data_type='int', default_value=256),
+                Argument('mem_limit', data_type='int', default_value=3072),
             ]
         )
     ]
@@ -120,6 +115,38 @@ class update_pod(create_pod): # make it so the command retrieves current setting
     return_fields = ['pod_id', 'pod_template', 'status']
     required_arguments=[
         Argument('pod_id', positional=True),
+    ]
+    optional_arguments=[
+        Argument('volume_mounts', arg_type='input_dict', data_type=argument.Form(
+            'volume_mount', required_arguments = [
+                Argument('type', choices=['tapisvolume', 'tapissnapshot', 'pvc']),
+                Argument("mount_path", description='This is top level path you want to mount the volume on inside the pod. This is something like <neo4j-home>\data for a neo4j pod. Data from that path will load to the mount and become persistent')
+            ],
+            optional_arguments = [
+                Argument('sub_path', description='If you want to only load a single file, like file.txt (which is inside the parent mount path) you can specify here')
+            ]
+        ), description="Used to attach the pod to an existing kubernetes volume to provide pod persistence (in case of crash). Each key is the volume_id"),
+        Argument('description', arg_type='str_input', size_limit=(0, 2048)),
+        Argument('command', arg_type='input_list', data_type=argument.Argument('command', arg_type='str_input'), description="Command to run in the pod"),
+        Argument('environment_variables', arg_type='input_dict', data_type=argument.Argument('environment_variable', arg_type='str_input')),
+        Argument('roles_required', arg_type='input_list', data_type=argument.Argument('required_role', arg_type='str_input'), description='what role is required by the user to access this pod?'),
+        Argument('time_to_stop_default', data_type='int'),
+        Argument('time_to_stop_instance', data_type='int'),
+        Argument('networking', arg_type='input_dict', data_type=argument.Form(
+            'network', required_arguments = [
+                Argument('protocol', default_value='http', description='Something like https'),
+                Argument('port', data_type='int', default_value=5000),
+                Argument('url')
+            ]
+        ), description='Important networking configuration. You probably shouldnt touch this, but I wont stop you'),
+        argument.Form(
+            'resources', required_arguments = [
+                Argument('cpu_request', data_type='int', default_value=250),
+                Argument('cpu_limit', data_type='int', default_value=2000),
+                Argument('mem_request', data_type='int', default_value=256),
+                Argument('mem_limit', data_type='int', default_value=3072),
+            ]
+        )
     ]
     async def run(self, *args, **kwargs):
         pod_information = self.t.pods.update_pod(**kwargs)
