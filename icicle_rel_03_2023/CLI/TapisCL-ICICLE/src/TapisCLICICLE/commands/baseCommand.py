@@ -153,7 +153,6 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
         """
         filters out kwargs that have None value, Tapis breaks if I dont do this, especially with form arguments
         """
-        pprint(kwargs)
         filtered_kwargs = dict()
         for arg_name, value in kwargs.items():
             if value != None:
@@ -176,7 +175,7 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
         """
         handles forms when the user selects to fill them out
         """
-        existing_values = dict()
+        existing_values = dict() # If it aint broke, dont fix it. This code sucks but I cant meet the deadline if I try fixing this abomination
         if self.updateable_form_retriever:
             existing_values = self.return_formatter.obj_to_dict(self.updateable_form_retriever(self.t, **kwargs))
             to_pop = []
@@ -199,6 +198,7 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
         for arg_name in self.form_arguments: 
             argument = self.arguments[arg_name]
             if kwargs[arg_name] or argument.required:
+                pprint(f"NAME: {arg_name}\nVALUE: {kwargs[arg_name]}\n REQUIRED: {self.arguments[arg_name].required}")
                 request = schemas.FormRequest(request_content={arg_name:argument}, existing_data=existing_values)
                 await kwargs['connection'].send(request)
                 response: schemas.FormResponse = await kwargs['connection'].receive()

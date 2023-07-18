@@ -85,7 +85,7 @@ class Validators:
         return value
     
     def list_validator(self, value):
-        if not isinstance(value, bool):
+        if value and not isinstance(value, bool):
             processed_values = list()
             for sub_value in value:
                 processed_values.append(self.data_type.verify_rules_followed(sub_value))
@@ -96,7 +96,7 @@ class Validators:
             return None
     
     def dict_validator(self, value):
-        if not isinstance(value, bool):
+        if value and not isinstance(value, bool):
             processed_values = dict()
             for sub_name, sub_value in value.items():
                 processed_values[sub_name] = self.data_type.verify_rules_followed(sub_value)
@@ -107,7 +107,7 @@ class Validators:
             return None
     
     def form_validator(self, value):
-        if not isinstance(value, bool):
+        if value and not isinstance(value, bool):
             flattened_value = self.flatten_form_data(value)
             results = dict()
             for argument_name, argument in self.arguments_list.items():
@@ -119,7 +119,7 @@ class Validators:
             return None
     
     def selection_list_validator(self, value):
-        if not isinstance(value, bool):
+        if value and not isinstance(value, bool):
             results = dict()
             for field, field_bool in value.items():
                 if field_bool:

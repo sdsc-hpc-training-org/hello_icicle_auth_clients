@@ -155,16 +155,17 @@ class Form(Argument):
         self.arguments_list = {argument.argument:argument for argument in arguments_list}
         self.flattening_type = flattening_type
     
-    def flatten_form_data(self, value): #remember to pop from original kwargs
-        if self.flattening_type == 'FLATTEN':
-            flattened_form_info = {self.argument:True}
-            flattened_form_info.update(**{arg_name:arg_value for arg_name, arg_value in value[self.argument].items()})
-            return flattened_form_info
-        if self.flattening_type == 'RETRIEVE':
-            exctracted_form_data = {arg_name:arg for arg_name, arg in value[self.argument].items()}
-            return exctracted_form_data
-        else:
-            return value
+    def flatten_form_data(self, value): 
+        if value and not isinstance(value, bool):
+            if self.flattening_type == 'FLATTEN':
+                flattened_form_info = {self.argument:True}
+                flattened_form_info.update(**{arg_name:arg_value for arg_name, arg_value in value[self.argument].items()})
+                return flattened_form_info
+            if self.flattening_type == 'RETRIEVE':
+                exctracted_form_data = {arg_name:arg for arg_name, arg in value[self.argument].items()}
+                return exctracted_form_data
+            else:
+                return value
 
     def json(self):
         fields = {argument_name:argument.json() for argument_name, argument in self.arguments_list.items()}
@@ -181,7 +182,8 @@ class Form(Argument):
             'truncated_arg':self.truncated_arg,
             'full_arg':self.full_arg,
             'arguments_list':fields,
-            'required':self.required
+            'required':self.required,
+            'flattening_type':self.flattening_type
         }
         return json
     

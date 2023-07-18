@@ -87,10 +87,10 @@ class CLI(handlers.Handlers):
         parser.error = self.parser_error
         
         for arg_name, arg in arguments.items():
-            if arg['action'] == 'store_true':
+            if (arg['action'] == 'store_true' and arg['arg_type'] == 'standard') or (arg['arg_type'] == 'form' and arg['flattening_type'] == 'FLATTEN'):
                 default = False
-            elif arg['action'] == 'store_false':
-                default = True
+            elif (arg['action'] == 'store_false' and arg['arg_type'] == 'standard'):
+                default = None
             else:
                 default = None
             parser.add_argument(f"-{arg['truncated_arg']}", arg['full_arg'],
