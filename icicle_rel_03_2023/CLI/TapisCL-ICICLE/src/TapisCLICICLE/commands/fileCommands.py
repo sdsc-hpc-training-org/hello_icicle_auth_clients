@@ -157,7 +157,46 @@ class create_transfer_task(baseCommand.BaseCommand):
     ]
     async def run(self, *args, **kwargs):
         pass
+
+
+class grant_permissions(baseCommand.BaseCommand):
+    """
+    @help: grant permission to a file path for a user
+    """
+    return_fields = ['username', 'permission', 'path']
+    command_opt = [commandOpts.CHECK_PWD(('path',)), commandOpts.CHECK_EXPLICIT_ID('systemId')]
+    required_arguments = [
+        Argument('path', positional=True),
+        Argument('systemId', positional=True),
+        Argument('username'),
+        Argument('permission', choices=['READ', 'MODIFY'])
+    ]
+    async def run(self, *args, **kwargs):
+        return self.t.files.grantPermissions(**kwargs)
     
+
+class get_permissions(grant_permissions):
+    """
+    @help: see what permissions users have on a file or path
+    """
+    required_arguments = [
+        Argument('path', positional=True),
+        Argument('systemId', positional=True)
+    ]
+    async def run(self, *args, **kwargs):
+        return self.t.files.getPermissions(**kwargs)
+    
+
+class delete_permissions(baseCommand.BaseCommand):
+    command_opt = [commandOpts.CHECK_PWD(('path',)), commandOpts.CHECK_EXPLICIT_ID('systemId')]
+    required_arguments = [
+        Argument('path', positional=True),
+        Argument('systemId', positional=True),
+        Argument('username')
+    ]
+    async def run(self, *args, **kwargs):
+        return self.t.files.deletePermissions(**kwargs)
+
 
 class create_postit(baseCommand.BaseCommand):
     """

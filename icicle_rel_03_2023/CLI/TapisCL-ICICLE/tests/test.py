@@ -1,2 +1,4 @@
-x = dict(zip(['a', 'b'], ['c', 'd']))
-print(x)
+try: 
+    raise OSError('silliness')
+except Exception as e:
+    print(type(e))
