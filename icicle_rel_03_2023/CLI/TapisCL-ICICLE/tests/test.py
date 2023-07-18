@@ -1,4 +1,3 @@
-try: 
-    raise OSError('silliness')
-except Exception as e:
-    print(type(e))
+x = {'x':'y'}
+x.update(**{'hehe':''})
+print(x)

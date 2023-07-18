@@ -103,7 +103,6 @@ class CLI(handlers.Handlers):
         """
         if 'win' in sys.platform:
             os.system(rf"pythonw {server_path} 1>stdout.txt 2>stderr.txt")
-            #os.system(rf"python {server_path}")
         else: # unix based
             subprocess.Popen(['nohup', 'python3', server_path, '&'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
