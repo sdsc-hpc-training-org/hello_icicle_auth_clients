@@ -32,15 +32,18 @@ class BaseDataFormatter:
     
     def __call__(self, data, verbose):
         serialized = self.obj_to_dict(data)
-        if verbose:
-            return serialized
-        if isinstance(serialized, list) and self.non_verbose_fields:
-            return_data = list()
-            for fragment in serialized:
-                non_verbose_fragment = self.non_verbose_formatter(fragment)
-                return_data.append(non_verbose_fragment)
-            return return_data
-        return self.non_verbose_formatter(serialized)
+        if not isinstance(data, (str, int)):
+            if verbose:
+                return serialized
+            if isinstance(serialized, list) and self.non_verbose_fields:
+                return_data = list()
+                for fragment in serialized:
+                    non_verbose_fragment = self.non_verbose_formatter(fragment)
+                    return_data.append(non_verbose_fragment)
+                return return_data
+            return self.non_verbose_formatter(serialized)
+        else:
+            return data
         
 
     

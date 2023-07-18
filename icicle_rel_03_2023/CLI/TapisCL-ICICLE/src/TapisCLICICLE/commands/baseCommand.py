@@ -260,7 +260,7 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
         verbose_dict = dict()
         standard_str = str()
         for name, argument in arg_dict.items():
-            if argument.arg_type != 'silent':
+            if argument.arg_type != 'silent' and not (argument.arg_type != 'standard' and argument.required):
                 verbose_dict[name] = argument.help_message()
                 standard_str += argument.str()
         return {'verbose':verbose_dict, 'standard':standard_str}
