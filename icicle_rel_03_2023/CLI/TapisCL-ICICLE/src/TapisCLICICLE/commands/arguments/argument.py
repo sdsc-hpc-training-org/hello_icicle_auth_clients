@@ -1,5 +1,6 @@
 import typing
 import abc
+import pprint
 
 from . import argumentValidators
 
@@ -27,7 +28,7 @@ class Argument(argumentValidators.Validators, AbstractArgument):
                  depends_on: list = [],
                  mutually_exclusive_with: list = [],
                  part_of: str = "",
-                 size_limit: tuple=(0,4096)):
+                 size_limit: tuple=(-1,-1)):
         if arg_type not in typing.get_args(ALLOWED_ARG_TYPES) and arg_type != 'standard':
             raise ValueError(f"The arg type parameter in the argument {self.__class__.__name__} must be in the list {ALLOWED_ARG_TYPES}. Got arg type {arg_type}")
         if data_type not in typing.get_args(ALLOWED_DATA_TYPES) and not issubclass(data_type.__class__, AbstractArgument):
@@ -39,12 +40,14 @@ class Argument(argumentValidators.Validators, AbstractArgument):
         if action != 'store':
             data_type = 'bool'
         super().__init__(arg_type)
+        if action in ('store_true', 'store_false'):
+            data_type = 'bool'
+        if arg_type != 'standard':
+            action = 'store_true'
         self.argument = argument
         self.arg_type = arg_type
         self.data_type = data_type
         self.choices = choices
-        if self.arg_type != 'standard':
-            action = 'store_true'
         self.action = action
         self.description = description
         self.positional = positional
@@ -68,9 +71,13 @@ class Argument(argumentValidators.Validators, AbstractArgument):
         """
         check to make sure the value assigned to the argument follows all existing rules
         """
-        if self.required and not value and value != False:
+        if self.required and not value and value != False and self.arg_type != 'silent':
             raise ValueError(f'The argument {self.argument} is required')
-        return self.validator_map[self.arg_type]
+        return_value = self.validator_map[self.arg_type](value)
+        if isinstance(return_value, bool) and self.data_type != 'bool' and self.action != 'store_true' and not return_value:
+            print(f"{self.argument} RETURNING NONE")
+            return None
+        return return_value
 
     def json(self):
         json = {
@@ -87,7 +94,8 @@ class Argument(argumentValidators.Validators, AbstractArgument):
             'full_arg':self.full_arg,
             'depends_on':self.depends_on,
             'mutually_exclusive_with':self.mutually_exclusive_with,
-            'part_of':self.part_of
+            'part_of':self.part_of,
+            'required':self.required
         }
         if self.data_type in ('string', 'int', 'bool'):
             json['data_type'] = self.data_type
@@ -132,29 +140,31 @@ class Form(Argument):
         super().__init__(form_name, arg_type='form', description=description, depends_on=depends_on)
         arguments_list = list()
         if required_arguments:
-            map(lambda argument: argument.is_required(True), required_arguments)
+            for argument in required_arguments:
+                argument.is_required(True)
             arguments_list += required_arguments
         if optional_arguments:
-            map(lambda argument: argument.is_required(False), optional_arguments)
+            for argument in optional_arguments:
+                argument.is_required(False)
             arguments_list += optional_arguments
         for argument in arguments_list:
+            if not issubclass(argument.__class__, Argument):
+                raise TypeError(f'The argument {argument.argument} must be an Argument type')
             if argument.arg_type == 'standard':
                 argument.arg_type = 'str_input'
         self.arguments_list = {argument.argument:argument for argument in arguments_list}
         self.flattening_type = flattening_type
     
-    def flatten_form_data(self, kwargs, target):
+    def flatten_form_data(self, value): #remember to pop from original kwargs
         if self.flattening_type == 'FLATTEN':
-            form_info = kwargs.pop(target)
-            flattened_form_info = {target:True}
-            flattened_form_info.update(**{arg_name:arg_value for arg_name, arg_value in form_info.items()})
+            flattened_form_info = {self.argument:True}
+            flattened_form_info.update(**{arg_name:arg_value for arg_name, arg_value in value[self.argument].items()})
             return flattened_form_info
         if self.flattening_type == 'RETRIEVE':
-            form = kwargs.pop(target)
-            exctracted_form_data = {arg_name:arg for arg_name, arg in form.items()}
+            exctracted_form_data = {arg_name:arg for arg_name, arg in value[self.argument].items()}
             return exctracted_form_data
         else:
-            return None
+            return value
 
     def json(self):
         fields = {argument_name:argument.json() for argument_name, argument in self.arguments_list.items()}
@@ -170,7 +180,8 @@ class Form(Argument):
             'size_limit':self.size_limit,
             'truncated_arg':self.truncated_arg,
             'full_arg':self.full_arg,
-            'arguments_list':fields
+            'arguments_list':fields,
+            'required':self.required
         }
         return json
     
@@ -194,7 +205,8 @@ class SelectionList(Argument):
             'size_limit':self.size_limit,
             'truncated_arg':self.truncated_arg,
             'full_arg':self.full_arg,
-            'option_list':self.option_list
+            'option_list':self.option_list,
+            'required':self.required
         }
         return json
     

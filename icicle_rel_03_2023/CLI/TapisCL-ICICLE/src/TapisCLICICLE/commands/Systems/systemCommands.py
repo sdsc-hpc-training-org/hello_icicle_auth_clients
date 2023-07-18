@@ -59,6 +59,7 @@ class get_systems(baseCommand.BaseCommand):
         Argument('listType', choices=['OWNED', 'SHARED_PUBLIC', 'ALL'])
     ]
     async def run(self, *args, **kwargs):
+        pprint.pprint(kwargs)
         systems = self.t.systems.getSystems(**kwargs)
         return systems
     

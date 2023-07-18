@@ -114,27 +114,31 @@ class Handlers(Formatters):
                 expression += line
         return expression
     
-    def confirmation_handler(self, argument: dict | str=None):
-        if isinstance(argument, dict):
-            if 'description' in argument and argument['description']:
-                print(argument['description'])
-            else:
-                print(argument['name'])
-        else:
-            print(argument)
+    def confirm_form_exit(self, message: str=None):
+        print(message)
         while True:
             decision = str(input("(y/n)"))
             if decision == 'y':
-                decision = True
-                break
+                return True
+            elif decision == 'n':
+                return False
+            else:
+                print("Enter valid response")
+        
+    def confirmation_handler(self, argument: dict=None):
+        print(argument['name'])
+        if 'description' in argument and argument['description']:
+            print(argument['description'])
+        while True:
+            decision = str(input("(y/n)"))
+            if decision == 'y':
+                return True
             elif decision == 'n':
                 if not argument['required']:
-                    decision = False
-                    break
+                    return False
                 raise KeyboardInterrupt('User negative reply on confirmation, cancelling')
             else:
                 print("Enter valid response")
-        return decision
     
     def selection_list_handler(self, term: Terminal, attrs: dict):
         with term.fullscreen():
@@ -168,12 +172,11 @@ class Handlers(Formatters):
                     mode = 'create'
                     attrs['data_type']['name'] = name
                     if name in answer:
-                        default_value = answer#[name]
+                        default_value = answer
                     else:
                         default_value = None
-                    pprint.pprint({name:attrs['data_type']})
                     sub_answer = self.advanced_input_handler({name:attrs['data_type']}, term, default=default_value)
-                    if sub_answer:
+                    if sub_answer[name]:
                         answer.update(**sub_answer)
                 elif mode == 'delete':
                     mode = 'delete'
@@ -225,7 +228,7 @@ class Handlers(Formatters):
                     continue
                 sub_answer = self.advanced_input_handler({f"{attrs['name']}_{str(len(answer)+1)}":attrs['data_type']}, term)
                 index, value = list(sub_answer.items())[0]
-                if sub_answer:
+                if value:
                     answer.append(value)
 
     def form_handler(self, term: Terminal, attrs: dict, form_name, default=None):
@@ -246,16 +249,16 @@ class Handlers(Formatters):
                 print(self.__labelled_form(form_options, form_input))
                 field = prompt('Enter the field you want to modify. Enter exit to complete: ', completer=completer)
                 if field.lower() == 'exit':
-                    for field_name, field_metadata in form_options:
-                        unfulfilled_requirements = []
+                    unfulfilled_requirements = []
+                    for field_name, field_metadata in form_options.items():
                         if field_metadata['required'] and not form_input[field_name] and form_input[field_name] != False:
                             unfulfilled_requirements.append(field_name)
-                        if unfulfilled_requirements:
-                            decision = self.confirmation_handler(f'The fields {unfulfilled_requirements} are required but did not receive any input. If you exit this form will not be submitted.\nSubmit form?')
-                            if decision:
-                                return None
-                            else:
-                                continue
+                    if unfulfilled_requirements:
+                        decision = self.confirm_form_exit(f'The fields {unfulfilled_requirements} are required but did not receive any input. If you exit this form will not be submitted.\nSubmit form?')
+                        if decision:
+                            return None
+                        else:
+                            continue
                     return form_input
                 elif field not in form_options:
                     continue

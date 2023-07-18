@@ -1,4 +1,5 @@
 import pyperclip
+import pprint
 from tapipy.tapis import errors as TapisErrors
 
 
@@ -149,6 +150,7 @@ class update_pod(create_pod): # make it so the command retrieves current setting
         )
     ]
     async def run(self, *args, **kwargs):
+        pprint.pprint(kwargs)
         pod_information = self.t.pods.update_pod(**kwargs)
         return pod_information
 

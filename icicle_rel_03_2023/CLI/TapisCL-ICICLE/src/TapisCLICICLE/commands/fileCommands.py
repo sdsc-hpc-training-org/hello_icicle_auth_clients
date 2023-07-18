@@ -235,7 +235,7 @@ class upload(baseCommand.BaseCommand):
     @todo: make it so that this doesnt need to take both source and destination files, but have it so it retrieves the current file location on the tapis system
     and sets that file location to be the upload point. Do the same for downloads but in reverse
     """
-    command_opt = [commandOpts.CHECK_PWD(('destination_file',))]
+    command_opt = [commandOpts.CHECK_PWD(('destination_file',)), commandOpts.CHECK_EXPLICIT_ID('systemId')]
     required_arguments = [
         Argument('source_file', positional=True),
         Argument('systemId', size_limit=(1, 80), positional=True),
@@ -255,7 +255,7 @@ class download(baseCommand.BaseCommand):
     @help: download a file from the system
     the source and destination files must both be in the file argument, respectively, separated by a comma
     """
-    command_opt = [commandOpts.CHECK_PWD(('source_file',))]
+    command_opt = [commandOpts.CHECK_PWD(('source_file',)), commandOpts.CHECK_EXPLICIT_ID('systemId')]
     required_arguments = [
         Argument('source_file', positional=True),
         Argument('systemId', size_limit=(1, 80), positional=True),

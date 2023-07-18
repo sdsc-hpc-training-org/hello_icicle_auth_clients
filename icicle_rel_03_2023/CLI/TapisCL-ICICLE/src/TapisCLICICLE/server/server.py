@@ -199,24 +199,21 @@ class Server(commandMap.AggregateCommandMap, logger.ServerLogger, decorators.Dec
                 self.logger.warning(e)
                 continue
             except (exceptions.TimeoutError, exceptions.Shutdown) as e:
-                #error_response = schemas.ResponseData(error=str(e), url=self.url, active_username=self.username, exit_status=1)
-                #await connection.send(error_response)
                 connection.logger.warning(str(e))
                 self.running = False
                 return
             except exceptions.Exit as e:
                 connection.logger.info("user exit initiated")
-                # error_response = schemas.ResponseData(error=str(e), exit_status=1, url=self.url, active_username=self.username)
-                # await connection.send(error_response)
-                connection.set_status_exiting()
-                return
-            except OSError:
-                connection.logger.info("connection was lost, waiting to reconnect")
                 connection.set_status_exiting()
                 return
             except asyncio.CancelledError:
                 return 'task was cancelled'
             except (exceptions.CommandNotFoundError, exceptions.NoConfirmationError, exceptions.InvalidCredentialsReceived, Exception) as e:
+                if isinstance(e, OSError) and 'The specified network name is no longer available' in str(e):
+                    print(e)
+                    connection.logger.info("connection was lost, waiting to reconnect")
+                    connection.set_status_closed()
+                    return
                 error_str = traceback.format_exc()
                 error_response = schemas.ResponseData(error=str(e), url=self.url, active_username=self.username)
                 await connection.send(error_response)

@@ -54,11 +54,12 @@ class Validators:
         check that the value abids byt he size limit
         """
         min_, max_ = self.size_limit
-        if type(value) == int:
-            if value >= max_ or value < min_:
-                raise ValueError(f"The argument {self.argument} must be a value in the range {self.size_limit}")
-        elif type(value) == str and (len(value) >= max_ or len(value) < min_):
-            raise ValueError(f"The argument {self.argument} must be between the sizes {self.size_limit}")
+        if min_ != -1 and max_ != -1:
+            if type(value) == int:
+                if value >= max_ or value < min_:
+                    raise ValueError(f"The argument {self.argument} must be a value in the range {self.size_limit}")
+            elif type(value) == str and (len(value) >= max_ or len(value) < min_):
+                raise ValueError(f"The argument {self.argument} must be between the sizes {self.size_limit}")
 
     def no_validator(self, value):
         return value
@@ -74,6 +75,8 @@ class Validators:
         self.check_size_limit_followed(value)
         if self.choices and value not in self.choices:
             raise ValueError(f"The value for argument {self.argument} must be in the list {self.choices}")
+        if self.arg_type != 'bool' and isinstance(value, bool):
+            return None
         return value
     
     def confirmation_validator(self, value):
@@ -82,27 +85,47 @@ class Validators:
         return value
     
     def list_validator(self, value):
-        processed_values = list()
-        for sub_value in value:
-            processed_values.append(self.data_type.verify_rules_followed(sub_value))
-        return processed_values
+        if not isinstance(value, bool):
+            processed_values = list()
+            for sub_value in value:
+                processed_values.append(self.data_type.verify_rules_followed(sub_value))
+            return processed_values
+        if isinstance(value, bool) and value:
+            return True
+        else:
+            return None
     
     def dict_validator(self, value):
-        processed_values = dict()
-        for sub_name, sub_value in value.items():
-            processed_values[sub_name] = self.data_type.verify_rules_followed(sub_value)
-        return processed_values
+        if not isinstance(value, bool):
+            processed_values = dict()
+            for sub_name, sub_value in value.items():
+                processed_values[sub_name] = self.data_type.verify_rules_followed(sub_value)
+            return processed_values
+        if isinstance(value, bool) and value:
+            return True
+        else:
+            return None
     
     def form_validator(self, value):
-        for argument in self.arguments_list:
-            self.arguments_list[argument.argument] = argument.verify_rules_followed(value[argument.argument])
-        return argument
+        if not isinstance(value, bool):
+            flattened_value = self.flatten_form_data(value)
+            results = dict()
+            for argument_name, argument in self.arguments_list.items():
+                results[argument_name] = argument.verify_rules_followed(flattened_value[argument_name])
+            return flattened_value
+        if isinstance(value, bool) and value:
+            return True
+        else:
+            return None
     
     def selection_list_validator(self, value):
-        results = dict()
-        for field, field_bool in value.items():
-            if field_bool:
-                results[field] = self.option_dict[field]
+        if not isinstance(value, bool):
+            results = dict()
+            for field, field_bool in value.items():
+                if field_bool:
+                    results[field] = self.option_dict[field]
+        else:
+            return None
         return results
 
         
