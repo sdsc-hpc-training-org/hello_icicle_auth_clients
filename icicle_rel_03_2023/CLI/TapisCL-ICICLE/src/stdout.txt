@@ -1,0 +1,106 @@
+Server - INFO - initialization complete
+CON-1 LOGGER - INFO - Connection successfully initiated, beginning handshake
+Server - INFO - Handshake starting
+CON-1 LOGGER - INFO - Sending data of type StartupData to the client
+CON-1 LOGGER - INFO - Sending data of type AuthRequest to the client
+CON-1 LOGGER - INFO - Waiting to receive data from the client on this connection
+CON-1 LOGGER - INFO - Successfully received data of type AuthRequest
+CON-1 LOGGER - INFO - Sending data of type AuthRequest to the client
+CON-1 LOGGER - INFO - Waiting to receive data from the client on this connection
+CON-1 LOGGER - INFO - Successfully received data of type AuthRequest
+https://icicle.tapis.io
+Server - INFO - initiated in 4.323346138000488
+CON-1 LOGGER - INFO - Sending data of type AuthRequest to the client
+Server - INFO - Final connection data sent
+CON-1 LOGGER - INFO - Handshake complete
+CON-1 LOGGER - INFO - Sending command arguments now
+CON-1 LOGGER - INFO - Sending data of type ResponseData to the client
+CON-1 LOGGER - INFO - Waiting to receive data from the client on this connection
+CON-1 LOGGER - INFO - Successfully received data of type ResponseData
+CON-1 LOGGER - INFO - Argument setup succeeded on the client side
+CON-1 LOGGER - INFO - Asyncio task for socket operations was received, and is now active
+CON-1 LOGGER - INFO - All connection setup complete, beginning normal operations
+CON-1 LOGGER - INFO - Waiting to receive data from the client on this connection
+CON-1 LOGGER - INFO - Successfully received data of type CommandData
+{'connection': <server.server.ServerConnection object at 0x000001EB4A69B2B0>,
+ 'help': False,
+ 'positionals': [],
+ 'verbose': False}
+CON-1 LOGGER - INFO - Attempting to execute the command get_pods
+CON-1 LOGGER - INFO - Sending data of type ResponseData to the client
+CON-1 LOGGER - INFO - Waiting to receive data from the client on this connection
+CON-1 LOGGER - INFO - Successfully received data of type CommandData
+{'canExec': True,
+ 'canRunBatch': False,
+ 'connection': <server.server.ServerConnection object at 0x000001EB4A69B2B0>,
+ 'defaultAuthnMethod': 'PASSWORD',
+ 'description': None,
+ 'effectiveUserId': None,
+ 'enableCmdPrefix': False,
+ 'enabled': False,
+ 'file': None,
+ 'help': False,
+ 'host': 'stampede2.tacc.utexas.edu',
+ 'id': None,
+ 'importRefId': None,
+ 'isDtn': False,
+ 'jobCapabilities': None,
+ 'jobConstraints': None,
+ 'jobEnvVariables': None,
+ 'mountDataTransferNode': None,
+ 'mpiCmd': None,
+ 'notes': None,
+ 'owner': None,
+ 'port': None,
+ 'positionals': ['SillySystem2'],
+ 'rootDir': None,
+ 'systemType': 'LINUX',
+ 'tags': None,
+ 'useProxy': False,
+ 'verbose': False}
+CON-1 LOGGER - INFO - Attempting to execute the command create_system
+'NAME: canExec\nVALUE: True\n REQUIRED: False'
+CON-1 LOGGER - INFO - Sending data of type FormRequest to the client
+CON-1 LOGGER - INFO - Waiting to receive data from the client on this connection
+CON-1 LOGGER - INFO - Successfully received data of type FormResponse
+CON-1 LOGGER - INFO - Sending data of type ResponseData to the client
+CON-1 LOGGER - WARNING - Traceback (most recent call last):
+  File "C:\Users\ahuma\Desktop\programming\python_programs\hello_icicle_auth_clients\icicle_rel_03_2023\CLI\TapisCL-ICICLE\src\TapisCLICICLE\server\server.py", line 194, in receive_and_execute
+    result = await self.run_command(connection, kwargs)
+  File "C:\Users\ahuma\Desktop\programming\python_programs\hello_icicle_auth_clients\icicle_rel_03_2023\CLI\TapisCL-ICICLE\src\TapisCLICICLE\commands\commandMap.py", line 258, in run_command
+    return await command(**kwargs)
+  File "C:\Users\ahuma\Desktop\programming\python_programs\hello_icicle_auth_clients\icicle_rel_03_2023\CLI\TapisCL-ICICLE\src\TapisCLICICLE\commands\baseCommand.py", line 316, in __call__
+    kwargs = await handler(kwargs)
+  File "C:\Users\ahuma\Desktop\programming\python_programs\hello_icicle_auth_clients\icicle_rel_03_2023\CLI\TapisCL-ICICLE\src\TapisCLICICLE\commands\baseCommand.py", line 208, in handle_form_input
+    response_value = argument.verify_rules_followed(response_value)
+  File "C:\Users\ahuma\Desktop\programming\python_programs\hello_icicle_auth_clients\icicle_rel_03_2023\CLI\TapisCL-ICICLE\src\TapisCLICICLE\commands\arguments\argument.py", line 76, in verify_rules_followed
+    return_value = self.validator_map[self.arg_type](value)
+  File "C:\Users\ahuma\Desktop\programming\python_programs\hello_icicle_auth_clients\icicle_rel_03_2023\CLI\TapisCL-ICICLE\src\TapisCLICICLE\commands\arguments\argumentValidators.py", line 114, in form_validator
+    results[argument_name] = argument.verify_rules_followed(flattened_value[argument_name])
+  File "C:\Users\ahuma\Desktop\programming\python_programs\hello_icicle_auth_clients\icicle_rel_03_2023\CLI\TapisCL-ICICLE\src\TapisCLICICLE\commands\arguments\argument.py", line 76, in verify_rules_followed
+    return_value = self.validator_map[self.arg_type](value)
+  File "C:\Users\ahuma\Desktop\programming\python_programs\hello_icicle_auth_clients\icicle_rel_03_2023\CLI\TapisCL-ICICLE\src\TapisCLICICLE\commands\arguments\argumentValidators.py", line 91, in list_validator
+    processed_values.append(self.data_type.verify_rules_followed(sub_value))
+  File "C:\Users\ahuma\Desktop\programming\python_programs\hello_icicle_auth_clients\icicle_rel_03_2023\CLI\TapisCL-ICICLE\src\TapisCLICICLE\commands\arguments\argument.py", line 76, in verify_rules_followed
+    return_value = self.validator_map[self.arg_type](value)
+  File "C:\Users\ahuma\Desktop\programming\python_programs\hello_icicle_auth_clients\icicle_rel_03_2023\CLI\TapisCL-ICICLE\src\TapisCLICICLE\commands\arguments\argumentValidators.py", line 111, in form_validator
+    flattened_value = self.flatten_form_data(value)
+  File "C:\Users\ahuma\Desktop\programming\python_programs\hello_icicle_auth_clients\icicle_rel_03_2023\CLI\TapisCL-ICICLE\src\TapisCLICICLE\commands\arguments\argument.py", line 168, in flatten_form_data
+    return value[self.argument]
+KeyError: 'jobRuntime'
+
+CON-1 LOGGER - INFO - Waiting to receive data from the client on this connection
+CON-1 LOGGER - INFO - Successfully received data of type CommandData
+{'connection': <server.server.ServerConnection object at 0x000001EB4A69B2B0>,
+ 'help': False,
+ 'positionals': [],
+ 'verbose': False}
+CON-1 LOGGER - INFO - Attempting to execute the command shutdown
+CON-1 LOGGER - WARNING - shutdown initiated
+['OPEN']
+CON-1 LOGGER - INFO - ATTEMPTING TO CLOSE
+CON-1 LOGGER - INFO - successfully cancelled task
+CON-1 LOGGER - INFO - Sending data of type ResponseData to the client
+[]
+CON-1 LOGGER - INFO - SUCCESSFULLY CLOSED
+Server - INFO - [CancelledError(''), None, Shutdown('shutdown initiated')]
