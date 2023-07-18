@@ -43,6 +43,7 @@ class BaseDataFormatter:
                 return return_data
             return self.non_verbose_formatter(serialized)
         else:
+            print("ASSFUCK IMMINENT")
             return data
         
 

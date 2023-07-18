@@ -212,6 +212,8 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
                     if argument.part_of not in kwargs:
                         kwargs[argument.part_of] = dict()
                     kwargs[argument.part_of][argument.argument] = response_value
+                elif argument.arg_type != 'form':
+                    kwargs.update(**{arg_name:response_value})
                 else:
                     kwargs.update(**response_value)
         return kwargs

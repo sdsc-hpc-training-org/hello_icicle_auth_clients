@@ -188,6 +188,9 @@ class get_permissions(grant_permissions):
     
 
 class delete_permissions(baseCommand.BaseCommand):
+    """
+    @help: delete permissions to a filepath
+    """
     command_opt = [commandOpts.CHECK_PWD(('path',)), commandOpts.CHECK_EXPLICIT_ID('systemId')]
     required_arguments = [
         Argument('path', positional=True),

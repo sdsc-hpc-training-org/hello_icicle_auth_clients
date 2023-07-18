@@ -165,7 +165,7 @@ class Form(Argument):
                 exctracted_form_data = {arg_name:arg for arg_name, arg in value[self.argument].items()}
                 return exctracted_form_data
             else:
-                return value
+                return value[self.argument]
 
     def json(self):
         fields = {argument_name:argument.json() for argument_name, argument in self.arguments_list.items()}
