@@ -103,6 +103,8 @@ class CLI(handlers.Handlers):
         """
         if 'win' in sys.platform:
             os.system(rf"pythonw {server_path} 1>stdout.txt 2>stderr.txt")
+        elif 'darwin' in sys.platform:
+            subprocess.Popen(['python3', server_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, preexec_fn=os.setsid)
         else: # unix based
             subprocess.Popen(['nohup', 'python3', server_path, '&'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
