@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "TapisCL-ICICLE"
-version = "1.0.3"
+version = "1.0.4"
 description = "Provide good performance command line user interface for Tapis services hosted on HPC clusters"
 readme = "README.md"
 authors = [{ name = "Michael Ray", email = "m.ray37990@gmail.com" }]
@@ -23,6 +23,7 @@ dependencies = [
     "pydantic==1.10.4",
     "pyfiglet==0.8.post1",
     "tapipy",
+    "blessed",
     "pyperclip",
     "py2neo",
     "psycopg2-binary",
