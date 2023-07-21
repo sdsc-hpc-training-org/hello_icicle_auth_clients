@@ -9,7 +9,7 @@ Allows you to work with all major Tapis services: Pods, Systems, Files, and Apps
 
 ### Installation
 #### Using PyPi
-1. `pip install TapisCL-ICICLE`. Current version 0.0.24
+1. `pip install TapisCL-ICICLE`
 2. run using `python -m TapisCLICICLE`
 #### Running Python Code Directly
 1. Clone the repository to local machine.

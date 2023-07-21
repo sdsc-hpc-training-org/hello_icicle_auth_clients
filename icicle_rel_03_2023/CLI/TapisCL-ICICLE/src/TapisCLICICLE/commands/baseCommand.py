@@ -289,7 +289,8 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
         return non verbose help
         """
         return {"Command":self.__class__.__name__,
-                "Description":self.help_string_retriever()}
+                "Description":self.help_string_retriever(),
+                "help command":f"Enter {self.__class__.__name__} -h for parameters, or {self.__class__.__name__} -h -v for detailed command parameters"}
     
     @abstractmethod
     async def run(self, *args, **kwargs):
