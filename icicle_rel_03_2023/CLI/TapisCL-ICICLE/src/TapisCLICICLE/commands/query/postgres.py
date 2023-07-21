@@ -11,12 +11,12 @@ class postgres(baseCommand.BaseQuery):
     @help: integrated CLI to interface with Postgres pods
     """
     required_arguments = [
-        argument.Argument('id'),
+        argument.Argument('id', positional=True),
         argument.Argument('expression', arg_type='expression')
     ]
     async def run(self, *args, **kwargs) -> str:
         uname, pword = self.get_pod_credentials(kwargs['id'])
-        with psycopg2.connect(f"postgresql://{uname}:{pword}@{kwargs['id']}.pods.{self.t.base_url.split('https://')[1]}:443") as conn:
+        with psycopg2.connect(user=uname, password=pword, host=f"{kwargs['id']}.pods.{self.t.base_url.split('https://')[1]}", port=443, database=kwargs['id'], connect_timeout=10) as conn:
             conn.autocommit = True
             with conn.cursor() as cur:
                 cur.execute(query=kwargs['expression'])

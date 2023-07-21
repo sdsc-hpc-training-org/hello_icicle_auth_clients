@@ -285,7 +285,9 @@ class Handlers(Formatters):
             self.validator.enforcer.update_constraints(**attrs)
             if 'description' in attrs and attrs['description']:
                 print(attrs['description'])
-            if default:
+            if default and attrs['part_of']:
+                default_selection = default[attrs['part_of']][field]
+            elif default:
                 default_selection = default[field]
             else:
                 default_selection = None

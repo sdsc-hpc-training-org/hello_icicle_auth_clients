@@ -97,6 +97,7 @@ class Validators:
     
     def dict_validator(self, value):
         if value and not isinstance(value, bool):
+            print(f"DICT VALUE {value}")
             processed_values = dict()
             for sub_name, sub_value in value.items():
                 processed_values[sub_name] = self.data_type.verify_rules_followed(sub_value)

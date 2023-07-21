@@ -5,3 +5,5 @@
 5.  VERBOSE CONTROL IS NO LONGER WORKING!!!
 6.  command defaults are also not working
 7.  when you refactored base command you made mistakes, try running get_pods or get_systems and see!!!
+8.  add query examples on pypi
+9.  fix postgres

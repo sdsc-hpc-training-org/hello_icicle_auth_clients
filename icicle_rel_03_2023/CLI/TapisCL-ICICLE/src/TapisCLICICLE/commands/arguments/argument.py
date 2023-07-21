@@ -73,9 +73,16 @@ class Argument(argumentValidators.Validators, AbstractArgument):
         """
         if self.required and not value and value != False and self.arg_type != 'silent':
             raise ValueError(f'The argument {self.argument} is required')
-        return_value = self.validator_map[self.arg_type](value)
-        if isinstance(return_value, bool) and self.data_type != 'bool' and self.action != 'store_true' and not return_value:
-            print(f"{self.argument} RETURNING NONE")
+        return_value = value
+        print(f"RETURN VALUE: {return_value}")
+        if self.arg_type in ('standard', 'silent'):
+            return_value = self.validator_map[self.arg_type](value)
+        elif not isinstance(value, bool) and value:
+            try:
+                return_value = self.validator_map[self.arg_type](value[self.argument])
+            except:
+                return_value = self.validator_map[self.arg_type](value)
+        elif isinstance(return_value, bool) and self.data_type != 'bool' and self.action != 'store_true' and not return_value or return_value == None:
             return None
         return return_value
 
@@ -159,16 +166,13 @@ class Form(Argument):
         if value and not isinstance(value, bool):
             if self.flattening_type == 'FLATTEN':
                 flattened_form_info = {self.argument:True}
-                flattened_form_info.update(**{arg_name:arg_value for arg_name, arg_value in value[self.argument].items()})
+                flattened_form_info.update(**{arg_name:arg_value for arg_name, arg_value in value.items()})
                 return flattened_form_info
             if self.flattening_type == 'RETRIEVE':
-                exctracted_form_data = {arg_name:arg for arg_name, arg in value[self.argument].items()}
+                exctracted_form_data = {arg_name:arg for arg_name, arg in value.items()}
                 return exctracted_form_data
             else:
-                try:
-                    return value[self.argument]
-                except:
-                    return value
+                return value
 
     def json(self):
         fields = {argument_name:argument.json() for argument_name, argument in self.arguments_list.items()}

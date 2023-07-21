@@ -206,16 +206,19 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
                 if response_value == None:
                     raise ValueError(f"No value was received for the argument {arg_name}")
                 response_value = argument.verify_rules_followed(response_value)
-                if argument.arg_type == 'form' and argument.flattening_type in ('FLATTEN', 'RETRIEVE'):
+                if argument.arg_type == 'form' and argument.flattening_type in ('FLATTEN', 'RETRIEVE') and not argument.part_of:
                     kwargs.pop(arg_name)
+                    kwargs.update(**response_value)
+                    continue
                 if argument.part_of:
+                    kwargs.pop(arg_name)
                     if argument.part_of not in kwargs:
                         kwargs[argument.part_of] = dict()
                     kwargs[argument.part_of][argument.argument] = response_value
-                elif argument.arg_type != 'form':
-                    kwargs.update(**{arg_name:response_value})
-                else:
-                    kwargs.update(**response_value)
+                else: 
+                    pprint(response_value)
+                    kwargs[arg_name] = response_value
+                pprint(kwargs)
         return kwargs
 
     async def handle_arg_opts(self, kwargs):
@@ -288,9 +291,12 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
         """
         return non verbose help
         """
-        return {"Command":self.__class__.__name__,
+        help = {"Command":self.__class__.__name__,
                 "Description":self.help_string_retriever(),
                 "help command":f"Enter {self.__class__.__name__} -h for parameters, or {self.__class__.__name__} -h -v for detailed command parameters"}
+        if self.return_fields:
+            help['verbose'] = "add the '-v' flag to view full command results"
+        return help
     
     @abstractmethod
     async def run(self, *args, **kwargs):
