@@ -61,7 +61,6 @@ JOB_ENVIRONMENT_VARIABLES = Argument('jobEnvVariables', arg_type='input_list', d
         ]
     ))
 
-
 JOB_CAPABILITIES = Argument('jobCapabilities', arg_type='input_list', data_type=argument.Form(
             'jobCapability', required_arguments=[
                 Argument('name', size_limit=(1, 128)),

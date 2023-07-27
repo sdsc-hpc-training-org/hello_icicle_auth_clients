@@ -6,11 +6,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "TapisCL-ICICLE"
-version = "0.2.2"
+version = "1.0.5"
 description = "Provide good performance command line user interface for Tapis services hosted on HPC clusters"
 readme = "README.md"
 authors = [{ name = "Michael Ray", email = "m.ray37990@gmail.com" }]
 license = { file = "LICENSE" }
+requires-python = ">=3.6"
 classifiers = [
     "License :: OSI Approved :: GNU General Public License (GPL)",
     "Programming Language :: Python",
@@ -18,19 +19,19 @@ classifiers = [
 ]
 keywords = ["Tapis", "CLI", "Agave", "HPC", "Tapis Pods", "TACC"]
 
-[tool.poetry.dependencies]
-python = "^3.6"
-pydantic = "1.10.4"
-pyfiglet = "0.8.post1"
-tapipy = "*"
-pyperclip = "*"
-py2neo = "*"
-psycopg2-binary = "*"
-blessed = "*"
-prompt_toolkit = "*"
-TapisFederatedAuthClientAPI = "*"
-requests = "*"
-questionary = "1.10.0"
+dependencies = [
+    "pydantic==1.10.4",
+    "pyfiglet==0.8.post1",
+    "tapipy",
+    "blessed",
+    "pyperclip",
+    "py2neo",
+    "psycopg2-binary",
+    "prompt_toolkit",
+    "TapisFederatedAuthClientAPI",
+    "requests",
+    "questionary==1.10.0"
+]
 
 [project.optional-dependencies]
 dev = []

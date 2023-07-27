@@ -145,7 +145,7 @@ class get_apps(baseCommand.BaseCommand):
     """
     @help: get a list of all available apps
     """
-    return_fields = ['id', 'version', 'status']
+    return_fields = ['id', 'version']
     optional_arguments = [
         Argument('listType', choices=[
             'OWNED',

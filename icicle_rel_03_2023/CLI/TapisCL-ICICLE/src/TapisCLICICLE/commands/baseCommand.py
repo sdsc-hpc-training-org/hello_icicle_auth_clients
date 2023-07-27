@@ -7,7 +7,7 @@ from typing import Type
 import typing
 from abc import abstractmethod, ABC
 import os
-from pprint import pprint
+from pprint import pprint, pformat
 from datetime import datetime
 
 # I finally understand. Imported at the top level by serverRun, so it can only see packages from that vantage point
@@ -95,8 +95,8 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
     required_arguments: list[Argument] | dict = list()
     optional_arguments: list[Argument] | dict = list()
     default_arguments = [Argument('connection', arg_type='silent'),
-                            Argument('verbose', arg_type='silent'),
-                            Argument('help', arg_type='silent'),
+                            Argument('verbose', action='store_true', arg_type='silent'),
+                            Argument('help', action='store_true', arg_type='silent'),
                             Argument('positionals', arg_type='silent')]
     updateable_form_retriever: UpdatableFormRetriever = None
     def __init__(self):
@@ -110,9 +110,11 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
         if self.supports_config_file:
             self.optional_arguments.append(Argument('file'))
         if self.required_arguments:
-            map(lambda argument: argument.is_required(True), self.required_arguments)
+            for argument in self.required_arguments:
+                argument.is_required(True)
         if self.optional_arguments:
-            map(lambda argument: argument.is_required(False), self.optional_arguments)
+            for argument in self.optional_arguments:
+                argument.is_required(False)
         if isinstance(self.required_arguments, list):
             self.required_arguments = {argument.argument:argument for argument in self.required_arguments}
             self.arguments.update(**self.required_arguments)
@@ -131,7 +133,6 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
         self.command_execution_sequence.append(self.verify_argument_rules_followed)
         if self.form_arguments:
             self.command_execution_sequence.append(self.handle_form_input)
-        self.command_execution_sequence.append(self.verify_argument_rules_followed)
         self.command_execution_sequence.append(self.filter_kwargs)
 
     async def verify_argument_rules_followed(self, kwargs):
@@ -144,20 +145,19 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
                 for dependency in value.depends_on:
                     if not kwargs[dependency]:
                         raise Exception(f"The argument {name} requires the arguments {value.depends_on}")
-            if kwargs[name] and value.mutually_exclusive_with and value.mutually_exclusive_with in kwargs and kwargs[value.mutually_exclusive_with]:
+            if kwargs[name] and value.mutually_exclusive_with and kwargs[value.mutually_exclusive_with]:
                 raise Exception(f'The argument {name} is mutually exclusive with {value.mutually_exclusive_with}. Only one can be specified!')
-            if self.arguments[name].arg_type == 'form' and self.arguments[name].flattening_type != 'NONE' and name in kwargs and kwargs[name] and not isinstance(kwargs[name], (bool)):
-                kwargs.update(**self.arguments[name].flatten_form_data(kwargs, name))
         return kwargs
 
     async def filter_kwargs(self, kwargs):
         """
-        filters out kwargs that have None value, Tapis breaks if I dont do this
+        filters out kwargs that have None value, Tapis breaks if I dont do this, especially with form arguments
         """
         filtered_kwargs = dict()
-        for arg, value in kwargs.items():
-            if value or self.arguments(arg).required or (value == False and self.arguments[arg].arg_type == 'standard'):
-                filtered_kwargs[arg] = value
+        for arg_name, value in kwargs.items():
+            if value != None:
+                filtered_kwargs[arg_name] = value
+        #kwargs['connection'].logger.info(f"Running the command {self.__class__.__name__} with the kwargs {pformat(filtered_kwargs)}")
         return filtered_kwargs
 
     async def handle_config_file(self, kwargs):
@@ -171,11 +171,11 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
                 kwargs.pop('error')
         return kwargs
     
-    async def handle_form_input(self, kwargs, complex_args_flag=True):
+    async def handle_form_input(self, kwargs):
         """
         handles forms when the user selects to fill them out
         """
-        existing_values = dict()
+        existing_values = dict() # If it aint broke, dont fix it. This code sucks but I cant meet the deadline if I try fixing this abomination
         if self.updateable_form_retriever:
             existing_values = self.return_formatter.obj_to_dict(self.updateable_form_retriever(self.t, **kwargs))
             to_pop = []
@@ -195,18 +195,30 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
             if reformatted_default_values:
                 existing_values = reformatted_default_values
 
-        for arg_name in self.form_arguments:
-            if kwargs[arg_name] or self.arguments[arg_name].required:
-                request = schemas.FormRequest(request_content={arg_name:self.arguments[arg_name]}, existing_data=existing_values)
+        for arg_name in self.form_arguments: 
+            argument = self.arguments[arg_name]
+            if kwargs[arg_name] or argument.required:
+                pprint(f"NAME: {arg_name}\nVALUE: {kwargs[arg_name]}\n REQUIRED: {self.arguments[arg_name].required}")
+                request = schemas.FormRequest(request_content={arg_name:argument}, existing_data=existing_values)
                 await kwargs['connection'].send(request)
                 response: schemas.FormResponse = await kwargs['connection'].receive()
                 response_value = response.request_content
+                if response_value == None:
+                    raise ValueError(f"No value was received for the argument {arg_name}")
+                response_value = argument.verify_rules_followed(response_value)
+                if argument.arg_type == 'form' and argument.flattening_type in ('FLATTEN', 'RETRIEVE') and not argument.part_of:
+                    kwargs.pop(arg_name)
+                    kwargs.update(**response_value)
+                    continue
                 if argument.part_of:
+                    kwargs.pop(arg_name)
                     if argument.part_of not in kwargs:
                         kwargs[argument.part_of] = dict()
                     kwargs[argument.part_of][argument.argument] = response_value
-                else:
-                    kwargs.update(**response.request_content)
+                else: 
+                    pprint(response_value)
+                    kwargs[arg_name] = response_value
+                pprint(kwargs)
         return kwargs
 
     async def handle_arg_opts(self, kwargs):
@@ -253,7 +265,7 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
         verbose_dict = dict()
         standard_str = str()
         for name, argument in arg_dict.items():
-            if not (name in self.form_arguments) and argument.arg_type != 'silent':
+            if argument.arg_type != 'silent' and not (argument.arg_type != 'standard' and argument.required):
                 verbose_dict[name] = argument.help_message()
                 standard_str += argument.str()
         return {'verbose':verbose_dict, 'standard':standard_str}
@@ -279,8 +291,12 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
         """
         return non verbose help
         """
-        return {"Command":self.__class__.__name__,
-                "Description":self.help_string_retriever()}
+        help = {"Command":self.__class__.__name__,
+                "Description":self.help_string_retriever(),
+                "help command":f"Enter {self.__class__.__name__} -h for parameters, or {self.__class__.__name__} -h -v for detailed command parameters"}
+        if self.return_fields:
+            help['verbose'] = "add the '-v' flag to view full command results"
+        return help
     
     @abstractmethod
     async def run(self, *args, **kwargs):
@@ -293,6 +309,7 @@ class BaseCommand(ABC, HelpStringRetriever, metaclass=CommandMetaClass):
         """
         runs all command meta-operations
         """
+        kwargs['connection'].logger.info(f"Attempting to execute the command {self.__class__.__name__}")
         if self.supports_config_file and kwargs['file']: # if there is a config file input, skip all the other steps and take kwargs from that file
             new_kwargs = await self.handle_config_file(kwargs)
             for arg_name, arg in kwargs.items():

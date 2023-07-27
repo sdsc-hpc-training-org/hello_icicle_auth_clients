@@ -1,5 +1,6 @@
 from .Apps import appCommands
 from .Systems import systemCommands
+import pprint
 
 
 if __name__ != "__main__":
@@ -141,7 +142,9 @@ class Files(baseCommand.BaseCommandMap):
         'mv':fileCommands.mv(),
         'cp':fileCommands.cp(),
         'rm':fileCommands.rm(),
-        #'get_recent_transfers':fileCommands.get_recent_transfers(),
+        'get_permissions':fileCommands.get_permissions(),
+        'grant_permissions':fileCommands.grant_permissions(),
+        'delete_permissions':fileCommands.delete_permissions(),
         'create_postit':fileCommands.create_postit(),
         'list_postits':fileCommands.list_postits(),
         'get_postit':fileCommands.get_postit(),
@@ -187,6 +190,7 @@ class Jobs(baseCommand.BaseCommandMap):
         'get_jobs':jobCommands.get_jobs(),
         'download_job_output':jobCommands.download_job_output(),
         'get_job_status':jobCommands.get_job_status(),
+        'get_job_last_message':jobCommands.get_job_last_message(),
         'resubmit_job':jobCommands.resubmit_job(),
         'submit_job':jobCommands.submit_job(),
         'share_job':jobCommands.share_job(),
@@ -266,7 +270,6 @@ class AggregateCommandMap(baseCommand.CommandContainer, ArgsGenerator):
         process and run command based on received kwargs
         """
         command_name = command_data['command_selection']
-
         if command_name in self.aggregate_command_map:
             command = self.aggregate_command_map[command_name]
             command_data['connection'] = connection
@@ -274,6 +277,7 @@ class AggregateCommandMap(baseCommand.CommandContainer, ArgsGenerator):
             for argument, value in command_data.items():
                 if argument in command.arguments:
                     kwargs[argument] = value
+            pprint.pprint(kwargs)
             return await command(**kwargs)
         elif command_name in self.groups:
             return self.groups[command_name]()

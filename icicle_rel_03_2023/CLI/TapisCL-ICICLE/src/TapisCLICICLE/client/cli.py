@@ -87,9 +87,9 @@ class CLI(handlers.Handlers):
         parser.error = self.parser_error
         
         for arg_name, arg in arguments.items():
-            if arg['action'] == 'store_true':
+            if (arg['action'] == 'store_true' and arg['arg_type'] == 'standard') or (arg['arg_type'] == 'form' and arg['flattening_type'] == 'FLATTEN'):
                 default = False
-            elif arg['action'] == 'store_false':
+            elif (arg['action'] == 'store_false' and arg['arg_type'] == 'standard') or (arg['arg_type'] != 'standard' and arg['required']):
                 default = True
             else:
                 default = None
@@ -102,7 +102,9 @@ class CLI(handlers.Handlers):
         detect client operating system. The local server intitialization is different between unix and windows based systems
         """
         if 'win' in sys.platform:
-            os.system(rf"pythonw {server_path}")
+            os.system(rf"pythonw {server_path} 1>stdout.txt 2>stderr.txt")
+        elif 'darwin' in sys.platform:
+            subprocess.Popen(['python3', server_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True, preexec_fn=os.setsid)
         else: # unix based
             subprocess.Popen(['nohup', 'python3', server_path, '&'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 

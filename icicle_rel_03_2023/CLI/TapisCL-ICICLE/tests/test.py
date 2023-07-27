@@ -1,2 +1,3 @@
-x = dict(zip(['a', 'b'], ['c', 'd']))
+x = {'x':'y'}
+x.update(**{'hehe':''})
 print(x)

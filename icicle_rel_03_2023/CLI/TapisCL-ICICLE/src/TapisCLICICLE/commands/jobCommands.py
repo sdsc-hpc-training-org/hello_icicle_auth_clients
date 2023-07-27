@@ -96,6 +96,16 @@ class get_job_status(baseCommand.BaseCommand):
         return self.t.jobs.getJobStatus(**kwargs)
     
 
+class get_job_last_message(baseCommand.BaseCommand):
+    """
+    @help: retrieve the last message of a job
+    """
+    required_arguments = [
+        Argument('jobUuid')
+    ]
+    async def run(self, *args, **kwargs):
+        return self.t.jobs.getJob(**kwargs).lastMessage
+
 class resubmit_job(baseCommand.BaseCommand):
     """
     @help: resubmit a job with the same arguments as the original submission
@@ -131,7 +141,7 @@ class share_job(baseCommand.BaseCommand):
         Argument('jobUuid')
     ]
     optional_arguments = [
-        Argument('grantee'),
+        Argument('grantee', description='Who are you sharing this with?'),
         Argument('jobResource', choices=['JOB_HISTORY', 'JOB_RESUBMIT_REQUEST', 'JOB_OUTPUT', 'JOB_INPUT']),
         Argument('jobPermission', choices=['READ'])
     ]

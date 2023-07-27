@@ -1,4 +1,5 @@
 import pyperclip
+import pprint
 from tapipy.tapis import errors as TapisErrors
 
 
@@ -33,14 +34,15 @@ class get_pod(baseCommand.BaseCommand):
 
 class create_pod(baseCommand.BaseCommand):
     """
-    @help: create a new pod on the selected Tapis service
-    @doc: fix the pod updating, make sure non selected optional vaiables do not overwrite. Why description appending???
+    @help: create a new pod. Pods are non persistent and have limited lives by default. You can either set them to live forever by setting time to stop to -1, or have them backup to a volume mount
     """
     return_fields = ['pod_id', 'pod_template', 'status']
     supports_config_file=True
     required_arguments=[
         Argument('pod_id', positional=True),
         Argument('pod_template', positional=True),
+    ]
+    optional_arguments=[
         Argument('volume_mounts', arg_type='input_dict', data_type=argument.Form(
             'volume_mount', required_arguments = [
                 Argument('type', choices=['tapisvolume', 'tapissnapshot', 'pvc']),
@@ -50,14 +52,12 @@ class create_pod(baseCommand.BaseCommand):
                 Argument('sub_path', description='If you want to only load a single file, like file.txt (which is inside the parent mount path) you can specify here')
             ]
         ), description="Used to attach the pod to an existing kubernetes volume to provide pod persistence (in case of crash). Each key is the volume_id"),
-    ]
-    optional_arguments=[
         Argument('description', arg_type='str_input', size_limit=(0, 2048)),
         Argument('command', arg_type='input_list', data_type=argument.Argument('command', arg_type='str_input'), description="Command to run in the pod"),
         Argument('environment_variables', arg_type='input_dict', data_type=argument.Argument('environment_variable', arg_type='str_input')),
         Argument('roles_required', arg_type='input_list', data_type=argument.Argument('required_role', arg_type='str_input'), description='what role is required by the user to access this pod?'),
-        Argument('time_to_stop_default', data_type='int'),
-        Argument('time_to_stop_instance', data_type='int'),
+        Argument('time_to_stop_default', data_type='int', description='set to -1 to run forever'),
+        Argument('time_to_stop_instance', data_type='int', description='set to -1 to run forever'),
         Argument('networking', arg_type='input_dict', data_type=argument.Form(
             'network', required_arguments = [
                 Argument('protocol', default_value='http', description='Something like https'),
@@ -149,6 +149,7 @@ class update_pod(create_pod): # make it so the command retrieves current setting
         )
     ]
     async def run(self, *args, **kwargs):
+        pprint.pprint(kwargs)
         pod_information = self.t.pods.update_pod(**kwargs)
         return pod_information
 
@@ -198,14 +199,13 @@ class delete_pod(baseCommand.BaseCommand):
     """
     @help: delete select pod
     """
-    return_fields = ['pod_id', 'pod_template', 'status']
     required_arguments=[
         Argument('pod_id', positional=True),
         Argument('confirm', arg_type='confirmation')
     ]
     async def run(self, *args, **kwargs) -> str: 
         return_information = self.t.pods.delete_pod(pod_id=kwargs['pod_id'])
-        return str(return_information)
+        return return_information
     
 
 class set_pod_perms(baseCommand.BaseCommand):
@@ -233,7 +233,7 @@ class delete_pod_perms(baseCommand.BaseCommand):
         Argument('username')
     ]
     async def run(self, *args, **kwargs) -> str: # take away someones perms if they are being malicious, or something
-        return_information = self.t.pods.delete_pod_perms(pod_id=kwargs['pod_id'], user=kwargs['username'])
+        return_information = self.t.pods.delete_pod_permission(pod_id=kwargs['pod_id'], user=kwargs['username'])
         return return_information
 
 

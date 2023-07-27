@@ -36,3 +36,8 @@ overhaul of files and systems to grant user access to additional tapis resources
   
 ### Planned Changes
 * currently jobs only supported on tacc systems. will add better support for other icicle tenants later
+
+## 1.0.0
+### 7/18/203
+### Changes
+Mostly bug fixes, this is the final version unless bugs are discovered

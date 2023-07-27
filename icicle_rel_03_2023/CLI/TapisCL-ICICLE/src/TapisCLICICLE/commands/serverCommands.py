@@ -32,6 +32,7 @@ class get_tenants(baseCommand.BaseCommand): # give this return fields
         for tenant in tenants:
             return_data[tenant.tenant_id] = {'uri':tenant.base_url.split('//')[1], 'owner':tenant.owner, 'description':tenant.description}
         return return_data
+
     
 
 class get_tenant(baseCommand.BaseCommand):

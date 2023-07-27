@@ -11,7 +11,7 @@ class postgres(baseCommand.BaseQuery):
     @help: integrated CLI to interface with Postgres pods
     """
     required_arguments = [
-        argument.Argument('id'),
+        argument.Argument('id', positional=True),
         argument.Argument('expression', arg_type='expression')
     ]
     async def run(self, *args, **kwargs) -> str:
