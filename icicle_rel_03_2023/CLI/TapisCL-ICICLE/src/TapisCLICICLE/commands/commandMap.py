@@ -3,7 +3,7 @@ from .Systems import systemCommands
 
 
 if __name__ != "__main__":
-    from . import volumeCommands, serverCommands, podCommands, fileCommands, dataFormatters, baseCommand, jobCommands
+    from . import authenticatorClients, snapshotCommands, volumeCommands, serverCommands, podCommands, fileCommands, dataFormatters, baseCommand, jobCommands
     from .query import postgres, neo4j
     from utilities import exceptions
     from commands.arguments.argument import Argument
@@ -75,7 +75,8 @@ class Pods(baseCommand.BaseCommandMap):
         'stop_pod':podCommands.stop_pod(),
         'delete_pod_perms':podCommands.delete_pod_perms(),
         'get_pod_perms':podCommands.get_pod_perms(),
-        'copy_pod_password':podCommands.copy_pod_password(),
+        'get_pod_credentials':podCommands.get_pod_credentials(),
+        'get_pod_uri':podCommands.get_pod_uri(),
         'get_pod_logs':podCommands.get_pod_logs(),
     }
 
@@ -97,14 +98,34 @@ class Volumes(baseCommand.BaseCommandMap):
         'set_volume_permission':volumeCommands.set_volume_permission(),
         'get_volume_permissions':volumeCommands.get_volume_permissions(),
         'delete_volume_permission':volumeCommands.delete_volume_permission(),
-        'get_snapshots':volumeCommands.get_snapshots(),
-        'create_snapshot':volumeCommands.create_snapshot(),
-        'get_snapshot':volumeCommands.get_snapshot(),
-        'update_snapshot':volumeCommands.update_snapshot(),
-        'delete_snapshot':volumeCommands.delete_snapshot(),
-        'list_snapshot_files':volumeCommands.list_snapshot_files()
     }
 
+
+class Snapshots(baseCommand.BaseCommandMap):
+    """
+    @help: commands to deal with snapshots
+    """
+    command_map = {
+        'get_snapshots':snapshotCommands.get_snapshots(),
+        'create_snapshot':snapshotCommands.create_snapshot(),
+        'get_snapshot':snapshotCommands.get_snapshot(),
+        'update_snapshot':snapshotCommands.update_snapshot(),
+        'delete_snapshot':snapshotCommands.delete_snapshot(),
+        'list_snapshot_files':snapshotCommands.list_snapshot_files()
+    }
+
+
+class AuthClients(baseCommand.BaseCommandMap):
+    """
+    @help: manage auth clients to be used on your own applications
+    """
+    command_map = {
+        'list_clients': authenticatorClients.list_clients(),
+        'create_client': authenticatorClients.create_client(),
+        'get_client': authenticatorClients.get_client(),
+        'update_client': authenticatorClients.update_client(),
+        'delete_client': authenticatorClients.delete_client()
+    }
 
 class Files(baseCommand.BaseCommandMap):
     """
@@ -218,7 +239,9 @@ class AggregateCommandMap(baseCommand.CommandContainer, ArgsGenerator):
         'Apps': Apps(),
         'Query': Query(),
         'Volumes':Volumes(),
-        'Jobs': Jobs()
+        'Jobs': Jobs(),
+        'Snapshots': Snapshots(),
+        'AuthClients': AuthClients()
     }
     def __init__(self):
         truncated_arguments = self.generate_truncated_arguments(self.arguments)

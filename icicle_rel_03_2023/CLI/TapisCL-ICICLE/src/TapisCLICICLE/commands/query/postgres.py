@@ -16,7 +16,12 @@ class postgres(baseCommand.BaseQuery):
     ]
     async def run(self, *args, **kwargs) -> str:
         uname, pword = self.get_pod_credentials(kwargs['id'])
-        with psycopg2.connect(f"postgresql://{uname}:{pword}@{kwargs['id']}.pods.{self.t.base_url.split('https://')[1]}:443") as conn:
+        db_con_params = {"host": f"{kwargs['id']}.pods.icicle.tapis.io",
+           "port":  443,
+           "database": "postgres",
+           "user": uname,
+           "password": pword}
+        with psycopg2.connect(**db_con_params) as conn:
             conn.autocommit = True
             with conn.cursor() as cur:
                 cur.execute(query=kwargs['expression'])

@@ -250,7 +250,7 @@ class get_pod_perms(baseCommand.BaseCommand):
         return return_information
 
 
-class copy_pod_password(baseCommand.BaseCommand):
+class get_pod_credentials(baseCommand.BaseCommand):
     """
     @help: copy the pod password to the clipboard
     """
@@ -258,10 +258,27 @@ class copy_pod_password(baseCommand.BaseCommand):
         Argument('pod_id', positional=True),
     ]
     async def run(self, *args, **kwargs) -> str: # copies the pod password to clipboard so that the user can access the pod via the neo4j desktop app. Maybe a security risk? not as bad as printing passwords out!
-        password = self.t.pods.get_pod_credentials(pod_id=kwargs['pod_id']).user_password
+        creds = self.t.pods.get_pod_credentials(pod_id=kwargs['pod_id'])
+        username = creds.user_username
+        password = creds.user_password
         pyperclip.copy(password)
         password = None
-        return 'copied to clipboard'
+        return f'Username: {username}\nCopied password to clipboard'
+    
+
+class get_pod_uri(baseCommand.BaseCommand):
+    """
+    @help: get the URI for a pod
+    """
+    required_arguments = [
+        Argument('pod_id')
+    ]
+    async def run(self, *args, **kwargs):
+        pod_template = self.t.pods.get_pod(pod_id=kwargs["pod_id"]).pod_template
+        if pod_template == 'template/neo4j':
+            return f"bolt+ssc://{kwargs['id']}.pods.{self.t.base_url.split('https://')[1]}:443"
+        else:
+            return f"{kwargs['id']}.pods.{self.t.base_url.split('https://')[1]}"
 
 
 class get_pod_logs(baseCommand.BaseCommand):
