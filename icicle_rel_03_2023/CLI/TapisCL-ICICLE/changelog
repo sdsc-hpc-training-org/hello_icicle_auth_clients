@@ -38,6 +38,14 @@ overhaul of files and systems to grant user access to additional tapis resources
 * currently jobs only supported on tacc systems. will add better support for other icicle tenants later
 
 ## 1.0.0
-### 7/18/203
+### 7/18/2023
 ### Changes
 Mostly bug fixes, this is the final version unless bugs are discovered
+
+## 1.0.7
+### 7/18/2023
+### Changes
+* Bug fixes for postgres pods
+* fixed issues involving credential retrieval for pods
+* made snapshot commands their own thing
+* added authenticator clients command group
