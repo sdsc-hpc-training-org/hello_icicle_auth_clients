@@ -9,7 +9,7 @@ CON-1 LOGGER - INFO - Sending data of type AuthRequest to the client
 CON-1 LOGGER - INFO - Waiting to receive data from the client on this connection
 CON-1 LOGGER - INFO - Successfully received data of type AuthRequest
 https://icicle.tapis.io
-Server - INFO - initiated in 5.460535287857056
+Server - INFO - initiated in 4.384427547454834
 CON-1 LOGGER - INFO - Sending data of type AuthRequest to the client
 Server - INFO - Final connection data sent
 CON-1 LOGGER - INFO - Handshake complete
@@ -22,88 +22,27 @@ CON-1 LOGGER - INFO - Asyncio task for socket operations was received, and is no
 CON-1 LOGGER - INFO - All connection setup complete, beginning normal operations
 CON-1 LOGGER - INFO - Waiting to receive data from the client on this connection
 CON-1 LOGGER - INFO - Successfully received data of type CommandData
-{'canRunBatch': False,
- 'connection': <server.server.ServerConnection object at 0x00000276671D4730>,
- 'defaultAuthnMethod': None,
- 'description': None,
- 'effectiveUserId': None,
- 'enableCmdPrefix': False,
- 'help': True,
- 'importRefId': None,
- 'jobCapabilities': None,
- 'jobConstraints': None,
- 'jobEnvVariables': None,
- 'jobRuntimes': None,
- 'jobWorkingDir': None,
- 'mountDataTransferNode': None,
- 'mpiCmd': None,
- 'notes': None,
- 'port': None,
- 'positionals': [],
- 'systemId': None,
- 'tags': None,
- 'useProxy': False,
- 'verbose': False}
-CON-1 LOGGER - INFO - Attempting to execute the command update_system
-CON-1 LOGGER - INFO - Sending data of type ResponseData to the client
-CON-1 LOGGER - INFO - Waiting to receive data from the client on this connection
-CON-1 LOGGER - INFO - Successfully received data of type CommandData
-{'canRunBatch': False,
- 'connection': <server.server.ServerConnection object at 0x00000276671D4730>,
- 'defaultAuthnMethod': None,
- 'description': None,
- 'effectiveUserId': None,
- 'enableCmdPrefix': False,
+{'connection': <server.server.ServerConnection object at 0x0000018F016898A0>,
  'help': False,
- 'importRefId': None,
- 'jobCapabilities': None,
- 'jobConstraints': None,
- 'jobEnvVariables': None,
- 'jobRuntimes': None,
- 'jobWorkingDir': None,
- 'mountDataTransferNode': None,
- 'mpiCmd': True,
- 'notes': None,
- 'port': None,
- 'positionals': ['TESTING'],
- 'systemId': None,
- 'tags': None,
- 'useProxy': False,
+ 'positionals': [],
  'verbose': False}
-CON-1 LOGGER - INFO - Attempting to execute the command update_system
-TESTING
-<server.server.ServerConnection object at 0x00000276671D4730>
-False
-False
-['TESTING']
-False
-False
-None
+CON-1 LOGGER - INFO - Attempting to execute the command whoami
+RETURN VALUE: <server.server.ServerConnection object at 0x0000018F016898A0>
+RETURN VALUE: False
+RETURN VALUE: False
+RETURN VALUE: []
 CON-1 LOGGER - INFO - Sending data of type ResponseData to the client
-CON-1 LOGGER - WARNING - Traceback (most recent call last):
-  File "C:\Users\ahuma\Desktop\programming\python_programs\hello_icicle_auth_clients\icicle_rel_03_2023\CLI\TapisCL-ICICLE\src\TapisCLICICLE\server\server.py", line 194, in receive_and_execute
-    result = await self.run_command(connection, kwargs)
-  File "C:\Users\ahuma\Desktop\programming\python_programs\hello_icicle_auth_clients\icicle_rel_03_2023\CLI\TapisCL-ICICLE\src\TapisCLICICLE\commands\commandMap.py", line 258, in run_command
-    return await command(**kwargs)
-  File "C:\Users\ahuma\Desktop\programming\python_programs\hello_icicle_auth_clients\icicle_rel_03_2023\CLI\TapisCL-ICICLE\src\TapisCLICICLE\commands\baseCommand.py", line 319, in __call__
-    kwargs = await handler(kwargs)
-  File "C:\Users\ahuma\Desktop\programming\python_programs\hello_icicle_auth_clients\icicle_rel_03_2023\CLI\TapisCL-ICICLE\src\TapisCLICICLE\commands\baseCommand.py", line 143, in verify_argument_rules_followed
-    kwargs[name] = self.arguments[name].verify_rules_followed(kwargs[name])
-  File "C:\Users\ahuma\Desktop\programming\python_programs\hello_icicle_auth_clients\icicle_rel_03_2023\CLI\TapisCL-ICICLE\src\TapisCLICICLE\commands\arguments\argument.py", line 81, in verify_rules_followed
-    return_value = self.validator_map[self.arg_type](value[self.argument])
-TypeError: 'NoneType' object is not subscriptable
-
 CON-1 LOGGER - INFO - Waiting to receive data from the client on this connection
 CON-1 LOGGER - INFO - Successfully received data of type CommandData
-{'connection': <server.server.ServerConnection object at 0x00000276671D4730>,
+{'connection': <server.server.ServerConnection object at 0x0000018F016898A0>,
  'help': False,
  'positionals': [],
  'verbose': False}
 CON-1 LOGGER - INFO - Attempting to execute the command shutdown
-<server.server.ServerConnection object at 0x00000276671D4730>
-False
-False
-[]
+RETURN VALUE: <server.server.ServerConnection object at 0x0000018F016898A0>
+RETURN VALUE: False
+RETURN VALUE: False
+RETURN VALUE: []
 CON-1 LOGGER - WARNING - shutdown initiated
 ['OPEN']
 CON-1 LOGGER - INFO - ATTEMPTING TO CLOSE

@@ -40,7 +40,7 @@ class get_client(baseCommand.BaseCommand):
         Argument('client_id')
     ]
     async def run(self, *args, **kwargs):
-        return self.t.get_client(**kwargs)
+        return self.t.authenticator.get_client(**kwargs)
     
 
 class update_client(baseCommand.BaseCommand):
@@ -56,7 +56,7 @@ class update_client(baseCommand.BaseCommand):
         Argument('display_name')
     ]
     async def run(self, *args, **kwargs):
-        return self.t.update_client(**kwargs)
+        return self.t.authenticator.update_client(**kwargs)
     
 
 class delete_client(baseCommand.BaseCommand):
@@ -67,4 +67,4 @@ class delete_client(baseCommand.BaseCommand):
         Argument('client_id')
     ]
     async def run(self, *args, **kwargs):
-        return self.t.authenticatore.delete_client(**kwargs)
+        return self.t.authenticator.delete_client(**kwargs)
