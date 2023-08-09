@@ -1,7 +1,5 @@
 from py2neo import Graph
 import py2neo
-import pandas as pd
-
 
 if __name__ != "__main__":
     from .. import baseCommand, decorators
