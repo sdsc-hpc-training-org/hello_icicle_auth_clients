@@ -26,4 +26,5 @@ class postgres(baseCommand.BaseQuery):
             with conn.cursor() as cur:
                 cur.execute(query=kwargs['expression'])
                 return_value = cur.fetchall()
-        return str(f'[+][{kwargs["id"]}] {return_value}')
+            
+        return return_value
