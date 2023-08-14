@@ -227,12 +227,10 @@ class CLI(handlers.Handlers):
             except (TypeError, argparse.ArgumentError, argparse.ArgumentTypeError) as e:
                 print(e)
                 error_str = traceback.format_exc()
-                print(error_str)
                 print("Invalid command")
             except Exception as e:
                 error_str = traceback.format_exc()
                 #if self.debug:
-                print(error_str)
                 print(e)
                 error_message = schemas.ResponseData(error=str(e))
                 self.connection.send(error_message)
